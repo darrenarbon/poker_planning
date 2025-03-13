@@ -97,8 +97,6 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
     }, [currentTicket, roomName, tickets, user]);
 
     const selectTicket = (ticket: TicketForVoting) => {
-        // add here
-        debugger;
         setCurrentTicket(ticket);
         setShowVotes(false);
     };

@@ -1,5 +1,5 @@
-import { TicketForVoting } from '../PokerSession/PokerSession';
 import classNames from 'classnames';
+import { TicketForVoting, VoteModel } from '../PokerSession/types';
 
 interface TicketProps {
     ticket: TicketForVoting;
@@ -17,7 +17,7 @@ const Ticket = ({
     adminId,
 }: TicketProps) => {
     const getMyVote = () => {
-        const vote = ticket.votes.find((v) => v.userSub === userSub);
+        const vote = ticket.votes.find((v: VoteModel) => v.userSub === userSub);
         return vote ? vote.vote : null;
     };
 
