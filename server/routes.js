@@ -175,6 +175,10 @@ router.get('/room/:roomName', async (req, res) => {
   }
 });
 
+router.get('/darren', async (req, res) => {
+  res.json({ message: 'Hello Darren!' });
+});
+
 router.get('*', (req, res) => {
   res.send('Sorry, page not found... What are you doing with your life?');
 });
