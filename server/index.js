@@ -20,14 +20,14 @@ const io = new Server(server, {
     cors: {
         origin: '*',
         methods: ['GET', 'POST'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
-        credentials: true,
     },
 });
 
 const corsOptions = {
     origin: process.env.FRONT_END_URL,
     credentials: true,
+    methods: '*',
+    allowedHeaders: ['Content-Type', 'Authorization'],
 };
 app.use(cors(corsOptions));
 
