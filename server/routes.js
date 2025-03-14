@@ -6,7 +6,7 @@ import { auth } from 'express-oauth2-jwt-bearer';
 
 const checkJwt = auth({
     audience: process.env.LOCAL_URL,
-    issuerBaseURL: `https://dev-1jevct6pshmx18pw.uk.auth0.com/api/v2/`,
+    issuerBaseURL: `https://dev-1jevct6pshmx18pw.uk.auth0.com/`,
 });
 
 const getUserDetails = async (sub) => {
