@@ -76,11 +76,8 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/newroom', async (req, res) => {
-    // const authPayload = req.auth.payload;
-    const { auth } = req.body;
-    const userInDB = await getUserDetails(auth.payload.sub);
-
-    console.log(userInDB);
+    const authPayload = req.auth.payload;
+    const userInDB = await getUserDetails(authPayload);
 
     const roomName = uuidv4().substring(0, 10);
 
