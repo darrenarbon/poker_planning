@@ -13,7 +13,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             clientId="I1Fh9UypRWcfGdtY7R5QWfJof6Z675Pt"
             authorizationParams={{
                 redirect_uri: window.location.origin,
-                audience: config.apiUrl,
+                audience: config.frontEndUrl,
                 scope: 'openid profile email',
             }}
         >

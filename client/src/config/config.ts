@@ -1,5 +1,6 @@
 type AppConfig = {
     apiUrl: string;
+    frontEndUrl?: string;
 };
 
 enum Environment {
@@ -23,11 +24,13 @@ const getConfig = (): AppConfig => {
         case Environment.Local:
             return {
                 apiUrl: 'http://localhost:3000',
+                frontEndUrl: 'http://localhost:5173',
             };
 
         case Environment.Production:
             return {
                 apiUrl: 'https://poker-planning-server.vercel.app',
+                frontEndUrl: 'https://poker-planning-client.vercel.app',
             };
     }
 };
