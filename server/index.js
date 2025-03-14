@@ -16,17 +16,15 @@ const app = express();
 
 const server = createServer(app);
 
-const localhost = 'http://localhost:5173';
-
 const io = new Server(server, {
     cors: {
-        origin: localhost,
+        origin: process.env.FRONT_END_URL,
         methods: ['GET', 'POST'],
     },
 });
 
 const corsOptions = {
-    origin: localhost,
+    origin: process.env.FRONT_END_URL,
     credentials: true,
 };
 app.use(cors(corsOptions));

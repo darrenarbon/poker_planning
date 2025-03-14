@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import { v4 as uuidv4 } from 'uuid';
 import { Router } from 'express';
 import { supabaseConnection } from './database.js';
@@ -25,7 +26,7 @@ export const returnError = (res, code, error, message) => {
 const router = Router();
 
 router.all('/*', (req, res, next) => {
-    res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
+    res.header('Access-Control-Allow-Origin', process.env.FRONT_END_URL);
     res.header(
         'Access-Control-Allow-Headers',
         'Origin, X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Authorization'
