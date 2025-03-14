@@ -85,6 +85,8 @@ router.post('/newroom', checkJwt, async (req, res) => {
     const authPayload = req.auth.payload;
     const userInDB = await getUserDetails(authPayload);
 
+    console.log(userInDb);
+
     const roomName = uuidv4().substring(0, 10);
 
     const { data, error: createRoomError } = await supabaseConnection
