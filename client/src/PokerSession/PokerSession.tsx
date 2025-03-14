@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import io from 'socket.io-client';
+// import io from 'socket.io-client';
 import Ticket from '../Ticket';
 import User from '../User';
 import Voting from '../Voting';
@@ -13,11 +13,11 @@ import {
     PokerSessionProps,
     TicketForVoting,
     TicketsAndUsers,
-    VoteReceivedSocketModel,
+    // VoteReceivedSocketModel,
 } from './types';
-import { socket_showVotes, socket_voteReceived } from './socketHelper';
+// import { socket_showVotes, socket_voteReceived } from './socketHelper';
 
-const socket = io(config.apiUrl);
+// const socket = io(config.apiUrl);
 
 const fetchTicketsAndUsers = async (roomId: string) => {
     const response = await fetch(`{${config.apiUrl}/room/${roomId}`);
@@ -47,55 +47,49 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
     }, [roomName]);
 
     useEffect(() => {
-        socket.emit('join', { roomName, userSub: user?.sub });
-
-        socket.on('userJoined', ({ users }) => {
-            setUsers(users);
-        });
-
-        socket.on(
-            'voteReceived',
-            ({ ticketId, vote, userSub }: VoteReceivedSocketModel) => {
-                const ticket = tickets.find((t) => t.ticketId === ticketId);
-                if (!ticket) {
-                    return;
-                }
-
-                const updatedTicket = socket_voteReceived(
-                    ticket,
-                    vote,
-                    userSub
-                );
-
-                setTickets((prevTickets) =>
-                    prevTickets.map((t) =>
-                        t.ticketId === ticketId ? updatedTicket : t
-                    )
-                );
-            }
-        );
-
-        socket.on('showVotes', ({ ticketId }) => {
-            if (currentTicket && ticketId === currentTicket?.ticketId) {
-                const updatedTicket = socket_showVotes(currentTicket);
-                setCurrentTicket(updatedTicket);
-                setTickets((prevTickets) =>
-                    prevTickets.map((t) =>
-                        t.ticketId === ticketId ? updatedTicket : t
-                    )
-                );
-                setShowVotes(true);
-            }
-        });
-
-        socket.on('showEstimate', ({ currentTicket }) => {
-            setTickets((prevTickets) =>
-                prevTickets.map((t) =>
-                    t.ticketId === currentTicket.ticketId ? currentTicket : t
-                )
-            );
-            // this currently wipes the currentTicket reference so will need to handle that
-        });
+        // socket.emit('join', { roomName, userSub: user?.sub });
+        // socket.on('userJoined', ({ users }) => {
+        //     setUsers(users);
+        // });
+        // socket.on(
+        //     'voteReceived',
+        //     ({ ticketId, vote, userSub }: VoteReceivedSocketModel) => {
+        //         const ticket = tickets.find((t) => t.ticketId === ticketId);
+        //         if (!ticket) {
+        //             return;
+        //         }
+        //         const updatedTicket = socket_voteReceived(
+        //             ticket,
+        //             vote,
+        //             userSub
+        //         );
+        //         setTickets((prevTickets) =>
+        //             prevTickets.map((t) =>
+        //                 t.ticketId === ticketId ? updatedTicket : t
+        //             )
+        //         );
+        //     }
+        // );
+        // socket.on('showVotes', ({ ticketId }) => {
+        //     if (currentTicket && ticketId === currentTicket?.ticketId) {
+        //         const updatedTicket = socket_showVotes(currentTicket);
+        //         setCurrentTicket(updatedTicket);
+        //         setTickets((prevTickets) =>
+        //             prevTickets.map((t) =>
+        //                 t.ticketId === ticketId ? updatedTicket : t
+        //             )
+        //         );
+        //         setShowVotes(true);
+        //     }
+        // });
+        // socket.on('showEstimate', ({ currentTicket }) => {
+        //     setTickets((prevTickets) =>
+        //         prevTickets.map((t) =>
+        //             t.ticketId === currentTicket.ticketId ? currentTicket : t
+        //         )
+        //     );
+        //     // this currently wipes the currentTicket reference so will need to handle that
+        // });
     }, [currentTicket, roomName, tickets, user]);
 
     const selectTicket = (ticket: TicketForVoting) => {
@@ -104,12 +98,12 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
     };
 
     const submitVote = (vote: number) => {
-        socket.emit('vote', {
-            roomName,
-            ticketId: currentTicket?.ticketId,
-            vote,
-            userSub: user?.sub,
-        });
+        // socket.emit('vote', {
+        //     roomName,
+        //     ticketId: currentTicket?.ticketId,
+        //     vote,
+        //     userSub: user?.sub,
+        // });
         const ticket = tickets.find(
             (t) => t.ticketNumber === currentTicket?.ticketNumber
         );
@@ -142,7 +136,7 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
                         : t
                 )
             );
-            socket.emit('setEstimate', { roomName, currentTicket });
+            // socket.emit('setEstimate', { roomName, currentTicket });
         }
     };
 
@@ -194,10 +188,14 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
                             <button
                                 className="btn btn-primary btn-lg"
                                 onClick={() =>
-                                    socket.emit('showVotes', {
-                                        roomName,
-                                        ticketId: currentTicket?.ticketId,
-                                    })
+                                    console.log(
+                                        'CONVERT TO socket.emit',
+                                        'showVotes',
+                                        {
+                                            roomName,
+                                            ticketId: currentTicket?.ticketId,
+                                        }
+                                    )
                                 }
                             >
                                 Show Votes
