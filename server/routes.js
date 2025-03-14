@@ -2,6 +2,12 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Router } from 'express';
 import { supabaseConnection } from './database.js';
+import { auth } from 'express-oauth2-jwt-bearer';
+
+const checkJwt = auth({
+    audience: process.env.LOCAL_URL,
+    issuerBaseURL: `https://dev-1jevct6pshmx18pw.uk.auth0.com/`,
+});
 
 const getUserDetails = async (sub) => {
     const { data, error } = await supabaseConnection
@@ -75,7 +81,7 @@ router.post('/login', async (req, res) => {
     return res.status(200).json({});
 });
 
-router.post('/newroom', async (req, res) => {
+router.post('/newroom', checkJwt, async (req, res) => {
     const authPayload = req.auth.payload;
     const userInDB = await getUserDetails(authPayload);
 
