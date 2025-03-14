@@ -20,7 +20,7 @@ import {
 // const socket = io(config.apiUrl);
 
 const fetchTicketsAndUsers = async (roomId: string) => {
-    const response = await fetch(`{${config.apiUrl}/room/${roomId}`);
+    const response = await fetch(`${config.apiUrl}/room/${roomId}`);
     return await response.json();
 };
 
