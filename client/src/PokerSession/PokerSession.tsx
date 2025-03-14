@@ -7,6 +7,8 @@ import SetEstimate from '../SetEstimate';
 import { UserModel } from '../User/User';
 import NavBar from '../NavBar';
 import { useAuth0 } from '@auth0/auth0-react';
+import config from '../config';
+
 import {
     PokerSessionProps,
     TicketForVoting,
@@ -15,10 +17,10 @@ import {
 } from './types';
 import { socket_showVotes, socket_voteReceived } from './socketHelper';
 
-const socket = io('http://localhost:3000');
+const socket = io(config.apiUrl);
 
 const fetchTicketsAndUsers = async (roomId: string) => {
-    const response = await fetch(`http://localhost:3000/room/${roomId}`);
+    const response = await fetch(`{${config.apiUrl}/room/${roomId}`);
     return await response.json();
 };
 

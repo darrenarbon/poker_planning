@@ -1,6 +1,7 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import config from '../config';
 import NavBar from '../NavBar';
 
 const JoinRoom = () => {
@@ -17,7 +18,7 @@ const JoinRoom = () => {
             if (isAuthenticated) {
                 const token = await getAccessTokenSilently();
 
-                await fetch('http://localhost:3000/login', {
+                await fetch(`${config.apiUrl}/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
