@@ -83,8 +83,7 @@ router.post('/login', async (req, res) => {
 
 router.post('/newroom', checkJwt, async (req, res) => {
     const authPayload = req.auth.payload;
-    console.log('payload', authPayload);
-    const userInDB = await getUserDetails(authPayload);
+    const userInDB = await getUserDetails(authPayload.sub);
 
     console.log(userInDB);
 
