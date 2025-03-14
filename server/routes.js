@@ -26,7 +26,7 @@ export const returnError = (res, code, error, message) => {
 const router = Router();
 
 router.all('/*', (req, res, next) => {
-    res.header('Access-Control-Allow-Origin', process.env.FRONT_END_URL);
+    res.header('Access-Control-Allow-Origin', '*');
     res.header(
         'Access-Control-Allow-Headers',
         'Origin, X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Authorization'
