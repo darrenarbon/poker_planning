@@ -1,186 +1,242 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Router } from 'express';
-import db from './database.js';
-import { auth } from 'express-oauth2-jwt-bearer';
-
-const checkJwt = auth({
-  audience: 'http://localhost:3000',
-  issuerBaseURL: `https://dev-1jevct6pshmx18pw.uk.auth0.com/`,
-});
+import { supabaseConnection } from './database.js';
 
 const getUserDetails = async (sub) => {
-  const user = await db.asyncQuerySingleRecord(
-    'SELECT * FROM user WHERE auth0_sub = ?;',
-    [sub]
-  );
-  return user;
+    const { data, error } = await supabaseConnection
+        .from('user')
+        .select()
+        .eq('auth0_sub', sub);
+
+    if (error) {
+        console.error(error);
+        throw error;
+    }
+
+    return data[0];
+};
+
+export const returnError = (res, code, error, message) => {
+    console.error(error);
+    console.error(message);
+    return res.status(code).json({ error: message });
 };
 
 const router = Router();
 
 router.all('/*', (req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
-  res.header(
-    'Access-Control-Allow-Headers',
-    'Origin, X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Authorization'
-  );
-  res.header('Access-Control-Allow-Credentials', true);
-  res.header(
-    'Access-Control-Allow-Methods',
-    'GET,PUT,POST,DELETE,UPDATE,OPTIONS'
-  );
-  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
     res.header(
-      'Access-Control-Allow-Headers',
-      'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+        'Access-Control-Allow-Headers',
+        'Origin, X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Authorization'
     );
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH');
-    return res.status(200).json({});
-  }
-  return next();
-});
-
-router.post('/login', checkJwt, async (req, res) => {
-  const { user } = req.body;
-
-  const userInDB = await getUserDetails(user.sub);
-  if (userInDB) {
-    return res.status(200);
-  }
-
-  try {
-    const newUser = await db.asyncQuery(
-      'INSERT INTO user (auth0_sub, email, given_name, family_name, nickname, picture) VALUES (?, ?, ?, ?, ?, ?);',
-      [
-        user.sub,
-        user.email,
-        user.given_name,
-        user.family_name,
-        user.nickname,
-        user.picture,
-      ]
+    res.header('Access-Control-Allow-Credentials', true);
+    res.header(
+        'Access-Control-Allow-Methods',
+        'GET,PUT,POST,DELETE,UPDATE,OPTIONS'
     );
-    if (newUser) {
-      return res.status(200);
+    if (req.method === 'OPTIONS') {
+        res.header(
+            'Access-Control-Allow-Headers',
+            'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+        );
+        res.header(
+            'Access-Control-Allow-Methods',
+            'GET, POST, PUT, DELETE, PATCH'
+        );
+        return res.status(200).json({});
     }
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: 'Error creating user' });
-  }
+    return next();
 });
 
-router.post('/newroom', checkJwt, async (req, res) => {
-  const authPayload = req.auth.payload;
-  const userInDB = await getUserDetails(authPayload.sub);
+router.post('/login', async (req, res) => {
+    const { user } = req.body;
+    const { sub, email, given_name, family_name, nickname, picture } = user;
 
-  const roomName = uuidv4().substring(0, 10);
-  const room = await db.asyncQuery(
-    'INSERT INTO room (room_name, admin_id) VALUES (?, ?);',
-    [roomName, userInDB.userId]
-  );
+    const userInDB = await getUserDetails(sub);
 
-  if (room.insertId) {
-    await db.asyncQuery(
-      'INSERT INTO room_users (room_id, user_id) VALUES (?, ?);',
-      [room.insertId, userInDB.userId]
-    );
-    res.json({ roomId: roomName });
-  } else {
-    res.status(500).json({ error: 'Error creating room' });
-  }
+    if (userInDB) {
+        return res.status(200).json({});
+    }
+
+    const { error } = await supabaseConnection.from('user').insert({
+        auth0_sub: sub,
+        email,
+        given_name,
+        family_name,
+        nickname,
+        picture,
+    });
+
+    if (error) {
+        return returnError(res, 500, error, 'Error creating user');
+    }
+    return res.status(200).json({});
+});
+
+router.post('/newroom', async (req, res) => {
+    // const authPayload = req.auth.payload;
+    const { auth } = req.body;
+    const userInDB = await getUserDetails(auth.payload.sub);
+
+    console.log(userInDB);
+
+    const roomName = uuidv4().substring(0, 10);
+
+    const { data, error: createRoomError } = await supabaseConnection
+        .from('room')
+        .insert([{ room_name: roomName, admin_id: userInDB.user_id }])
+        .select();
+
+    if (createRoomError) {
+        return returnError(res, 500, createRoomError, 'Error creating room');
+    }
+
+    const { error: addUsertoRoomError } = await supabaseConnection
+        .from('room_users')
+        .insert([{ room_id: data[0].room_id, user_id: userInDB.user_id }]);
+
+    if (addUsertoRoomError) {
+        return returnError(
+            res,
+            500,
+            addUsertoRoomError,
+            'Error adding user to room'
+        );
+    }
+
+    return res.json({ roomId: roomName });
 });
 
 router.post('/room/:roomId/tickets', async (req, res) => {
-  const { roomId } = req.params;
-  const { ticketsToSave, baseUrl } = req.body;
+    const { roomId } = req.params;
+    const { ticketsToSave, baseUrl } = req.body;
 
-  const ticketsArray = ticketsToSave.map((ticket) => {
-    return {
-      ticket_number: ticket,
-      ticket_url: `${baseUrl}/${ticket}`,
-    };
-  });
+    const { data, error: findRoomError } = await supabaseConnection
+        .from('room')
+        .select()
+        .eq('room_name', roomId);
 
-  const room = await db.asyncQuerySingleRecord(
-    'SELECT * FROM room WHERE room_name = ?;',
-    [roomId]
-  );
-
-  if (room) {
-    const ticketsAdded = await db.asyncQuery(
-      'INSERT INTO ticket (room_id, ticket_number, ticket_url) VALUES ?;',
-      [
-        ticketsArray.map((ticket) => [
-          room.roomId,
-          ticket.ticket_number,
-          ticket.ticket_url,
-        ]),
-      ]
-    );
-
-    if (ticketsAdded) {
-      res.json({ message: 'Tickets added' });
-    } else {
-      res.status(500).json({ error: 'Error adding tickets' });
+    if (findRoomError) {
+        return returnError(res, 500, findRoomError, 'Error fetching room');
     }
-  } else {
-    res.status(404).json({ error: 'Room not found' });
-  }
+
+    if (data.length === 0) {
+        return returnError(res, 404, null, 'Room not found');
+    }
+
+    const ticketsArray = ticketsToSave.map((ticket) => {
+        return {
+            room_id: data[0].room_id,
+            ticket_number: ticket,
+            ticket_url: `${baseUrl}/${ticket}`,
+        };
+    });
+
+    const { error: insertTicketsError } = await supabaseConnection
+        .from('ticket')
+        .insert(ticketsArray);
+    if (insertTicketsError) {
+        return returnError(
+            res,
+            500,
+            insertTicketsError,
+            'Error adding tickets'
+        );
+    }
+
+    return res.json({ message: 'Tickets added' });
 });
 
 router.get('/room/:roomName', async (req, res) => {
-  const { roomName } = req.params;
+    const { roomName } = req.params;
 
-  const room = await db.asyncQuerySingleRecord(
-    'SELECT r.*, u.auth0_sub FROM room r LEFT JOIN user u on u.user_id = r.admin_id WHERE room_name = ?;',
-    [roomName]
-  );
+    const { data: getRoomData, error: getRoomError } = await supabaseConnection
+        .from('room')
+        .select(
+            `
+    *,
+    ...user(
+      auth0_sub
+    )
+    `
+        )
+        .eq('room_name', roomName);
 
-  const adminId = room.auth0Sub;
-
-  const usersInRoom = await db.asyncQuery(
-    `SELECT u.auth0_sub as sub, u.given_name, u.family_name, u.nickname, u.picture
-    FROM user u
-    LEFT JOIN room_users ru ON u.user_id = ru.user_id
-    WHERE ru.room_id = ?;`,
-    [room.roomId]
-  );
-
-  const tickets = await db.asyncQuery(
-    `SELECT *
-    FROM ticket
-    WHERE room_id = ?;`,
-    [room.roomId]
-  );
-
-  if (tickets) {
-    const ticketsWithVotes = [];
-    for (const ticket of tickets) {
-      const votes = await db.asyncQuery(
-        `SELECT v.vote, u.auth0_sub as userSub
-        FROM vote v
-        LEFT JOIN user u ON v.user_id = u.user_id
-        WHERE ticket_id = ?;`,
-        [ticket.ticketId]
-      );
-      ticketsWithVotes.push({
-        ...ticket,
-        votes,
-      });
+    if (getRoomError) {
+        return returnError(res, 500, getRoomError, 'Error fetching room');
     }
 
-    res.json({ tickets: ticketsWithVotes, users: usersInRoom, adminId });
-  } else {
-    res.status(500).json({ error: 'Error fetching tickets' });
-  }
-});
+    const { data: userIdsInRoomData, error: userIdsInRoomError } =
+        await supabaseConnection
+            .from('room_users')
+            .select(`user_id`)
+            .eq('room_id', getRoomData[0].room_id);
 
-router.get('/darren', async (req, res) => {
-  res.json({ message: 'Hello Darren!' });
+    if (userIdsInRoomError) {
+        return returnError(
+            res,
+            500,
+            userIdsInRoomError,
+            'Error fetching users'
+        );
+    }
+
+    const { data: usersInRoomData, error: usersInRoomError } =
+        await supabaseConnection
+            .from('user')
+            .select()
+            .in(
+                'user_id',
+                userIdsInRoomData.map((user) => user.user_id)
+            );
+
+    if (usersInRoomError) {
+        return returnError(res, 500, usersInRoomError, 'Error fetching users');
+    }
+
+    const { data: ticketsData, error: ticketsError } = await supabaseConnection
+        .from('ticket')
+        .select()
+        .eq('room_id', getRoomData[0].room_id);
+
+    if (ticketsError) {
+        return returnError(res, 500, ticketsError, 'Error fetching tickets');
+    }
+
+    const ticketsWithVotes = [];
+    for (const ticket of ticketsData) {
+        const { data: votesData, error: votesError } = await supabaseConnection
+            .from('vote')
+            .select(
+                `
+              vote,
+              ...user(
+                usersub:auth0_sub
+              )
+              `
+            )
+            .eq('ticket_id', ticket.ticket_id);
+
+        if (votesError) {
+            return returnError(res, 500, votesError, 'Error fetching votes');
+        }
+
+        ticketsWithVotes.push({
+            ...ticket,
+            votes: votesData,
+        });
+    }
+
+    res.json({
+        tickets: ticketsWithVotes,
+        users: usersInRoomData,
+        adminId: getRoomData[0].auth0_sub,
+    });
 });
 
 router.get('*', (req, res) => {
-  res.send('Sorry, page not found... What are you doing with your life?');
+    res.send('Sorry, page not found... What are you doing with your life?');
 });
 
 export default router;

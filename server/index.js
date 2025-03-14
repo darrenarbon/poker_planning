@@ -1,10 +1,16 @@
+/* eslint-disable no-undef */
 import express, { json } from 'express';
 import { createServer } from 'http';
 import cors from 'cors';
 import { Server } from 'socket.io';
-import db from './database.js';
+import 'dotenv/config';
 
 import router from './routes.js';
+import { supabaseConnection } from './database.js';
+
+process.on('uncaughtException', function (error) {
+    console.log(error.stack);
+});
 
 const app = express();
 
@@ -13,15 +19,15 @@ const server = createServer(app);
 const localhost = 'http://localhost:5173';
 
 const io = new Server(server, {
-  cors: {
-    origin: localhost,
-    methods: ['GET', 'POST'],
-  },
+    cors: {
+        origin: localhost,
+        methods: ['GET', 'POST'],
+    },
 });
 
 const corsOptions = {
-  origin: localhost,
-  credentials: true,
+    origin: localhost,
+    credentials: true,
 };
 app.use(cors(corsOptions));
 
@@ -29,141 +35,247 @@ app.use(json());
 
 app.use('/', router);
 
+const emitError = (socket, error, message) => {
+    console.error(error);
+    console.error(message);
+    socket.emit('error', message);
+};
+
 io.on('connection', (socket) => {
-  console.log('a user connected');
+    console.log('a user connected');
 
-  socket.on('join', async ({ roomName, userSub }) => {
-    if (userSub) {
-      console.log('join', roomName, userSub);
-      socket.join(roomName);
+    socket.on('join', async ({ roomName, userSub }) => {
+        if (userSub) {
+            console.log('join', roomName, userSub);
+            socket.join(roomName);
 
-      const room = await db.asyncQuerySingleRecord(
-        'SELECT * FROM room WHERE room_name = ?;',
-        [roomName]
-      );
+            const { data: roomData, error: roomError } =
+                await supabaseConnection
+                    .from('room')
+                    .select()
+                    .eq('room_name', roomName);
 
-      const user = await db.asyncQuerySingleRecord(
-        'SELECT * FROM user WHERE auth0_sub = ?;',
-        [userSub]
-      );
+            if (roomError) {
+                return emitError(socket, error, 'Error getting room');
+            }
 
-      const userInRoom = await db.asyncQuerySingleRecord(
-        'SELECT * FROM room_users WHERE room_id = ? AND user_id = ?;',
-        [room.roomId, user.userId]
-      );
+            const { data: userData, error: userError } =
+                await supabaseConnection
+                    .from('user')
+                    .select()
+                    .eq('auth0_sub', userSub);
 
-      if (!userInRoom) {
-        await db.asyncQuery(
-          'INSERT INTO room_users (room_id, user_id) VALUES (?, ?);',
-          [room.roomId, user.userId]
-        );
-      }
+            if (userError) {
+                return emitError(socket, userError, 'Error getting user');
+            }
 
-      const users = await db.asyncQuery(
-        `SELECT u.auth0_sub as sub, u.given_name, u.family_name, u.nickname
-        FROM room_users ru 
-        LEFT JOIN user u ON ru.user_id = u.user_id
-        WHERE ru.room_id = ?;`,
-        [room.roomId]
-      );
+            const { data: userInRoomData, error: userInRoomError } =
+                await supabaseConnection
+                    .from('room_users')
+                    .select()
+                    .eq('room_id', roomData[0].room_id)
+                    .eq('user_id', userData[0].user_id);
 
-      socket.to(roomName).emit('userJoined', { users: users });
-    }
-  });
+            if (userInRoomError) {
+                return emitError(
+                    socket,
+                    userInRoomError,
+                    'Error getting user in room'
+                );
+            }
 
-  socket.on('vote', async ({ roomName, ticketId, vote, userSub }) => {
-    console.log('vote', roomName, ticketId, vote, userSub);
+            if (userInRoomData.length === 0) {
+                const { error: insertUserInRoomError } =
+                    await supabaseConnection.from('room_users').insert({
+                        room_id: roomData[0].room_id,
+                        user_id: userData[0].user_id,
+                    });
 
-    const user = await db.asyncQuerySingleRecord(
-      'SELECT * FROM user WHERE auth0_sub = ?;',
-      [userSub]
-    );
+                if (insertUserInRoomError) {
+                    return emitError(
+                        socket,
+                        insertUserInRoomError,
+                        'Error adding user to room'
+                    );
+                }
+            }
 
-    if (vote) {
-      const existingVote = await db.asyncQuerySingleRecord(
-        'SELECT * FROM vote WHERE ticket_id = ? AND user_id = ?;',
-        [ticketId, user.userId]
-      );
-      if (existingVote) {
-        await db.asyncQuery('UPDATE vote SET vote = ? WHERE vote_id = ?;', [
-          vote,
-          existingVote.voteId,
-        ]);
-      } else {
-        await db.asyncQuery(
-          'INSERT INTO vote (ticket_id, vote, user_id) VALUES (?, ?, ?);',
-          [ticketId, vote, user.userId]
-        );
-      }
-      socket.to(roomName).emit('voteReceived', { ticketId, vote, userSub });
-    } else {
-      socket.emit('error', 'Error adding vote');
-    }
-  });
+            const { data: usersInRoomData, error: usersInRoomError } =
+                await supabaseConnection
+                    .from('room_users')
+                    .select(
+                        `
+            *,
+            user:user_id(*)
+            `
+                    )
+                    .eq('room_id', roomData[0].room_id);
 
-  socket.on('showVotes', async ({ roomName, ticketId }) => {
-    console.log('showVotes', roomName, ticketId);
+            const users = usersInRoomData.map((user) => {
+                return {
+                    user_id: user.user_id,
+                    ...user.user,
+                };
+            });
 
-    const currentTicket = await db.asyncQuerySingleRecord(
-      'SELECT * FROM ticket WHERE ticket_id = ?;',
-      [ticketId]
-    );
+            if (usersInRoomError) {
+                return emitError(
+                    socket,
+                    usersInRoomError,
+                    'Error getting users in room'
+                );
+            }
 
-    if (!currentTicket) {
-      console.log('invalid ticket');
-      socket.emit('error', 'Invalid ticket');
-      return;
-    }
-
-    const ticketInRoom = await db.asyncQuerySingleRecord(
-      'SELECT * FROM ticket t LEFT JOIN room r ON r.room_id = t.room_id WHERE t.ticket_id = ? AND r.room_name = ?;',
-      [ticketId, roomName]
-    );
-
-    if (!ticketInRoom) {
-      console.log('invalid ticket');
-      socket.emit('error', 'Invalid ticket');
-      return;
-    }
-
-    io.in(roomName).emit('showVotes', {
-      ticketId,
+            socket.to(roomName).emit('userJoined', { users });
+        }
     });
-  });
 
-  socket.on('setEstimate', async ({ roomName, currentTicket }) => {
-    const { ticketId, chosenEstimate, averageVote, standardDeviation } =
-      currentTicket;
+    socket.on('vote', async ({ roomName, ticketId, vote, userSub }) => {
+        console.log('vote', roomName, ticketId, vote, userSub);
 
-    console.log(ticketId, chosenEstimate, averageVote, standardDeviation);
+        const { data: userData, error: userError } = await supabaseConnection
+            .from('user')
+            .select()
+            .eq('auth0_sub', userSub);
 
-    const room = await db.asyncQuerySingleRecord(
-      'SELECT * FROM room WHERE room_name = ?;',
-      [roomName]
-    );
+        if (userError) {
+            return emitError(socket, userError, 'Error getting user');
+        }
 
-    if (room) {
-      const updatedTicket = await db.asyncQuery(
-        'UPDATE ticket SET chosen_estimate = ?, average_vote = ?, standard_deviation = ? WHERE ticket_id = ?;',
-        [chosenEstimate, averageVote, standardDeviation, ticketId]
-      );
+        if (vote) {
+            const { data: existingVoteData, error: existingVoteError } =
+                await supabaseConnection
+                    .from('vote')
+                    .select()
+                    .eq('ticket_id', ticketId)
+                    .eq('user_id', userData[0].user_id);
 
-      if (updatedTicket) {
-        console.log('ticket updated');
-        socket.to(roomName).emit('showEstimate', { currentTicket });
-      } else {
-        console.log('Could not update ticket');
-        socket.emit('error', 'Could not update ticket');
-        return;
-      }
-    } else {
-      console.log('Could not find room');
-      socket.emit('error', 'Could not find room');
-      return;
-    }
-  });
+            if (existingVoteError) {
+                return emitError(
+                    socket,
+                    existingVoteError,
+                    'Error getting existing vote'
+                );
+            }
+
+            if (existingVoteData.length > 0) {
+                const { error: updateVoteError } = await supabaseConnection
+                    .from('vote')
+                    .update({ vote })
+                    .eq('vote_id', existingVoteData[0].vote_id);
+
+                if (updateVoteError) {
+                    return emitError(
+                        socket,
+                        updateVoteError,
+                        'Error updating vote'
+                    );
+                }
+            } else {
+                const { error: insertVoteError } = await supabaseConnection
+                    .from('vote')
+                    .insert({
+                        ticket_id: ticketId,
+                        vote,
+                        user_id: userData[0].user_id,
+                    });
+
+                if (insertVoteError) {
+                    return emitError(
+                        socket,
+                        insertVoteError,
+                        'Error inserting vote'
+                    );
+                }
+            }
+            socket
+                .to(roomName)
+                .emit('voteReceived', { ticketId, vote, userSub });
+        } else {
+            socket.emit('error', 'No vote was submitted');
+        }
+    });
+
+    socket.on('showVotes', async ({ roomName, ticketId }) => {
+        console.log('showVotes', roomName, ticketId);
+
+        const { data: currentTicketData, error: currentTicketError } =
+            await supabaseConnection
+                .from('ticket')
+                .select()
+                .eq('ticket_id', ticketId);
+
+        if (currentTicketError) {
+            return emitError(
+                socket,
+                currentTicketError,
+                'Error getting ticket'
+            );
+        }
+        if (currentTicketData.length === 0) {
+            return emitError(socket, null, 'Ticket not found');
+        }
+
+        const { data: getTicketData, error: getTicketError } =
+            await supabaseConnection
+                .from('room')
+                .select()
+                .eq('room_id', currentTicketData[0].room_id)
+                .eq('room_name', roomName);
+
+        if (getTicketError) {
+            return emitError(socket, getTicketError, 'Error getting ticket');
+        }
+
+        if (getTicketData.length === 0) {
+            return emitError(socket, null, 'Ticket not found');
+        }
+
+        io.in(roomName).emit('showVotes', {
+            ticketId,
+        });
+    });
+
+    socket.on('setEstimate', async ({ roomName, currentTicket }) => {
+        const { ticketId, chosenEstimate, averageVote, standardDeviation } =
+            currentTicket;
+
+        console.log(ticketId, chosenEstimate, averageVote, standardDeviation);
+
+        const { data: roomData, error: roomError } = await supabaseConnection
+            .from('room')
+            .select()
+            .eq('room_name', roomName);
+
+        if (roomError) {
+            return emitError(socket, roomError, 'Error getting room');
+        }
+
+        if (roomData.length > 0) {
+            const { error: updateTicketError } = await supabaseConnection
+                .from('ticket')
+                .update({
+                    chosen_estimate: chosenEstimate,
+                    average_vote: averageVote,
+                    standard_deviation: standardDeviation,
+                })
+                .eq('ticket_id', ticketId);
+
+            if (updateTicketError) {
+                return emitError(
+                    socket,
+                    updateTicketError,
+                    'Error updating ticket'
+                );
+            }
+            console.log('ticket updated');
+            socket.to(roomName).emit('showEstimate', { currentTicket });
+        } else {
+            return emitError(socket, roomError, 'Could not find room');
+        }
+    });
 });
 
 server.listen(3000, () => {
-  console.log('Server is running on port 3000');
+    console.log('Server is running on port 3000');
 });
