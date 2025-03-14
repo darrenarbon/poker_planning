@@ -24,7 +24,7 @@ const io = new Server(server, {
 });
 
 const corsOptions = {
-    origin: '*',
+    origin: process.env.FRONT_END_URL,
     credentials: true,
 };
 app.use(cors(corsOptions));
