@@ -6,6 +6,7 @@ import 'bootstrap/dist/css/bootstrap.css';
 import { Auth0Provider } from '@auth0/auth0-react';
 import config from './config';
 
+console.log(config);
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
         <Auth0Provider
@@ -13,7 +14,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             clientId="I1Fh9UypRWcfGdtY7R5QWfJof6Z675Pt"
             authorizationParams={{
                 redirect_uri: window.location.origin,
-                audience: config.frontEndUrl,
+                audience: config.apiUrl,
                 scope: 'openid profile email',
             }}
         >
