@@ -24,7 +24,7 @@ const io = new Server(server, {
 });
 
 const corsOptions = {
-    origin: process.env.FRONT_END_URL,
+    origin: '*',
     credentials: true,
     methods: '*',
     allowedHeaders: ['Content-Type', 'Authorization'],
