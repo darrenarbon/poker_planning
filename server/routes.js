@@ -180,8 +180,6 @@ router.get('/room/:roomName', async (req, res) => {
             .select(`user_id`)
             .eq('room_id', getRoomData[0].room_id);
 
-    console.log('userIdsInRoomData', userIdsInRoomData);
-
     if (userIdsInRoomError) {
         return returnError(
             res,
@@ -199,7 +197,6 @@ router.get('/room/:roomName', async (req, res) => {
                 'user_id',
                 userIdsInRoomData.map((user) => user.user_id)
             );
-    console.log('usersInRoomData', usersInRoomData);
 
     if (usersInRoomError) {
         return returnError(res, 500, usersInRoomError, 'Error fetching users');
