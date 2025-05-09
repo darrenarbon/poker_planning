@@ -4,19 +4,19 @@ interface UserProps {
 }
 
 export interface UserModel {
-    sub: string | undefined;
-    givenName: string | undefined;
-    familyName: string | undefined;
+    auth0_sub: string | undefined;
+    given_name: string | undefined;
+    family_name: string | undefined;
     nickname: string | undefined;
 }
 
 const User = ({ userSub, user }: UserProps) => {
     console.log('User component rendered with userSub:', userSub);
     console.log('User component rendered with user:', user);
-    const displayName = user.givenName
-        ? `${user.givenName} ${user.familyName}`
+    const displayName = user.given_name
+        ? `${user.given_name} ${user.family_name}`
         : user.nickname;
-    return userSub === user.sub ? (
+    return userSub === user.auth0_sub ? (
         <button className="btn btn-primary mx-2">{displayName}</button>
     ) : (
         <button className="btn btn-secondary mx-2">{displayName}</button>
