@@ -29,7 +29,7 @@ const getConfig = (): AppConfig => {
 
         case Environment.Production:
             return {
-                apiUrl: 'https://poker-planning-server.vercel.app',
+                apiUrl: 'https://poker-planning-front-end.onrender.com',
                 frontEndUrl: 'https://poker-planning-client.vercel.app',
             };
     }
