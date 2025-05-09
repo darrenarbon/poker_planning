@@ -148,7 +148,11 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
                     <div>
                         <h3>Players</h3>
                         {users.map((u) => (
-                            <User key={u.sub} userSub={user.sub} user={u} />
+                            <User
+                                key={u.auth0_sub}
+                                userSub={user.sub}
+                                user={u}
+                            />
                         ))}
                         <hr />
                     </div>

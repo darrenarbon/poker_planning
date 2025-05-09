@@ -64,19 +64,20 @@ const Voting = ({
                     </thead>
                     <tbody>
                         {allUsers.map((user) => {
-                            const displayName = user.givenName
-                                ? `${user.givenName} ${user.familyName}`
+                            const displayName = user.given_name
+                                ? `${user.given_name} ${user.family_name}`
                                 : user.nickname;
                             return (
-                                <tr key={user.sub}>
+                                <tr key={user.auth0_sub}>
                                     <td
                                         className={classNames({
-                                            'fw-bold': user.sub === userSub,
+                                            'fw-bold':
+                                                user.auth0_sub === userSub,
                                         })}
                                     >
                                         {displayName}
                                     </td>
-                                    <td>{getVoteForUser(user.sub)}</td>
+                                    <td>{getVoteForUser(user.auth0_sub)}</td>
                                 </tr>
                             );
                         })}
