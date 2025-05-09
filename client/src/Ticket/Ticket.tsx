@@ -17,7 +17,7 @@ const Ticket = ({
     adminId,
 }: TicketProps) => {
     const getMyVote = () => {
-        const vote = ticket.votes.find((v: VoteModel) => v.userSub === userSub);
+        const vote = ticket.votes.find((v: VoteModel) => v.usersub === userSub);
         return vote ? vote.vote : null;
     };
 

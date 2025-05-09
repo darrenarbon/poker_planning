@@ -118,13 +118,13 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
         if (!ticket) {
             return;
         }
-        const voteForUser = ticket.votes.find((v) => v.userSub === user?.sub);
+        const voteForUser = ticket.votes.find((v) => v.usersub === user?.sub);
         if (voteForUser) {
             voteForUser.vote = vote;
         } else {
             ticket.votes.push({
                 vote,
-                userSub: user?.sub,
+                usersub: user?.sub,
             });
         }
         setTickets((prevTickets) =>

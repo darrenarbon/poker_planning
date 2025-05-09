@@ -5,7 +5,7 @@ export interface PokerSessionProps {
 }
 
 export interface VoteModel {
-    userSub: string | undefined;
+    usersub: string | undefined;
     vote: number;
 }
 

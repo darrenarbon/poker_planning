@@ -1,7 +1,7 @@
 import classNames from 'classnames';
 import { votingValues } from './votingHelper';
 import { UserModel } from '../User/User';
-import { TicketForVoting } from '../PokerSession/types';
+import { TicketForVoting, VoteModel } from '../PokerSession/types';
 
 interface VotingProps {
     submitVote: (vote: number) => void;
@@ -19,19 +19,19 @@ const Voting = ({
     showVotes,
 }: VotingProps) => {
     const getRawVoteForUser = (userSub: string | undefined): number | null => {
-        const vote = currentTicket.votes.find((v) => v.userSub === userSub);
+        const vote = currentTicket.votes.find((v) => v.usersub === userSub);
         return vote ? vote.vote : null;
     };
 
     const getVoteForUser = (currentUserSub: string | undefined): string => {
         const vote = currentTicket.votes.find(
-            (v) => v.userSub === currentUserSub
+            (v: VoteModel) => v.usersub === currentUserSub
         );
         if (!vote) {
             return 'Not Voted';
         }
 
-        if (showVotes || vote?.userSub === userSub) {
+        if (showVotes || vote?.usersub === userSub) {
             return vote.vote.toString();
         } else {
             return 'Voted';

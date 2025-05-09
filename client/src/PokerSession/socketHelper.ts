@@ -5,14 +5,14 @@ export const socket_voteReceived = (
     vote: number,
     userSub: string
 ) => {
-    const voteForUser = ticket.votes.find((v) => v.userSub === userSub);
+    const voteForUser = ticket.votes.find((v) => v.usersub === userSub);
 
     if (voteForUser) {
         voteForUser.vote = vote;
     } else {
         ticket.votes.push({
             vote,
-            userSub: userSub,
+            usersub: userSub,
         });
     }
     return ticket;
