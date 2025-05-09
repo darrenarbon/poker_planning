@@ -200,10 +200,15 @@ const sockets = (socket, io) => {
     });
 
     socket.on('setEstimate', async ({ roomName, currentTicket }) => {
-        const { ticketId, chosenEstimate, averageVote, standardDeviation } =
+        const { ticket_id, chosen_estimate, average_vote, standard_deviation } =
             currentTicket;
 
-        console.log(ticketId, chosenEstimate, averageVote, standardDeviation);
+        console.log(
+            ticket_id,
+            chosen_estimate,
+            average_vote,
+            standard_deviation
+        );
 
         const { data: roomData, error: roomError } = await supabaseConnection
             .from('room')
@@ -218,11 +223,11 @@ const sockets = (socket, io) => {
             const { error: updateTicketError } = await supabaseConnection
                 .from('ticket')
                 .update({
-                    chosen_estimate: chosenEstimate,
-                    average_vote: averageVote,
-                    standard_deviation: standardDeviation,
+                    chosen_estimate,
+                    average_vote,
+                    standard_deviation,
                 })
-                .eq('ticket_id', ticketId);
+                .eq('ticket_id', ticket_id);
 
             if (updateTicketError) {
                 return emitError(
