@@ -16,9 +16,9 @@ const SetEstimate = ({ setEstimate, currentTicket }: SetEstimateProps) => {
                     <button
                         className={classNames('btn btn-xl mx-2', {
                             'btn-primary':
-                                value === currentTicket.chosenEstimate,
+                                value === currentTicket.chosen_estimate,
                             'btn-outline-primary':
-                                value !== currentTicket.chosenEstimate,
+                                value !== currentTicket.chosen_estimate,
                         })}
                         key={value}
                         onClick={() => setEstimate(value)}

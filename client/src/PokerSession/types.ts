@@ -1,32 +1,32 @@
 import { UserModel } from '../User/User';
 
 export interface PokerSessionProps {
-  roomName: string;
+    roomName: string;
 }
 
 export interface VoteModel {
-  userSub: string | undefined;
-  vote: number;
+    userSub: string | undefined;
+    vote: number;
 }
 
 export interface VoteReceivedSocketModel {
-  ticketId: string;
-  vote: number;
-  userSub: string;
+    ticketId: string;
+    vote: number;
+    userSub: string;
 }
 
 export interface TicketsAndUsers {
-  tickets: TicketForVoting[];
-  users: UserModel[];
-  adminId: number;
+    tickets: TicketForVoting[];
+    users: UserModel[];
+    adminId: number;
 }
 
 export interface TicketForVoting {
-  ticketId: string;
-  ticketNumber: string;
-  ticketUrl: string;
-  votes: VoteModel[];
-  averageVote?: number;
-  standardDeviation?: number;
-  chosenEstimate?: number;
+    ticket_id: string;
+    ticket_number: string;
+    ticket_url: string;
+    votes: VoteModel[];
+    average_vote?: number;
+    standard_deviation?: number;
+    chosen_estimate?: number;
 }

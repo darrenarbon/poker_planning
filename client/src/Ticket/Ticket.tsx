@@ -24,7 +24,7 @@ const Ticket = ({
     return (
         <div
             className="col-12 col-sm-6 col-md-4 col-lg-3 p-1"
-            key={ticket.ticketNumber}
+            key={ticket.ticket_number}
         >
             <div
                 className={classNames('card border-success', {
@@ -33,8 +33,8 @@ const Ticket = ({
             >
                 <div className="card-header">
                     <span className="fw-bold">Ticket: </span>
-                    <a href={ticket.ticketUrl} target="_blank">
-                        {ticket.ticketNumber}
+                    <a href={ticket.ticket_url} target="_blank">
+                        {ticket.ticket_number}
                     </a>
                 </div>
                 <div className="card-body">
@@ -46,17 +46,17 @@ const Ticket = ({
                         </div>
                         <div className="col-5">
                             {' '}
-                            {ticket.averageVote && (
+                            {ticket.average_vote && (
                                 <>
-                                    {ticket.averageVote} &plusmn;{' '}
-                                    {ticket.standardDeviation}
+                                    {ticket.average_vote} &plusmn;{' '}
+                                    {ticket.standard_deviation}
                                 </>
                             )}
                         </div>
                         <div className="col-7 fw-bold text-start">
                             Chosen points:
                         </div>
-                        <div className="col-5">{ticket.chosenEstimate}</div>
+                        <div className="col-5">{ticket.chosen_estimate}</div>
                     </div>
                     {currentTicket === ticket && (
                         <button className="btn btn-primary btn-sm" disabled>

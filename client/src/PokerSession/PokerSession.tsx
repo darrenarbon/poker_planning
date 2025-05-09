@@ -54,7 +54,7 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
         socket.on(
             'voteReceived',
             ({ ticketId, vote, userSub }: VoteReceivedSocketModel) => {
-                const ticket = tickets.find((t) => t.ticketId === ticketId);
+                const ticket = tickets.find((t) => t.ticket_id === ticketId);
                 if (!ticket) {
                     return;
                 }
@@ -65,18 +65,18 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
                 );
                 setTickets((prevTickets) =>
                     prevTickets.map((t) =>
-                        t.ticketId === ticketId ? updatedTicket : t
+                        t.ticket_id === ticketId ? updatedTicket : t
                     )
                 );
             }
         );
         socket.on('showVotes', ({ ticketId }) => {
-            if (currentTicket && ticketId === currentTicket?.ticketId) {
+            if (currentTicket && ticketId === currentTicket?.ticket_id) {
                 const updatedTicket = socket_showVotes(currentTicket);
                 setCurrentTicket(updatedTicket);
                 setTickets((prevTickets) =>
                     prevTickets.map((t) =>
-                        t.ticketId === ticketId ? updatedTicket : t
+                        t.ticket_id === ticketId ? updatedTicket : t
                     )
                 );
                 setShowVotes(true);
@@ -85,7 +85,7 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
         socket.on('showEstimate', ({ currentTicket }) => {
             setTickets((prevTickets) =>
                 prevTickets.map((t) =>
-                    t.ticketId === currentTicket.ticketId ? currentTicket : t
+                    t.ticket_id === currentTicket.ticketId ? currentTicket : t
                 )
             );
             // this currently wipes the currentTicket reference so will need to handle that
@@ -94,18 +94,26 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
 
     const selectTicket = (ticket: TicketForVoting) => {
         setCurrentTicket(ticket);
+        console.log('selected ticket', ticket);
         setShowVotes(false);
     };
 
     const submitVote = (vote: number) => {
+        console.log(
+            'vote',
+            roomName,
+            currentTicket?.ticket_id,
+            vote,
+            user?.sub
+        );
         socket.emit('vote', {
             roomName,
-            ticketId: currentTicket?.ticketId,
+            ticketId: currentTicket?.ticket_id,
             vote,
             userSub: user?.sub,
         });
         const ticket = tickets.find(
-            (t) => t.ticketNumber === currentTicket?.ticketNumber
+            (t) => t.ticket_number === currentTicket?.ticket_number
         );
         if (!ticket) {
             return;
@@ -121,17 +129,17 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
         }
         setTickets((prevTickets) =>
             prevTickets.map((t) =>
-                t.ticketNumber === currentTicket?.ticketNumber ? ticket : t
+                t.ticket_number === currentTicket?.ticket_number ? ticket : t
             )
         );
     };
 
     const setEstimate = async (estimate: number) => {
         if (currentTicket) {
-            currentTicket.chosenEstimate = estimate;
+            currentTicket.chosen_estimate = estimate;
             setTickets((prevTickets) =>
                 prevTickets.map((t) =>
-                    t.ticketNumber === currentTicket.ticketNumber
+                    t.ticket_number === currentTicket.ticket_number
                         ? currentTicket
                         : t
                 )
@@ -161,7 +169,7 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
                         <div className="row">
                             {tickets.map((ticket) => (
                                 <Ticket
-                                    key={ticket.ticketNumber}
+                                    key={ticket.ticket_number}
                                     ticket={ticket}
                                     selectTicket={selectTicket}
                                     currentTicket={currentTicket}
@@ -175,7 +183,7 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
                     {currentTicket && (
                         <div>
                             <h3>
-                                Voting on ticket: {currentTicket.ticketNumber}
+                                Voting on ticket: {currentTicket.ticket_number}
                             </h3>
                             <Voting
                                 allUsers={users}
@@ -197,7 +205,7 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
                                         'showVotes',
                                         {
                                             roomName,
-                                            ticketId: currentTicket?.ticketId,
+                                            ticketId: currentTicket?.ticket_id,
                                         }
                                     )
                                 }
