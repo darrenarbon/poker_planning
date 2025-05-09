@@ -200,14 +200,10 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
                             <button
                                 className="btn btn-primary btn-lg"
                                 onClick={() =>
-                                    console.log(
-                                        'CONVERT TO socket.emit',
-                                        'showVotes',
-                                        {
-                                            roomName,
-                                            ticketId: currentTicket?.ticket_id,
-                                        }
-                                    )
+                                    socket.emit('showVotes', {
+                                        roomName,
+                                        ticketId: currentTicket?.ticket_id,
+                                    })
                                 }
                             >
                                 Show Votes
