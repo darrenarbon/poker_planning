@@ -16,6 +16,7 @@ import { socket_showVotes, socket_voteReceived } from './socketHelper';
 import Tickets from '../Tickets';
 import VotingComplete from '../VotingComplete';
 import TicketEstimateAdminPanel from '../TicketEstimateAdminPanel';
+import AverageVote from '../AverageVote';
 
 const socket = io(config.apiUrl);
 
@@ -181,13 +182,17 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
                                                 showVotes={showVotes}
                                             />
                                         )}
+                                        {showVotes && currentTicket && (
+                                            <AverageVote
+                                                currentTicket={currentTicket}
+                                            />
+                                        )}
                                         {isAdmin && currentTicket && (
                                             <TicketEstimateAdminPanel
                                                 roomName={roomName}
                                                 currentTicket={currentTicket}
                                                 setEstimate={setEstimate}
                                                 socket={socket}
-                                                showVotes={showVotes}
                                             />
                                         )}
                                     </>

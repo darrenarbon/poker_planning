@@ -1,14 +1,12 @@
 import { Socket } from 'socket.io-client';
 import SetEstimate from '../SetEstimate';
 import { TicketForVoting } from '../PokerSession/types';
-import AverageVote from '../AverageVote';
 
 type PokerSessionProps = {
     roomName: string;
     currentTicket: TicketForVoting;
     setEstimate: (estimate: number) => void;
     socket: Socket;
-    showVotes: boolean;
 };
 
 const TicketEstimateAdminPanel = ({
@@ -16,11 +14,9 @@ const TicketEstimateAdminPanel = ({
     currentTicket,
     setEstimate,
     socket,
-    showVotes = false,
 }: PokerSessionProps) => {
     return (
         <div className="text-center mt-5">
-            {showVotes && <AverageVote currentTicket={currentTicket} />}
             <button
                 className="btn btn-primary btn-sm"
                 onClick={() =>

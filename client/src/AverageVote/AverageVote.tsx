@@ -31,7 +31,7 @@ const AverageVote = ({ currentTicket }: AverageVoteProps) => {
     if (
         !currentTicket ||
         !currentTicket.average_vote ||
-        currentTicket.standard_deviation !== null
+        currentTicket.standard_deviation == null
     ) {
         return null;
     }
@@ -59,8 +59,8 @@ const AverageVote = ({ currentTicket }: AverageVoteProps) => {
     }
 
     return (
-        <div className="text-center">
-            <h5 className="text-center pb-4">
+        <div className="text-center mt-5">
+            <h5 className="text-center mb-3">
                 Average Vote {currentTicket.average_vote} &plusmn;{' '}
                 {currentTicket.standard_deviation}
             </h5>
