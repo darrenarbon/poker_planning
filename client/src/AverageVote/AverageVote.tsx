@@ -31,7 +31,7 @@ const AverageVote = ({ currentTicket }: AverageVoteProps) => {
     if (
         !currentTicket ||
         !currentTicket.average_vote ||
-        !currentTicket.standard_deviation
+        currentTicket.standard_deviation !== null
     ) {
         return null;
     }
