@@ -1,4 +1,4 @@
-import { UserModel } from '../User/User';
+import { UserModel } from '../Users/SingleUser/SingleUser';
 
 export interface PokerSessionProps {
     roomName: string;

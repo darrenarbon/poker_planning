@@ -1,6 +1,10 @@
+#root_old {
+    margin: 0 auto;
+    padding: 2rem;
+    text-align: center;
+    width: 80%;
+}
+
 #root {
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-  width: 80%;
+    width: 100%;
 }

@@ -82,37 +82,47 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/newroom', checkJwt, async (req, res) => {
-    const authPayload = req.auth.payload;
-    console.log('Auth payload:', authPayload);
-    const userInDB = await getUserDetails(authPayload.sub);
+    try {
+        const authPayload = req.auth.payload;
+        console.log('Auth payload:', authPayload);
+        const userInDB = await getUserDetails(authPayload.sub);
 
-    console.log(userInDB);
+        console.log(userInDB);
 
-    const roomName = uuidv4().substring(0, 10);
+        const roomName = uuidv4().substring(0, 10);
 
-    const { data, error: createRoomError } = await supabaseConnection
-        .from('room')
-        .insert([{ room_name: roomName, admin_id: userInDB.user_id }])
-        .select();
+        const { data, error: createRoomError } = await supabaseConnection
+            .from('room')
+            .insert([{ room_name: roomName, admin_id: userInDB.user_id }])
+            .select();
 
-    if (createRoomError) {
-        return returnError(res, 500, createRoomError, 'Error creating room');
+        if (createRoomError) {
+            return returnError(
+                res,
+                500,
+                createRoomError,
+                'Error creating room'
+            );
+        }
+
+        const { error: addUsertoRoomError } = await supabaseConnection
+            .from('room_users')
+            .insert([{ room_id: data[0].room_id, user_id: userInDB.user_id }]);
+
+        if (addUsertoRoomError) {
+            return returnError(
+                res,
+                500,
+                addUsertoRoomError,
+                'Error adding user to room'
+            );
+        }
+
+        return res.json({ roomId: roomName });
+    } catch (error) {
+        console.error('Error in /newroom:', error);
+        return returnError(res, 500, error, 'Internal server error');
     }
-
-    const { error: addUsertoRoomError } = await supabaseConnection
-        .from('room_users')
-        .insert([{ room_id: data[0].room_id, user_id: userInDB.user_id }]);
-
-    if (addUsertoRoomError) {
-        return returnError(
-            res,
-            500,
-            addUsertoRoomError,
-            'Error adding user to room'
-        );
-    }
-
-    return res.json({ roomId: roomName });
 });
 
 router.post('/room/:roomId/tickets', async (req, res) => {
@@ -205,6 +215,7 @@ router.get('/room/:roomName', async (req, res) => {
     const { data: ticketsData, error: ticketsError } = await supabaseConnection
         .from('ticket')
         .select()
+        .order('ticket_number', { ascending: true })
         .eq('room_id', getRoomData[0].room_id);
 
     if (ticketsError) {

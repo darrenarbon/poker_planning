@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import { votingValues } from './votingHelper';
-import { UserModel } from '../User/User';
+import { UserModel } from '../Users/SingleUser/SingleUser';
 import { TicketForVoting, VoteModel } from '../PokerSession/types';
 
 interface VotingProps {
@@ -38,53 +38,61 @@ const Voting = ({
         }
     };
     return (
-        <div className="mx-auto">
+        <>
+            <h4 className="text-center pb-4">
+                Voting on ticket: {currentTicket.ticket_number}
+            </h4>
             <div>
-                {votingValues.map((value) => (
-                    <button
-                        className={classNames('btn btn-xl mx-2', {
-                            'btn-primary': getRawVoteForUser(userSub) === value,
-                            'btn-outline-primary':
-                                getRawVoteForUser(userSub) !== value,
-                        })}
-                        key={value}
-                        onClick={() => submitVote(value)}
-                    >
-                        {value}
-                    </button>
-                ))}
+                <div className="w-75 mx-auto text-center">
+                    {votingValues.map((value) => (
+                        <button
+                            className={classNames('btn btn-xl mx-2', {
+                                'btn-primary':
+                                    getRawVoteForUser(userSub) === value,
+                                'btn-outline-primary':
+                                    getRawVoteForUser(userSub) !== value,
+                            })}
+                            key={value}
+                            onClick={() => submitVote(value)}
+                        >
+                            {value}
+                        </button>
+                    ))}
+                </div>
+                <div className="mt-3 w-75 mx-auto">
+                    <table className="w-100">
+                        <thead className="bg-light">
+                            <tr>
+                                <th>Player</th>
+                                <th>Vote</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {allUsers.map((user) => {
+                                const displayName = user.given_name
+                                    ? `${user.given_name} ${user.family_name}`
+                                    : user.nickname;
+                                return (
+                                    <tr key={user.auth0_sub}>
+                                        <td
+                                            className={classNames({
+                                                'fw-bold':
+                                                    user.auth0_sub === userSub,
+                                            })}
+                                        >
+                                            {displayName}
+                                        </td>
+                                        <td>
+                                            {getVoteForUser(user.auth0_sub)}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <div className="mt-3 w-75 mx-auto">
-                <table className="w-100">
-                    <thead className="bg-light">
-                        <tr>
-                            <th>Player</th>
-                            <th>Vote</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {allUsers.map((user) => {
-                            const displayName = user.given_name
-                                ? `${user.given_name} ${user.family_name}`
-                                : user.nickname;
-                            return (
-                                <tr key={user.auth0_sub}>
-                                    <td
-                                        className={classNames({
-                                            'fw-bold':
-                                                user.auth0_sub === userSub,
-                                        })}
-                                    >
-                                        {displayName}
-                                    </td>
-                                    <td>{getVoteForUser(user.auth0_sub)}</td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        </>
     );
 };
 

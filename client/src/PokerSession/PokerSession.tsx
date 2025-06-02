@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
 import io from 'socket.io-client';
-import Ticket from '../Ticket';
-import User from '../User';
 import Voting from '../Voting';
-import SetEstimate from '../SetEstimate';
-import { UserModel } from '../User/User';
+import { UserModel } from '../Users/SingleUser/SingleUser';
 import NavBar from '../NavBar';
 import { useAuth0 } from '@auth0/auth0-react';
 import config from '../config';
@@ -16,6 +13,9 @@ import {
     VoteReceivedSocketModel,
 } from './types';
 import { socket_showVotes, socket_voteReceived } from './socketHelper';
+import Tickets from '../Tickets';
+import VotingComplete from '../VotingComplete';
+import TicketEstimateAdminPanel from '../TicketEstimateAdminPanel';
 
 const socket = io(config.apiUrl);
 
@@ -47,7 +47,12 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
     }, [roomName]);
 
     useEffect(() => {
-        socket.emit('join', { roomName, userSub: user?.sub });
+        if (user) {
+            socket.emit('join', { roomName, userSub: user.sub });
+        }
+    }, [roomName, user]);
+
+    useEffect(() => {
         socket.on('userJoined', ({ users }) => {
             setUsers(users);
         });
@@ -85,27 +90,19 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
         socket.on('showEstimate', ({ currentTicket }) => {
             setTickets((prevTickets) =>
                 prevTickets.map((t) =>
-                    t.ticket_id === currentTicket.ticketId ? currentTicket : t
+                    t.ticket_id === currentTicket.ticket_id ? currentTicket : t
                 )
             );
-            // this currently wipes the currentTicket reference so will need to handle that
+            setCurrentTicket(currentTicket);
         });
     }, [currentTicket, roomName, tickets, user]);
 
     const selectTicket = (ticket: TicketForVoting) => {
         setCurrentTicket(ticket);
-        console.log('selected ticket', ticket);
         setShowVotes(false);
     };
 
     const submitVote = (vote: number) => {
-        console.log(
-            'vote',
-            roomName,
-            currentTicket?.ticket_id,
-            vote,
-            user?.sub
-        );
         socket.emit('vote', {
             roomName,
             ticketId: currentTicket?.ticket_id,
@@ -132,11 +129,13 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
                 t.ticket_number === currentTicket?.ticket_number ? ticket : t
             )
         );
+        setCurrentTicket(ticket);
     };
 
     const setEstimate = async (estimate: number) => {
         if (currentTicket) {
             currentTicket.chosen_estimate = estimate;
+
             setTickets((prevTickets) =>
                 prevTickets.map((t) =>
                     t.ticket_number === currentTicket.ticket_number
@@ -148,74 +147,59 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
         }
     };
 
+    const isAdmin = user?.sub === adminId;
+
     return (
         <main>
             <NavBar auth0User={user} />
             {user && (
-                <div>
-                    <div>
-                        <h3>Players</h3>
-                        {users.map((u) => (
-                            <User
-                                key={u.auth0_sub}
-                                userSub={user.sub}
-                                user={u}
-                            />
-                        ))}
-                        <hr />
-                    </div>
-                    <div className="container">
-                        <h3>Tickets</h3>
+                <>
+                    <div className="container-fluid">
                         <div className="row">
-                            {tickets.map((ticket) => (
-                                <Ticket
-                                    key={ticket.ticket_number}
-                                    ticket={ticket}
+                            <div className="col-2 border-end">
+                                <Tickets
+                                    tickets={tickets}
                                     selectTicket={selectTicket}
                                     currentTicket={currentTicket}
-                                    userSub={user.sub}
-                                    adminId={adminId}
+                                    loggedInUser={user}
                                 />
-                            ))}
+                            </div>
+                            <div className="col-10">
+                                {currentTicket ? (
+                                    <>
+                                        {currentTicket.chosen_estimate &&
+                                        !isAdmin ? (
+                                            <VotingComplete
+                                                currentTicket={currentTicket}
+                                            />
+                                        ) : (
+                                            <Voting
+                                                allUsers={users}
+                                                submitVote={submitVote}
+                                                currentTicket={currentTicket}
+                                                userSub={user.sub}
+                                                showVotes={showVotes}
+                                            />
+                                        )}
+                                        {isAdmin && currentTicket && (
+                                            <TicketEstimateAdminPanel
+                                                roomName={roomName}
+                                                currentTicket={currentTicket}
+                                                setEstimate={setEstimate}
+                                                socket={socket}
+                                                showVotes={showVotes}
+                                            />
+                                        )}
+                                    </>
+                                ) : (
+                                    <h4 className="text-center">
+                                        Select a ticket to start voting
+                                    </h4>
+                                )}
+                            </div>
                         </div>
-                        <hr />
                     </div>
-                    {currentTicket && (
-                        <div>
-                            <h3>
-                                Voting on ticket: {currentTicket.ticket_number}
-                            </h3>
-                            <Voting
-                                allUsers={users}
-                                submitVote={submitVote}
-                                currentTicket={currentTicket}
-                                userSub={user.sub}
-                                showVotes={showVotes}
-                            />
-                        </div>
-                    )}
-
-                    {adminId === user.sub && currentTicket && (
-                        <>
-                            <button
-                                className="btn btn-primary btn-lg"
-                                onClick={() =>
-                                    socket.emit('showVotes', {
-                                        roomName,
-                                        ticketId: currentTicket?.ticket_id,
-                                    })
-                                }
-                            >
-                                Show Votes
-                            </button>
-                            <hr />
-                            <SetEstimate
-                                setEstimate={setEstimate}
-                                currentTicket={currentTicket}
-                            />
-                        </>
-                    )}
-                </div>
+                </>
             )}
         </main>
     );

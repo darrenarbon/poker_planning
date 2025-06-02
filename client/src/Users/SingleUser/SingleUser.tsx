@@ -10,7 +10,7 @@ export interface UserModel {
     nickname: string | undefined;
 }
 
-const User = ({ userSub, user }: UserProps) => {
+const SingleUser = ({ userSub, user }: UserProps) => {
     const displayName = user.given_name
         ? `${user.given_name} ${user.family_name}`
         : user.nickname;
@@ -25,4 +25,4 @@ const User = ({ userSub, user }: UserProps) => {
     );
 };
 
-export default User;
+export default SingleUser;

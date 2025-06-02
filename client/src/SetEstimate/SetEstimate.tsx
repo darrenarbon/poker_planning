@@ -10,11 +10,17 @@ interface SetEstimateProps {
 const SetEstimate = ({ setEstimate, currentTicket }: SetEstimateProps) => {
     return (
         <div className="mx-auto">
-            <h2>Set Estimate</h2>
+            <h4>Set Final Estimate</h4>
             <div>
+                <button
+                    className="btn btn-warning mx-2"
+                    onClick={() => setEstimate(0)}
+                >
+                    Reset Estimate
+                </button>
                 {votingValues.map((value) => (
                     <button
-                        className={classNames('btn btn-xl mx-2', {
+                        className={classNames('btn mx-2', {
                             'btn-primary':
                                 value === currentTicket.chosen_estimate,
                             'btn-outline-primary':
