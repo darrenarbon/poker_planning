@@ -1,15 +1,11 @@
 import { useAuth0, User } from '@auth0/auth0-react';
-import { useNavigate } from 'react-router-dom';
-import config from '../config';
 
 interface NavBarProps {
     auth0User?: User;
 }
 
 const NavBar = ({ auth0User }: NavBarProps) => {
-    const navigate = useNavigate();
-
-    const { logout, loginWithRedirect, getAccessTokenSilently } = useAuth0();
+    const { logout, loginWithRedirect } = useAuth0();
 
     const buttonInitials = auth0User?.given_name
         ? `${auth0User?.given_name?.substring(
@@ -21,24 +17,6 @@ const NavBar = ({ auth0User }: NavBarProps) => {
               .map((n: string) => n.substring(0, 1))
               .join('')
               .toUpperCase();
-
-    const createRoom = async () => {
-        const friendlyRoomName = prompt('Enter a name for the new room:');
-        if (!friendlyRoomName) {
-            return;
-        }
-        const token = await getAccessTokenSilently();
-        const response = await fetch(`${config.apiUrl}/newroom`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ friendlyRoomName }),
-        });
-        const { roomId } = await response.json();
-        navigate(`/room/${roomId}/tickets`);
-    };
 
     return (
         <nav className="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
@@ -61,18 +39,7 @@ const NavBar = ({ auth0User }: NavBarProps) => {
                     className="collapse navbar-collapse"
                     id="navbarTogglerDemo01"
                 >
-                    <ul className="navbar-nav me-auto">
-                        {auth0User && (
-                            <li className="nav-item">
-                                <button
-                                    className="btn btn-outline-light"
-                                    onClick={createRoom}
-                                >
-                                    Create room
-                                </button>
-                            </li>
-                        )}
-                    </ul>
+                    <ul className="navbar-nav me-auto"></ul>
                     <div className="d-flex">
                         {!auth0User && (
                             <button

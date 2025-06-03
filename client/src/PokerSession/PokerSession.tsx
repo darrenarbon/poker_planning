@@ -32,6 +32,7 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
     const [currentTicket, setCurrentTicket] =
         useState<TicketForVoting | null>();
     const [adminId, setAdminId] = useState<number>();
+    const [ticketBaseUrl, setTicketBaseUrl] = useState<string>('');
     const { user } = useAuth0();
 
     useEffect(() => {
@@ -39,10 +40,11 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
             const ticketsAndUsers: TicketsAndUsers = await fetchTicketsAndUsers(
                 roomName
             );
-            const { tickets, users, adminId } = ticketsAndUsers;
+            const { tickets, users, adminId, baseUrl } = ticketsAndUsers;
             setTickets(tickets);
             setUsers(users);
             setAdminId(adminId);
+            setTicketBaseUrl(baseUrl);
         }
         fetchData();
     }, [roomName]);
@@ -174,6 +176,31 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
         setCurrentTicket(null);
     };
 
+    const addNewTicket = async (ticketNumber: string) => {
+        if (!ticketNumber) {
+            return;
+        }
+        const response = await fetch(
+            `${config.apiUrl}/room/${roomName}/newTicket`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ticketNumber,
+                }),
+            }
+        );
+        if (!response.ok) {
+            console.error('Failed to add new ticket');
+            return;
+        }
+        const newTicket: TicketForVoting = await response.json();
+        newTicket.votes = [];
+        setTickets((prevTickets) => [newTicket, ...prevTickets]);
+    };
+
     const isAdmin = user?.sub === adminId;
 
     return (
@@ -189,6 +216,9 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
                                     selectTicket={selectTicket}
                                     currentTicket={currentTicket}
                                     loggedInUser={user}
+                                    isAdmin={isAdmin}
+                                    addNewTicket={addNewTicket}
+                                    ticketBaseUrl={ticketBaseUrl}
                                 />
                             </div>
                             <div className="col-10">

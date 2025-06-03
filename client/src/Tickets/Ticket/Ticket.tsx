@@ -6,6 +6,7 @@ interface TicketProps {
     selectTicket: (ticket: TicketForVoting) => void;
     currentTicket?: TicketForVoting | null;
     userSub: string | undefined;
+    ticketBaseUrl: string;
 }
 
 const Ticket = ({
@@ -13,6 +14,7 @@ const Ticket = ({
     selectTicket,
     currentTicket,
     userSub,
+    ticketBaseUrl,
 }: TicketProps) => {
     const getMyVote = () => {
         const vote = ticket.votes.find((v: VoteModel) => v.usersub === userSub);
@@ -42,7 +44,10 @@ const Ticket = ({
             <div className="card-body">
                 <span className="fw-bold">Status:</span> {getStatus()}
                 <br />
-                <a href={ticket.ticket_url} target="_blank">
+                <a
+                    href={`${ticketBaseUrl}/${ticket.ticket_number}`}
+                    target="_blank"
+                >
                     View Ticket
                 </a>
             </div>

@@ -19,12 +19,12 @@ export interface TicketsAndUsers {
     tickets: TicketForVoting[];
     users: UserModel[];
     adminId: number;
+    baseUrl: string;
 }
 
 export interface TicketForVoting {
     ticket_id: string;
     ticket_number: string;
-    ticket_url: string;
     votes: VoteModel[];
     average_vote?: number;
     standard_deviation?: number;

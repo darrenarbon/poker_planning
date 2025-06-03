@@ -83,19 +83,20 @@ router.post('/login', async (req, res) => {
 
 router.post('/newroom', checkJwt, async (req, res) => {
     try {
-        const { friendlyRoomName } = req.body;
+        const { roomName, baseUrl } = req.body;
         const authPayload = req.auth.payload;
         const userInDB = await getUserDetails(authPayload.sub);
 
-        const roomName = uuidv4().substring(0, 10);
+        const roomUUID = uuidv4().substring(0, 10);
 
         const { data, error: createRoomError } = await supabaseConnection
             .from('room')
             .insert([
                 {
-                    room_name: roomName,
+                    room_name: roomUUID,
                     admin_id: userInDB.user_id,
-                    friendly_name: friendlyRoomName,
+                    friendly_name: roomName,
+                    ticket_base_url: baseUrl,
                 },
             ])
             .select();
@@ -122,7 +123,7 @@ router.post('/newroom', checkJwt, async (req, res) => {
             );
         }
 
-        return res.json({ roomId: roomName });
+        return res.json({ roomId: roomUUID });
     } catch (error) {
         console.error('Error in /newroom:', error);
         return returnError(res, 500, error, 'Internal server error');
@@ -164,6 +165,45 @@ router.delete('/ticket/:ticketId', async (req, res) => {
 
 router.post('/room/:roomId/tickets', async (req, res) => {
     const { roomId } = req.params;
+    const { ticketsToSave } = req.body;
+
+    const { data, error: findRoomError } = await supabaseConnection
+        .from('room')
+        .select()
+        .eq('room_name', roomId);
+
+    if (findRoomError) {
+        return returnError(res, 500, findRoomError, 'Error fetching room');
+    }
+
+    if (data.length === 0) {
+        return returnError(res, 404, null, 'Room not found');
+    }
+
+    const ticketsArray = ticketsToSave.map((ticket) => {
+        return {
+            room_id: data[0].room_id,
+            ticket_number: ticket,
+        };
+    });
+
+    const { error: insertTicketsError } = await supabaseConnection
+        .from('ticket')
+        .insert(ticketsArray);
+    if (insertTicketsError) {
+        return returnError(
+            res,
+            500,
+            insertTicketsError,
+            'Error adding tickets'
+        );
+    }
+
+    return res.json({ message: 'Tickets added' });
+});
+
+router.post('/room/:roomId/tickets', async (req, res) => {
+    const { roomId } = req.params;
     const { ticketsToSave, baseUrl } = req.body;
 
     const { data, error: findRoomError } = await supabaseConnection
@@ -183,7 +223,7 @@ router.post('/room/:roomId/tickets', async (req, res) => {
         return {
             room_id: data[0].room_id,
             ticket_number: ticket,
-            ticket_url: `${baseUrl}/${ticket}`,
+            ticket_url: baseUrl,
         };
     });
 
@@ -200,6 +240,37 @@ router.post('/room/:roomId/tickets', async (req, res) => {
     }
 
     return res.json({ message: 'Tickets added' });
+});
+
+router.post('/room/:roomName/newTicket', async (req, res) => {
+    const { roomName } = req.params;
+    const { ticketNumber } = req.body;
+    const { data, error: findRoomError } = await supabaseConnection
+        .from('room')
+        .select()
+        .eq('room_name', roomName);
+
+    if (findRoomError) {
+        return returnError(res, 500, findRoomError, 'Error fetching room');
+    }
+
+    if (data.length === 0) {
+        return returnError(res, 404, null, 'Room not found');
+    }
+
+    const { data: insertedTicket, error: insertTicketError } =
+        await supabaseConnection
+            .from('ticket')
+            .insert({
+                room_id: data[0].room_id,
+                ticket_number: ticketNumber,
+            })
+            .select();
+
+    if (insertTicketError) {
+        return returnError(res, 500, insertTicketError, 'Error adding ticket');
+    }
+    return res.json({ ...insertedTicket[0] });
 });
 
 router.get('/users/:userSub/rooms', async (req, res) => {
@@ -309,6 +380,7 @@ router.get('/room/:roomName', async (req, res) => {
         tickets: ticketsWithVotes,
         users: usersInRoomData,
         adminId: getRoomData[0].auth0_sub,
+        baseUrl: getRoomData[0].ticket_base_url,
     });
 });
 

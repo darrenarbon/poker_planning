@@ -14,6 +14,10 @@ type Room = {
 
 const JoinRoom = () => {
     const [roomId, setRoomId] = useState<string>('');
+    const [roomName, setRoomName] = useState<string>('');
+    const [baseUrl, setBaseUrl] = useState<string>(
+        'https://techfromsage.atlassian.net/browse'
+    );
     const [myRooms, setMyRooms] = useState<Room[]>([]);
     const navigate = useNavigate();
     const { user, isAuthenticated, getAccessTokenSilently } = useAuth0();
@@ -65,12 +69,40 @@ const JoinRoom = () => {
         navigate(`/room/${roomId}/voting`);
     };
 
+    const createNewRoom = async () => {
+        if (!roomName || !baseUrl) {
+            alert('Please enter a room name and base URL for tickets.');
+            return;
+        }
+
+        try {
+            const token = await getAccessTokenSilently();
+            let trimmedBaseUrl = baseUrl.trim();
+            if (trimmedBaseUrl.endsWith('/')) {
+                trimmedBaseUrl = trimmedBaseUrl.slice(0, -1);
+            }
+            const response = await fetch(`${config.apiUrl}/newroom`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ roomName, baseUrl: trimmedBaseUrl }),
+            });
+            const { roomId } = await response.json();
+            navigate(`/room/${roomId}/tickets`);
+        } catch (error) {
+            console.error('Error creating new room:', error);
+            alert('Failed to create room. Please try again.');
+        }
+    };
+
     return (
-        <div className="container text-center mt-4">
+        <div className="container mt-4">
             <NavBar auth0User={user} />
             {isAuthenticated && user && (
                 <div className="row">
-                    <div className="col-6">
+                    <div className="col-6 text-center">
                         <h2>Join an existing room</h2>
 
                         <div className="form-group">
@@ -92,9 +124,44 @@ const JoinRoom = () => {
                         </button>
                     </div>
                     <div className="col-6">
-                        <h2>My rooms</h2>
+                        <h2 className="text-center">Create new room</h2>
+                        <div className="form-group">
+                            <label htmlFor="roomName">Room Name: </label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                id="roomName"
+                                value={roomName}
+                                onChange={(e) => setRoomName(e.target.value)}
+                                placeholder="Enter a name for your room"
+                            />
+                        </div>
 
-                        <div className="list-group">
+                        <div className="form-group">
+                            <label htmlFor="baseUrl">
+                                Base URL for tickets:{' '}
+                            </label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                id="baseUrl"
+                                value={baseUrl}
+                                onChange={(e) => setBaseUrl(e.target.value)}
+                                placeholder="Enter the base URL for your tickets"
+                            />
+                        </div>
+                        <button
+                            className="btn btn-primary mt-2 mb-3"
+                            onClick={createNewRoom}
+                        >
+                            Create room
+                        </button>
+
+                        <hr />
+
+                        <h2 className="text-center mt-3">My rooms</h2>
+
+                        <div className="list-group text-center">
                             {myRooms.map((room) => (
                                 <a
                                     href="#"
