@@ -23,6 +23,10 @@ const NavBar = ({ auth0User }: NavBarProps) => {
               .toUpperCase();
 
     const createRoom = async () => {
+        const friendlyRoomName = prompt('Enter a name for the new room:');
+        if (!friendlyRoomName) {
+            return;
+        }
         const token = await getAccessTokenSilently();
         const response = await fetch(`${config.apiUrl}/newroom`, {
             method: 'POST',
@@ -30,6 +34,7 @@ const NavBar = ({ auth0User }: NavBarProps) => {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
             },
+            body: JSON.stringify({ friendlyRoomName }),
         });
         const { roomId } = await response.json();
         navigate(`/room/${roomId}/tickets`);
@@ -38,7 +43,7 @@ const NavBar = ({ auth0User }: NavBarProps) => {
     return (
         <nav className="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
             <div className="container-fluid">
-                <a className="navbar-brand" href="#">
+                <a className="navbar-brand" href="/">
                     Ticket Tally
                 </a>
                 <button

@@ -83,17 +83,21 @@ router.post('/login', async (req, res) => {
 
 router.post('/newroom', checkJwt, async (req, res) => {
     try {
+        const { friendlyRoomName } = req.body;
         const authPayload = req.auth.payload;
-        console.log('Auth payload:', authPayload);
         const userInDB = await getUserDetails(authPayload.sub);
-
-        console.log(userInDB);
 
         const roomName = uuidv4().substring(0, 10);
 
         const { data, error: createRoomError } = await supabaseConnection
             .from('room')
-            .insert([{ room_name: roomName, admin_id: userInDB.user_id }])
+            .insert([
+                {
+                    room_name: roomName,
+                    admin_id: userInDB.user_id,
+                    friendly_name: friendlyRoomName,
+                },
+            ])
             .select();
 
         if (createRoomError) {
@@ -163,6 +167,28 @@ router.post('/room/:roomId/tickets', async (req, res) => {
     }
 
     return res.json({ message: 'Tickets added' });
+});
+
+router.get('/users/:userSub/rooms', async (req, res) => {
+    const { userSub } = req.params;
+    const { user_id } = await getUserDetails(userSub);
+
+    const { data, error: findRoomsError } = await supabaseConnection
+        .from('room')
+        .select()
+        .eq('admin_id', user_id)
+        .order('created_at', { ascending: false });
+
+    if (findRoomsError) {
+        return returnError(
+            res,
+            500,
+            findRoomsError,
+            'Error fetching rooms for user'
+        );
+    }
+
+    return res.json({ rooms: data });
 });
 
 router.get('/room/:roomName', async (req, res) => {

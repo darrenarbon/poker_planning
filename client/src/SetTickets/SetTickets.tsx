@@ -14,12 +14,16 @@ const SetTickets = ({ roomName }: SetTicketsProps) => {
     const saveTickets = async () => {
         const trimmedTickets = tickets.map((ticket) => ticket.trim());
         const ticketsToSave = trimmedTickets.filter((ticket) => ticket !== '');
+        let trimmedBaseUrl = baseUrl.trim();
+        if (trimmedBaseUrl.endsWith('/')) {
+            trimmedBaseUrl = trimmedBaseUrl.slice(0, -1);
+        }
         await fetch(`${config.apiUrl}/room/${roomName}/tickets`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ ticketsToSave, baseUrl }),
+            body: JSON.stringify({ ticketsToSave, baseUrl: trimmedBaseUrl }),
         });
 
         navigate(`/room/${roomName}/voting`);
