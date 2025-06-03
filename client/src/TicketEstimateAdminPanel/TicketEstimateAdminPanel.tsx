@@ -7,6 +7,7 @@ type PokerSessionProps = {
     currentTicket: TicketForVoting;
     setEstimate: (estimate: number) => void;
     socket: Socket;
+    deleteCurrentTicket: () => void;
 };
 
 const TicketEstimateAdminPanel = ({
@@ -14,11 +15,12 @@ const TicketEstimateAdminPanel = ({
     currentTicket,
     setEstimate,
     socket,
+    deleteCurrentTicket,
 }: PokerSessionProps) => {
     return (
         <div className="text-center mt-5">
             <button
-                className="btn btn-primary btn-sm"
+                className="btn btn-primary btn-sm me-4"
                 onClick={() =>
                     socket.emit('showVotes', {
                         roomName,
@@ -27,6 +29,12 @@ const TicketEstimateAdminPanel = ({
                 }
             >
                 Show Votes
+            </button>
+            <button
+                className="btn btn-danger btn-sm"
+                onClick={deleteCurrentTicket}
+            >
+                Delete Ticket
             </button>
             <hr />
             <SetEstimate

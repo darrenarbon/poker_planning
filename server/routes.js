@@ -129,6 +129,39 @@ router.post('/newroom', checkJwt, async (req, res) => {
     }
 });
 
+router.delete('/ticket/:ticketId', async (req, res) => {
+    const { ticketId } = req.params;
+
+    const { data, error: findTicketError } = await supabaseConnection
+        .from('ticket')
+        .select()
+        .eq('ticket_id', ticketId);
+
+    if (findTicketError) {
+        return returnError(res, 500, findTicketError, 'Error fetching ticket');
+    }
+
+    if (data.length === 0) {
+        return returnError(res, 404, null, 'Ticket not found');
+    }
+
+    const { error: deleteTicketError } = await supabaseConnection
+        .from('ticket')
+        .delete()
+        .eq('ticket_id', ticketId);
+
+    if (deleteTicketError) {
+        return returnError(
+            res,
+            500,
+            deleteTicketError,
+            'Error deleting ticket'
+        );
+    }
+
+    return res.json({ message: 'Ticket deleted' });
+});
+
 router.post('/room/:roomId/tickets', async (req, res) => {
     const { roomId } = req.params;
     const { ticketsToSave, baseUrl } = req.body;

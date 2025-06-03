@@ -148,6 +148,32 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
         }
     };
 
+    const deleteCurrentTicket = async () => {
+        if (!currentTicket) {
+            return;
+        }
+        const conf = confirm(
+            `Are you sure you want to delete ticket ${currentTicket?.ticket_number}? This action cannot be undone.`
+        );
+        if (!conf) {
+            return;
+        }
+        const response = await fetch(
+            `${config.apiUrl}/ticket/${currentTicket.ticket_id}`,
+            {
+                method: 'DELETE',
+            }
+        );
+        if (!response.ok) {
+            console.error('Failed to delete ticket');
+            return;
+        }
+        setTickets((prevTickets) =>
+            prevTickets.filter((t) => t.ticket_id !== currentTicket.ticket_id)
+        );
+        setCurrentTicket(null);
+    };
+
     const isAdmin = user?.sub === adminId;
 
     return (
@@ -193,6 +219,9 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
                                                 currentTicket={currentTicket}
                                                 setEstimate={setEstimate}
                                                 socket={socket}
+                                                deleteCurrentTicket={
+                                                    deleteCurrentTicket
+                                                }
                                             />
                                         )}
                                     </>
