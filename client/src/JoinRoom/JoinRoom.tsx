@@ -102,7 +102,7 @@ const JoinRoom = () => {
             <NavBar auth0User={user} />
             {isAuthenticated && user && (
                 <div className="row">
-                    <div className="col-6 text-center">
+                    <div className="col-6 text-center p-4">
                         <h2>Join an existing room</h2>
 
                         <div className="form-group">
@@ -123,7 +123,7 @@ const JoinRoom = () => {
                             Join room
                         </button>
                     </div>
-                    <div className="col-6">
+                    <div className="col-6 border-start border-dark p-4">
                         <h2 className="text-center">Create new room</h2>
                         <div className="form-group">
                             <label htmlFor="roomName">Room Name: </label>
