@@ -314,6 +314,15 @@ router.get('/room/:roomName', async (req, res) => {
         return returnError(res, 500, getRoomError, 'Error fetching room');
     }
 
+    const roomData = {
+        adminId: getRoomData[0].admin_id,
+        createdAt: getRoomData[0].created_at,
+        friendlyName: getRoomData[0].friendly_name,
+        roomId: getRoomData[0].room_id,
+        roomName: getRoomData[0].room_name,
+        ticketBaseUrl: getRoomData[0].ticket_base_url,
+    };
+
     const { data: userIdsInRoomData, error: userIdsInRoomError } =
         await supabaseConnection
             .from('room_users')
@@ -379,9 +388,69 @@ router.get('/room/:roomName', async (req, res) => {
     res.json({
         tickets: ticketsWithVotes,
         users: usersInRoomData,
-        adminId: getRoomData[0].auth0_sub,
-        baseUrl: getRoomData[0].ticket_base_url,
+        room: roomData,
     });
+});
+
+router.get('/jiraticket/:ticketId', async (req, res) => {
+    const { ticketId } = req.params;
+
+    const response = await fetch(
+        `https://${process.env.ATLASSIAN_DOMAIN}.atlassian.net/rest/api/3/issue/${ticketId}`,
+        {
+            method: 'GET',
+            headers: {
+                Authorization: `Basic ${Buffer.from(
+                    `${process.env.ATLASSIAN_EMAIL}:${process.env.ATLASSIAN_API_KEY}`
+                ).toString('base64')}`,
+                Accept: 'application/json',
+            },
+        }
+    );
+    const data = await response.json();
+    if (!response.ok) {
+        return returnError(
+            res,
+            response.status,
+            data,
+            'Error fetching JIRA ticket'
+        );
+    }
+    return res.json(data);
+});
+
+router.post('/jiraticket/:ticketId', async (req, res) => {
+    const { ticketId } = req.params;
+    const { storyPoints } = req.body;
+
+    const response = await fetch(
+        `https://${process.env.ATLASSIAN_DOMAIN}.atlassian.net/rest/api/3/issue/${ticketId}?overrideScreenSecurity=true`,
+        {
+            method: 'PUT',
+            headers: {
+                Authorization: `Basic ${Buffer.from(
+                    `${process.env.ATLASSIAN_EMAIL}:${process.env.ATLASSIAN_API_KEY}`
+                ).toString('base64')}`,
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                fields: {
+                    customfield_10024: storyPoints,
+                },
+            }),
+        }
+    );
+    const data = await response.text();
+    if (!response.ok) {
+        return returnError(
+            res,
+            response.status,
+            data,
+            'Error fetching JIRA ticket'
+        );
+    }
+    return res.json(data);
 });
 
 router.get('*', (req, res) => {

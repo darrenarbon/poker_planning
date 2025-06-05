@@ -15,11 +15,19 @@ export interface VoteReceivedSocketModel {
     userSub: string;
 }
 
+export interface Room {
+    adminId: number;
+    createdAt: string;
+    friendlyName: string;
+    roomId: number;
+    roomName: string;
+    ticketBaseUrl: string;
+}
+
 export interface TicketsAndUsers {
     tickets: TicketForVoting[];
     users: UserModel[];
-    adminId: number;
-    baseUrl: string;
+    room: Room;
 }
 
 export interface TicketForVoting {

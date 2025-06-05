@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import config from '../config';
 import NavBar from '../NavBar';
+import Loading from '../Loading';
 
 type Room = {
     room_id: number;
@@ -18,6 +19,7 @@ const JoinRoom = () => {
     const [baseUrl, setBaseUrl] = useState<string>(
         'https://techfromsage.atlassian.net/browse'
     );
+    const [loaded, setLoaded] = useState<boolean>(false);
     const [myRooms, setMyRooms] = useState<Room[]>([]);
     const navigate = useNavigate();
     const { user, isAuthenticated, getAccessTokenSilently } = useAuth0();
@@ -55,6 +57,7 @@ const JoinRoom = () => {
                         rooms: Room[];
                     };
                     setMyRooms(rooms);
+                    setLoaded(true);
                 } catch (error) {
                     console.error('Error logging in user:', error);
                 }
@@ -100,7 +103,9 @@ const JoinRoom = () => {
     return (
         <div className="container mt-4">
             <NavBar auth0User={user} />
-            {isAuthenticated && user && (
+            {!isAuthenticated ? (
+                <h2>Please log in to create or join a room</h2>
+            ) : loaded && user ? (
                 <div className="row">
                     <div className="col-6 text-center p-4">
                         <h2>Join an existing room</h2>
@@ -183,9 +188,8 @@ const JoinRoom = () => {
                         </div>
                     </div>
                 </div>
-            )}
-            {!isAuthenticated && (
-                <h2>Please log in to create or join a room</h2>
+            ) : (
+                <Loading />
             )}
         </div>
     );

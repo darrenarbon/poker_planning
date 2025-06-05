@@ -8,6 +8,7 @@ import config from '../config';
 
 import {
     PokerSessionProps,
+    Room,
     TicketForVoting,
     TicketsAndUsers,
     VoteReceivedSocketModel,
@@ -17,6 +18,8 @@ import Tickets from '../Tickets';
 import VotingComplete from '../VotingComplete';
 import TicketEstimateAdminPanel from '../TicketEstimateAdminPanel';
 import AverageVote from '../AverageVote';
+import RoomHeader from '../RoomHeader';
+import Loading from '../Loading';
 
 const socket = io(config.apiUrl);
 
@@ -31,8 +34,7 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
     const [showVotes, setShowVotes] = useState<boolean>(false);
     const [currentTicket, setCurrentTicket] =
         useState<TicketForVoting | null>();
-    const [adminId, setAdminId] = useState<number>();
-    const [ticketBaseUrl, setTicketBaseUrl] = useState<string>('');
+    const [room, setRoom] = useState<Room>();
     const { user } = useAuth0();
 
     useEffect(() => {
@@ -40,11 +42,11 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
             const ticketsAndUsers: TicketsAndUsers = await fetchTicketsAndUsers(
                 roomName
             );
-            const { tickets, users, adminId, baseUrl } = ticketsAndUsers;
+            console.log('ticketsAndUsers', ticketsAndUsers);
+            const { tickets, users, room } = ticketsAndUsers;
             setTickets(tickets);
             setUsers(users);
-            setAdminId(adminId);
-            setTicketBaseUrl(baseUrl);
+            setRoom(room);
         }
         fetchData();
     }, [roomName]);
@@ -201,12 +203,12 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
         setTickets((prevTickets) => [newTicket, ...prevTickets]);
     };
 
-    const isAdmin = user?.sub === adminId;
+    const isAdmin = user?.sub === room?.adminId;
 
     return (
         <main>
             <NavBar auth0User={user} />
-            {user && (
+            {user && room ? (
                 <>
                     <div className="container-fluid">
                         <div className="row">
@@ -218,10 +220,11 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
                                     loggedInUser={user}
                                     isAdmin={isAdmin}
                                     addNewTicket={addNewTicket}
-                                    ticketBaseUrl={ticketBaseUrl}
+                                    ticketBaseUrl={room?.ticketBaseUrl}
                                 />
                             </div>
                             <div className="col-10">
+                                <RoomHeader room={room} />
                                 {currentTicket ? (
                                     <>
                                         {currentTicket.chosen_estimate &&
@@ -264,6 +267,8 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
                         </div>
                     </div>
                 </>
+            ) : (
+                <Loading />
             )}
         </main>
     );
