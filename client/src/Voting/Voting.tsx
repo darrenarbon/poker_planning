@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import { votingValues } from './votingHelper';
+import { VotingValue, votingValues } from './votingHelper';
 import { UserModel } from '../Users/SingleUser/SingleUser';
 import { TicketForVoting, VoteModel } from '../PokerSession/types';
 
@@ -32,6 +32,9 @@ const Voting = ({
         }
 
         if (showVotes || vote?.usersub === userSub) {
+            if (vote.vote === 0) {
+                return 'No Idea';
+            }
             return vote.vote.toString();
         } else {
             return 'Voted';
@@ -44,18 +47,21 @@ const Voting = ({
             </h4>
             <div>
                 <div className="w-75 mx-auto text-center">
-                    {votingValues.map((value) => (
+                    {votingValues.map((votingValue: VotingValue) => (
                         <button
                             className={classNames('btn btn-xl mx-2', {
                                 'btn-primary':
-                                    getRawVoteForUser(userSub) === value,
+                                    getRawVoteForUser(userSub) ===
+                                    votingValue.value,
                                 'btn-outline-primary':
-                                    getRawVoteForUser(userSub) !== value,
+                                    getRawVoteForUser(userSub) !==
+                                    votingValue.value,
                             })}
-                            key={value}
-                            onClick={() => submitVote(value)}
+                            key={votingValue.value}
+                            onClick={() => submitVote(votingValue.value)}
+                            title={votingValue.tooltip}
                         >
-                            {value}
+                            {votingValue.label}
                         </button>
                     ))}
                 </div>

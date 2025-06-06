@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import { votingValues } from '../Voting/votingHelper';
+import { VotingValue, votingValues } from '../Voting/votingHelper';
 import { TicketForVoting } from '../PokerSession/types';
 
 interface SetEstimateProps {
@@ -18,18 +18,18 @@ const SetEstimate = ({ setEstimate, currentTicket }: SetEstimateProps) => {
                 >
                     Reset Estimate
                 </button>
-                {votingValues.map((value) => (
+                {votingValues.map((value: VotingValue) => (
                     <button
                         className={classNames('btn mx-2', {
                             'btn-primary':
-                                value === currentTicket.chosen_estimate,
+                                value.value === currentTicket.chosen_estimate,
                             'btn-outline-primary':
-                                value !== currentTicket.chosen_estimate,
+                                value.value !== currentTicket.chosen_estimate,
                         })}
-                        key={value}
-                        onClick={() => setEstimate(value)}
+                        key={value.value}
+                        onClick={() => setEstimate(value.value)}
                     >
-                        {value}
+                        {value.label}
                     </button>
                 ))}
             </div>

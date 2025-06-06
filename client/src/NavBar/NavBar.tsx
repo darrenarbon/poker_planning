@@ -21,8 +21,12 @@ const NavBar = ({ auth0User }: NavBarProps) => {
     return (
         <nav className="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
             <div className="container-fluid">
-                <a className="navbar-brand" href="/">
-                    Ticket Tally
+                <a
+                    className="navbar-brand"
+                    href="/"
+                    title="Group Agile Refinement Yielder"
+                >
+                    &nbsp; G . A . R . Y
                 </a>
                 <button
                     className="navbar-toggler"

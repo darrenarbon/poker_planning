@@ -20,8 +20,14 @@ export const socket_voteReceived = (
 
 export const socket_showVotes = (ticket: TicketForVoting) => {
     const sum = ticket.votes.reduce((acc, vote) => acc + vote.vote, 0);
+    const totalVotes = ticket.votes.filter((v) => v.vote > 0).length;
 
-    ticket.average_vote = parseFloat((sum / ticket.votes.length).toFixed(2));
+    ticket.average_vote = parseFloat((sum / totalVotes).toFixed(2));
+
+    if (totalVotes === 0 || totalVotes === 1) {
+        ticket.standard_deviation = 0;
+        return ticket;
+    }
 
     ticket.standard_deviation = parseFloat(
         Math.sqrt(
@@ -29,7 +35,7 @@ export const socket_showVotes = (ticket: TicketForVoting) => {
                 (acc, vote) =>
                     acc + (vote.vote - (ticket.average_vote || 0)) ** 2,
                 0
-            ) / ticket.votes.length
+            ) / totalVotes
         ).toFixed(2)
     );
     return ticket;

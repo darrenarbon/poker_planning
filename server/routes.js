@@ -315,7 +315,7 @@ router.get('/room/:roomName', async (req, res) => {
     }
 
     const roomData = {
-        adminId: getRoomData[0].admin_id,
+        adminSub: getRoomData[0].auth0_sub,
         createdAt: getRoomData[0].created_at,
         friendlyName: getRoomData[0].friendly_name,
         roomId: getRoomData[0].room_id,

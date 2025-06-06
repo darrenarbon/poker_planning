@@ -202,8 +202,7 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
         newTicket.votes = [];
         setTickets((prevTickets) => [newTicket, ...prevTickets]);
     };
-
-    const isAdmin = user?.sub === room?.adminId;
+    const isAdmin = user?.sub === room?.adminSub;
 
     return (
         <main>

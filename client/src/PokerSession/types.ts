@@ -16,7 +16,7 @@ export interface VoteReceivedSocketModel {
 }
 
 export interface Room {
-    adminId: number;
+    adminSub: number;
     createdAt: string;
     friendlyName: string;
     roomId: number;
