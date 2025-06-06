@@ -453,6 +453,31 @@ router.post('/jiraticket/:ticketId', async (req, res) => {
     return res.json(data);
 });
 
+router.post('/jiraticket/alltickets', async (req, res) => {
+    const response = await fetch(
+        `https://${process.env.ATLASSIAN_DOMAIN}.atlassian.net/rest/api/3/search?jql=labels=Needs-estimating`,
+        {
+            method: 'GET',
+            headers: {
+                Authorization: `Basic ${Buffer.from(
+                    `${process.env.ATLASSIAN_EMAIL}:${process.env.ATLASSIAN_API_KEY}`
+                ).toString('base64')}`,
+                Accept: 'application/json',
+            },
+        }
+    );
+    const data = await response.json();
+    if (!response.ok) {
+        return returnError(
+            res,
+            response.status,
+            data,
+            'Error fetching JIRA ticket'
+        );
+    }
+    return res.json(data);
+});
+
 router.get('*', (req, res) => {
     res.send('Sorry, page not found... What are you doing with your life?');
 });

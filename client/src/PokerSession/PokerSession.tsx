@@ -210,8 +210,11 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
             {user && room ? (
                 <>
                     <div className="container-fluid">
-                        <div className="row">
-                            <div className="col-2 border-end">
+                        <div className="row" style={{ height: '90vh' }}>
+                            <div
+                                className="col-2 border-end"
+                                style={{ overflowY: 'auto', height: '90vh' }}
+                            >
                                 <Tickets
                                     tickets={tickets}
                                     selectTicket={selectTicket}
