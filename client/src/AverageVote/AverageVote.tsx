@@ -18,7 +18,8 @@ const AverageVote = ({ currentTicket }: AverageVoteProps) => {
         : currentTicket.mode;
 
     return (
-        <div className="text-center mt-5">
+        <div className="text-center">
+            <hr />
             <h5 className="text-center mb-3">
                 Suggested Vote: {currentTicket.suggested_vote.vote}
                 <br />

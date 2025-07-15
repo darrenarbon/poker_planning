@@ -45,7 +45,15 @@ const Voting = ({
     return (
         <>
             <h4 className="text-center pb-4">
-                Voting on ticket: {currentTicket.ticket_number}
+                Voting on ticket: {currentTicket.ticket_number}{' '}
+                <button
+                    type="button"
+                    className="btn btn-primary ms-5"
+                    data-bs-toggle="modal"
+                    data-bs-target="#jiraTicketModal"
+                >
+                    Open Jira Ticket Preview
+                </button>
             </h4>
             <div
                 className="modal fade"
@@ -103,16 +111,6 @@ const Voting = ({
             </div>
             <div>
                 <div className="w-75 mx-auto text-center">
-                    <div className="mb-3">
-                        <button
-                            type="button"
-                            className="btn btn-primary"
-                            data-bs-toggle="modal"
-                            data-bs-target="#jiraTicketModal"
-                        >
-                            Open Jira Ticket
-                        </button>
-                    </div>
                     {votingValues.map((votingValue: VotingValue) => (
                         <button
                             className={classNames('btn btn-xl mx-2', {

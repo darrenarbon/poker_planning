@@ -281,7 +281,10 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
                                     ticketBaseUrl={room?.ticketBaseUrl}
                                 />
                             </div>
-                            <div className="col-10">
+                            <div
+                                className="col-10"
+                                style={{ overflowY: 'auto', height: '90vh' }}
+                            >
                                 <RoomHeader room={room} />
                                 {currentTicket ? (
                                     <>
