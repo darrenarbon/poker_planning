@@ -20,6 +20,8 @@ const getUserDetails = async (sub) => {
         throw error;
     }
 
+    console.log('User details fetched:', data[0]);
+
     return data[0];
 };
 
@@ -130,7 +132,7 @@ router.post('/newroom', checkJwt, async (req, res) => {
     }
 });
 
-router.delete('/ticket/:ticketId', async (req, res) => {
+router.delete('/ticket/:ticketId', checkJwt, async (req, res) => {
     const { ticketId } = req.params;
 
     const { data, error: findTicketError } = await supabaseConnection
@@ -163,7 +165,7 @@ router.delete('/ticket/:ticketId', async (req, res) => {
     return res.json({ message: 'Ticket deleted' });
 });
 
-router.post('/room/:roomId/tickets', async (req, res) => {
+router.post('/room/:roomId/tickets', checkJwt, async (req, res) => {
     const { roomId } = req.params;
     const { ticketsToSave } = req.body;
 
@@ -202,47 +204,7 @@ router.post('/room/:roomId/tickets', async (req, res) => {
     return res.json({ message: 'Tickets added' });
 });
 
-router.post('/room/:roomId/tickets', async (req, res) => {
-    const { roomId } = req.params;
-    const { ticketsToSave, baseUrl } = req.body;
-
-    const { data, error: findRoomError } = await supabaseConnection
-        .from('room')
-        .select()
-        .eq('room_name', roomId);
-
-    if (findRoomError) {
-        return returnError(res, 500, findRoomError, 'Error fetching room');
-    }
-
-    if (data.length === 0) {
-        return returnError(res, 404, null, 'Room not found');
-    }
-
-    const ticketsArray = ticketsToSave.map((ticket) => {
-        return {
-            room_id: data[0].room_id,
-            ticket_number: ticket,
-            ticket_url: baseUrl,
-        };
-    });
-
-    const { error: insertTicketsError } = await supabaseConnection
-        .from('ticket')
-        .insert(ticketsArray);
-    if (insertTicketsError) {
-        return returnError(
-            res,
-            500,
-            insertTicketsError,
-            'Error adding tickets'
-        );
-    }
-
-    return res.json({ message: 'Tickets added' });
-});
-
-router.post('/room/:roomName/newTicket', async (req, res) => {
+router.post('/room/:roomName/newTicket', checkJwt, async (req, res) => {
     const { roomName } = req.params;
     const { ticketNumber } = req.body;
     const { data, error: findRoomError } = await supabaseConnection
@@ -273,7 +235,7 @@ router.post('/room/:roomName/newTicket', async (req, res) => {
     return res.json({ ...insertedTicket[0] });
 });
 
-router.get('/users/:userSub/rooms', async (req, res) => {
+router.get('/users/:userSub/rooms', checkJwt, async (req, res) => {
     const { userSub } = req.params;
     const { user_id } = await getUserDetails(userSub);
 
@@ -295,7 +257,7 @@ router.get('/users/:userSub/rooms', async (req, res) => {
     return res.json({ rooms: data });
 });
 
-router.get('/room/:roomName', async (req, res) => {
+router.get('/room/:roomName', checkJwt, async (req, res) => {
     const { roomName } = req.params;
 
     const { data: getRoomData, error: getRoomError } = await supabaseConnection
@@ -392,11 +354,11 @@ router.get('/room/:roomName', async (req, res) => {
     });
 });
 
-router.get('/jiraticket/:ticketId', async (req, res) => {
+router.get('/jiraticket/:ticketId', checkJwt, async (req, res) => {
     const { ticketId } = req.params;
 
     const response = await fetch(
-        `https://${process.env.ATLASSIAN_DOMAIN}.atlassian.net/rest/api/3/issue/${ticketId}`,
+        `https://${process.env.ATLASSIAN_DOMAIN}.atlassian.net/rest/api/3/issue/${ticketId}?fields=description,summary,creator,parent,priority&expand=renderedFields`,
         {
             method: 'GET',
             headers: {

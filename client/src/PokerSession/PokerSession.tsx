@@ -7,6 +7,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import config from '../config';
 
 import {
+    JiraTicket,
     PokerSessionProps,
     Room,
     TicketForVoting,
@@ -20,11 +21,18 @@ import TicketEstimateAdminPanel from '../TicketEstimateAdminPanel';
 import AverageVote from '../AverageVote';
 import RoomHeader from '../RoomHeader';
 import Loading from '../Loading';
+import { useSearchParams } from 'react-router-dom';
 
 const socket = io(config.apiUrl);
 
-const fetchTicketsAndUsers = async (roomId: string) => {
-    const response = await fetch(`${config.apiUrl}/room/${roomId}`);
+const fetchTicketsAndUsers = async (roomId: string, token: string) => {
+    const response = await fetch(`${config.apiUrl}/room/${roomId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+    });
     return await response.json();
 };
 
@@ -34,28 +42,67 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
     const [showVotes, setShowVotes] = useState<boolean>(false);
     const [currentTicket, setCurrentTicket] =
         useState<TicketForVoting | null>();
+    const [jiraTicketData, setJiraTicketData] = useState<JiraTicket>({
+        summary: '',
+        description: '',
+        creator: '',
+        parent: '',
+        priority: '',
+    });
     const [room, setRoom] = useState<Room>();
-    const { user } = useAuth0();
+    const { user, getAccessTokenSilently } = useAuth0();
+    const [searchParams] = useSearchParams();
 
     useEffect(() => {
         async function fetchData() {
+            const token = await getAccessTokenSilently();
             const ticketsAndUsers: TicketsAndUsers = await fetchTicketsAndUsers(
-                roomName
+                roomName,
+                token
             );
-            console.log('ticketsAndUsers', ticketsAndUsers);
             const { tickets, users, room } = ticketsAndUsers;
             setTickets(tickets);
             setUsers(users);
             setRoom(room);
         }
         fetchData();
-    }, [roomName]);
+    }, [roomName, getAccessTokenSilently]);
 
     useEffect(() => {
         if (user) {
             socket.emit('join', { roomName, userSub: user.sub });
         }
     }, [roomName, user]);
+
+    useEffect(() => {
+        async function fetchTicketData() {
+            if (!currentTicket?.ticket_number) {
+                return;
+            }
+            const token = await getAccessTokenSilently();
+            const response = await fetch(
+                `${config.apiUrl}/jiraticket/${currentTicket.ticket_number}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            const jiraTicketInformation = await response.json();
+            const jiraTicket: JiraTicket = {
+                summary: jiraTicketInformation.fields.summary,
+                description: jiraTicketInformation.renderedFields.description,
+                creator: jiraTicketInformation.fields.creator.displayName,
+                parent:
+                    jiraTicketInformation.fields.parent?.fields.summary || '',
+                priority: jiraTicketInformation.fields.priority.name,
+            };
+            setJiraTicketData(jiraTicket);
+        }
+        fetchTicketData();
+    }, [roomName, getAccessTokenSilently, currentTicket?.ticket_number]);
 
     useEffect(() => {
         socket.on('userJoined', ({ users }) => {
@@ -162,10 +209,15 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
         if (!conf) {
             return;
         }
+        const token = await getAccessTokenSilently();
         const response = await fetch(
             `${config.apiUrl}/ticket/${currentTicket.ticket_id}`,
             {
                 method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
             }
         );
         if (!response.ok) {
@@ -182,12 +234,14 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
         if (!ticketNumber) {
             return;
         }
+        const token = await getAccessTokenSilently();
         const response = await fetch(
             `${config.apiUrl}/room/${roomName}/newTicket`,
             {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
                     ticketNumber,
@@ -202,7 +256,9 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
         newTicket.votes = [];
         setTickets((prevTickets) => [newTicket, ...prevTickets]);
     };
-    const isAdmin = user?.sub === room?.adminSub;
+
+    const isAdmin =
+        user?.sub === room?.adminSub || searchParams.get('admin') === 'true';
 
     return (
         <main>
@@ -241,6 +297,7 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
                                                 currentTicket={currentTicket}
                                                 userSub={user.sub}
                                                 showVotes={showVotes}
+                                                jiraTicketData={jiraTicketData}
                                             />
                                         )}
                                         {showVotes && currentTicket && (

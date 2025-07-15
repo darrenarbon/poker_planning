@@ -1,86 +1,41 @@
-import classNames from 'classnames';
 import { TicketForVoting } from '../PokerSession/types';
 
 type AverageVoteProps = {
     currentTicket: TicketForVoting;
 };
 
-type StandardDeviationThreshold = {
-    type: StandardDeviationThresholdType;
-    header: StandardDeviationThresholdHeader;
-    message: StandardDeviationThresholdMessage;
-};
-enum StandardDeviationThresholdType {
-    'success' = 'success',
-    'warning' = 'warning',
-    'danger' = 'danger',
-}
-enum StandardDeviationThresholdHeader {
-    'strong' = 'Strong agreement in the estimate.',
-    'moderate' = 'Moderate agreement in the estimate.',
-    'weak' = 'Wide disagreement in the estimate.',
-}
-
-enum StandardDeviationThresholdMessage {
-    'strong' = 'The votes are closely clustered around the average, suggesting an estimate close to the average would be appropriate.',
-    'moderate' = 'The votes show some spread, indicating differing opinions. This may require further discussion or a compromise estimate.',
-    'weak' = 'The votes are widely spread, indicating significant disagreement. A more thorough discussion may be needed to reach a consensus.',
-}
-
 const AverageVote = ({ currentTicket }: AverageVoteProps) => {
     if (
         !currentTicket ||
         !currentTicket.average_vote ||
-        currentTicket.standard_deviation == null
+        currentTicket.suggested_vote == null
     ) {
         return null;
     }
-    const standardDeviationThreshold: StandardDeviationThreshold = {
-        type: StandardDeviationThresholdType.success,
-        header: StandardDeviationThresholdHeader.strong,
-        message: StandardDeviationThresholdMessage.strong,
-    };
-    if (
-        currentTicket.standard_deviation > 1.6 &&
-        currentTicket.standard_deviation <= 3
-    ) {
-        standardDeviationThreshold.type =
-            StandardDeviationThresholdType.warning;
-        standardDeviationThreshold.header =
-            StandardDeviationThresholdHeader.moderate;
-        standardDeviationThreshold.message =
-            StandardDeviationThresholdMessage.moderate;
-    } else if (currentTicket.standard_deviation > 3) {
-        standardDeviationThreshold.type = StandardDeviationThresholdType.danger;
-        standardDeviationThreshold.header =
-            StandardDeviationThresholdHeader.weak;
-        standardDeviationThreshold.message =
-            StandardDeviationThresholdMessage.weak;
-    }
+
+    const commonVote = Array.isArray(currentTicket.mode)
+        ? currentTicket.mode.join(', ')
+        : currentTicket.mode;
 
     return (
         <div className="text-center mt-5">
             <h5 className="text-center mb-3">
-                Average Vote {currentTicket.average_vote} &plusmn;{' '}
-                {currentTicket.standard_deviation}
+                Suggested Vote: {currentTicket.suggested_vote.vote}
+                <br />
             </h5>
             <div
-                className={classNames('alert w-50 d-inline-block', {
-                    'alert-success':
-                        standardDeviationThreshold.type ===
-                        StandardDeviationThresholdType.success,
-                    'alert-warning':
-                        standardDeviationThreshold.type ===
-                        StandardDeviationThresholdType.warning,
-                    'alert-danger':
-                        standardDeviationThreshold.type ===
-                        StandardDeviationThresholdType.danger,
-                })}
+                className="alert w-50 d-inline-block alert-success"
                 role="alert"
             >
-                <h6>{standardDeviationThreshold.header}</h6>
-                <p>{standardDeviationThreshold.message}</p>
+                <h6>Why did we suggest this estimate?</h6>
+                <p>{currentTicket.suggested_vote.rule}</p>
             </div>
+            <h5 className="text-center mb-3">
+                Most Common Vote: {commonVote}
+                <br />
+                Average Vote: {currentTicket.average_vote} &plusmn;{' '}
+                {currentTicket.standard_deviation}
+            </h5>
         </div>
     );
 };

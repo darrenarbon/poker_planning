@@ -10,17 +10,21 @@ interface SetTicketsProps {
 
 const SetTickets = ({ roomName }: SetTicketsProps) => {
     const navigate = useNavigate();
-    const [tickets, setTickets] = useState<string[]>(['']);
+    const [tickets, setTickets] = useState<string>('');
     const { user } = useAuth0();
+    const { getAccessTokenSilently } = useAuth0();
 
     const saveTickets = async () => {
-        const trimmedTickets = tickets.map((ticket) => ticket.trim());
+        const token = await getAccessTokenSilently();
+        const ticketsArray = tickets.split(',');
+        const trimmedTickets = ticketsArray.map((ticket) => ticket.trim());
         const ticketsToSave = trimmedTickets.filter((ticket) => ticket !== '');
 
         await fetch(`${config.apiUrl}/room/${roomName}/tickets`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({ ticketsToSave }),
         });
@@ -34,46 +38,17 @@ const SetTickets = ({ roomName }: SetTicketsProps) => {
             {user && (
                 <div className="container-fluid">
                     <h2>Set Tickets for Room {roomName}</h2>
-
-                    <div className="row">
-                        {tickets.map((ticket, index) => (
-                            <div className="col-3" key={index}>
-                                <div className="form-group text-start">
-                                    <label htmlFor={`ticket${index}`}>
-                                        Ticket ID:{' '}
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        id={`ticket${index}`}
-                                        value={ticket}
-                                        onChange={(e) =>
-                                            setTickets((prevTickets) => {
-                                                const newTickets = [
-                                                    ...prevTickets,
-                                                ];
-                                                newTickets[index] =
-                                                    e.target.value;
-                                                return newTickets;
-                                            })
-                                        }
-                                        placeholder="Enter a ticket ID"
-                                        required
-                                    />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    <button
-                        className="btn btn-primary mt-2 mx-2"
-                        onClick={() =>
-                            setTickets((prevTickets) => {
-                                return [...prevTickets, ''];
-                            })
-                        }
-                    >
-                        Add New Ticket
-                    </button>
+                    <p>
+                        Enter a comma separated list of the ticket IDs in the
+                        box below:
+                    </p>
+                    <textarea
+                        className="form-control"
+                        rows={3}
+                        value={tickets}
+                        onChange={(e) => setTickets(e.target.value)}
+                        placeholder="Enter ticket IDs here"
+                    />
                     <button
                         className="btn btn-success mt-2"
                         onClick={() => saveTickets()}

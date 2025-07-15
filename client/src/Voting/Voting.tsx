@@ -1,7 +1,7 @@
 import classNames from 'classnames';
 import { VotingValue, votingValues } from './votingHelper';
 import { UserModel } from '../Users/SingleUser/SingleUser';
-import { TicketForVoting, VoteModel } from '../PokerSession/types';
+import { JiraTicket, TicketForVoting, VoteModel } from '../PokerSession/types';
 
 interface VotingProps {
     submitVote: (vote: number) => void;
@@ -9,6 +9,7 @@ interface VotingProps {
     userSub: string | undefined;
     allUsers: UserModel[];
     showVotes: boolean;
+    jiraTicketData: JiraTicket;
 }
 
 const Voting = ({
@@ -17,6 +18,7 @@ const Voting = ({
     userSub,
     allUsers,
     showVotes,
+    jiraTicketData,
 }: VotingProps) => {
     const getRawVoteForUser = (userSub: string | undefined): number | null => {
         const vote = currentTicket.votes.find((v) => v.usersub === userSub);
@@ -45,8 +47,72 @@ const Voting = ({
             <h4 className="text-center pb-4">
                 Voting on ticket: {currentTicket.ticket_number}
             </h4>
+            <div
+                className="modal fade"
+                id="jiraTicketModal"
+                tabIndex={-1}
+                aria-labelledby="jiraTicketModalLabel"
+                aria-hidden="true"
+            >
+                <div className="modal-dialog modal-xl">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h1
+                                className="modal-title fs-5"
+                                id="jiraTicketModalLabel"
+                            >
+                                {jiraTicketData.summary}
+                            </h1>
+                            <button
+                                type="button"
+                                className="btn-close"
+                                data-bs-dismiss="modal"
+                                aria-label="Close"
+                            ></button>
+                        </div>
+                        <div className="modal-body">
+                            <p>
+                                <strong>Epic:</strong>{' '}
+                                {jiraTicketData.parent || 'No Parent Ticket'}
+                            </p>
+                            <p>
+                                <strong>Created By:</strong>{' '}
+                                {jiraTicketData.creator}
+                            </p>
+                            <p>
+                                <strong>Priority:</strong>{' '}
+                                {jiraTicketData.priority || 'No Priority'}
+                            </p>
+                            <p
+                                dangerouslySetInnerHTML={{
+                                    __html: jiraTicketData.description,
+                                }}
+                            ></p>
+                        </div>
+                        <div className="modal-footer">
+                            <button
+                                type="button"
+                                className="btn btn-secondary"
+                                data-bs-dismiss="modal"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div>
                 <div className="w-75 mx-auto text-center">
+                    <div className="mb-3">
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            data-bs-toggle="modal"
+                            data-bs-target="#jiraTicketModal"
+                        >
+                            Open Jira Ticket
+                        </button>
+                    </div>
                     {votingValues.map((votingValue: VotingValue) => (
                         <button
                             className={classNames('btn btn-xl mx-2', {
