@@ -1,0 +1,83 @@
+name: Test Coverage
+
+on:
+    push:
+        branches: [main, develop, typescript-server]
+    pull_request:
+        branches: [main, develop]
+
+jobs:
+    test-coverage:
+        runs-on: ubuntu-latest
+
+        strategy:
+            matrix:
+                node-version: [20.x]
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Use Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ matrix.node-version }}
+                  cache: 'npm'
+                  cache-dependency-path: server/package-lock.json
+
+            - name: Install server dependencies
+              working-directory: ./server
+              run: npm ci
+
+            - name: Install coverage provider
+              working-directory: ./server
+              run: npm install --save-dev @vitest/coverage-v8
+
+            - name: Run tests with coverage
+              working-directory: ./server
+              run: npm run test:coverage
+              env:
+                  # Add your environment variables here
+                  NODE_ENV: test
+                  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+                  SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+                  AUTH0_AUDIENCE: ${{ secrets.AUTH0_AUDIENCE }}
+                  AUTH0_DOMAIN: ${{ secrets.AUTH0_DOMAIN }}
+
+            - name: Upload coverage reports to Codecov
+              uses: codecov/codecov-action@v4
+              with:
+                  file: ./server/coverage/lcov.info
+                  directory: ./server/coverage/
+                  flags: unittests
+                  name: codecov-umbrella
+                  fail_ci_if_error: false
+                  verbose: true
+                  token: ${{ secrets.CODECOV_TOKEN }}
+
+            - name: Coverage Summary
+              working-directory: ./server
+              run: |
+                  echo "## Coverage Summary" >> $GITHUB_STEP_SUMMARY
+                  echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+                  npm run test:coverage 2>&1 | grep -A 20 "Coverage report" || true
+                  echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+            - name: Comment PR with coverage
+              if: github.event_name == 'pull_request'
+              uses: marocchino/sticky-pull-request-comment@v2
+              with:
+                  recreate: true
+                  message: |
+                      ## 📊 Coverage Report
+
+                      Coverage results from the latest test run:
+
+                      ```
+                      View detailed coverage report in the Actions artifacts
+                      ```
+
+                      The coverage thresholds are:
+                      - **Global**: 80% (branches, functions, lines, statements)
+                      - **Services**: 85%+ (business logic)
+                      - **Routes**: 80%+ (API endpoints)

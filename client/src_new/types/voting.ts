@@ -1,0 +1,1 @@
+// Voting-related types

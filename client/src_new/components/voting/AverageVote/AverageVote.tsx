@@ -1,0 +1,1 @@
+// Average vote display component

@@ -17,7 +17,7 @@ const JoinRoom = () => {
     const [roomId, setRoomId] = useState<string>('');
     const [roomName, setRoomName] = useState<string>('');
     const [baseUrl, setBaseUrl] = useState<string>(
-        'https://techfromsage.atlassian.net/browse'
+        'https://leanlibrary.atlassian.net/browse'
     );
     const [loaded, setLoaded] = useState<boolean>(false);
     const [myRooms, setMyRooms] = useState<Room[]>([]);

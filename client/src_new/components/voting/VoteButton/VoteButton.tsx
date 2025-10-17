@@ -1,0 +1,1 @@
+// Individual vote button component

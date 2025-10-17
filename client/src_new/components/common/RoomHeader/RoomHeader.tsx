@@ -1,0 +1,1 @@
+// Room header display component

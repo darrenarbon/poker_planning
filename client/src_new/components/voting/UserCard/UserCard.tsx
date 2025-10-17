@@ -1,0 +1,1 @@
+// Individual user card component
