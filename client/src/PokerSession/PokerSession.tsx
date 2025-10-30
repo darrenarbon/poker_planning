@@ -26,7 +26,7 @@ import { useSearchParams } from 'react-router-dom';
 const socket = io(config.apiUrl);
 
 const fetchTicketsAndUsers = async (roomId: string, token: string) => {
-    const response = await fetch(`${config.apiUrl}/room/${roomId}`, {
+    const response = await fetch(`${config.apiUrl}/rooms/${roomId}`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -81,7 +81,7 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
             }
             const token = await getAccessTokenSilently();
             const response = await fetch(
-                `${config.apiUrl}/jiraticket/${currentTicket.ticket_number}`,
+                `${config.apiUrl}/jira-tickets/${currentTicket.ticket_number}`,
                 {
                     method: 'GET',
                     headers: {
@@ -211,7 +211,7 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
         }
         const token = await getAccessTokenSilently();
         const response = await fetch(
-            `${config.apiUrl}/ticket/${currentTicket.ticket_id}`,
+            `${config.apiUrl}/tickets/${currentTicket.ticket_id}`,
             {
                 method: 'DELETE',
                 headers: {
@@ -236,7 +236,7 @@ const PokerSession = ({ roomName }: PokerSessionProps) => {
         }
         const token = await getAccessTokenSilently();
         const response = await fetch(
-            `${config.apiUrl}/room/${roomName}/newTicket`,
+            `${config.apiUrl}/rooms/${roomName}/ticket`,
             {
                 method: 'POST',
                 headers: {

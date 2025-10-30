@@ -1,4 +1,5 @@
 import { Request } from 'express';
+import { User } from './user';
 
 /**
  * Room related types
@@ -37,17 +38,6 @@ export interface Vote {
 
 export interface TicketWithVotes extends Ticket {
     votes: Vote[];
-}
-
-export interface User {
-    user_id: number;
-    auth0_sub: string;
-    email: string;
-    given_name?: string;
-    family_name?: string;
-    nickname?: string;
-    picture?: string;
-    created_at: string;
 }
 
 /**

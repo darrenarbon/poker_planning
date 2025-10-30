@@ -3,7 +3,7 @@ import request from 'supertest';
 import express from 'express';
 import { supabaseConnection } from '../../src/database';
 import router from '../../src/routes/index';
-import { getUserDetails } from '../../src/routes/routeHelper';
+import { getUserDetails } from '../../src/services/authService';
 
 // Mock dependencies
 vi.mock('../../src/database', () => ({
@@ -13,7 +13,6 @@ vi.mock('../../src/database', () => ({
 }));
 
 vi.mock('../../src/routes/routeHelper', () => ({
-    getUserDetails: vi.fn(),
     returnError: vi.fn((res, status, error, message) => {
         return res.status(status).json({ error: message });
     }),
@@ -33,6 +32,7 @@ vi.mock('../../src/services/authService', () => ({
     },
     handleUserLogin: vi.fn(),
     validateUserData: vi.fn(),
+    getUserDetails: vi.fn(),
 }));
 
 // Mock other Auth0 related modules

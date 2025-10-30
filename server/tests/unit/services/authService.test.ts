@@ -5,17 +5,17 @@ import { Auth0User } from '../../../src/types/auth';
 vi.mock('../../../src/database', () => ({
     supabaseConnection: {
         from: vi.fn(() => ({
-            insert: vi.fn(),
+            insert: vi.fn(() => ({
+                select: vi.fn(),
+            })),
             update: vi.fn(() => ({
+                eq: vi.fn(),
+            })),
+            select: vi.fn(() => ({
                 eq: vi.fn(),
             })),
         })),
     },
-}));
-
-// Mock the route helper functions
-vi.mock('../../../src/routes/routeHelper', () => ({
-    getUserDetails: vi.fn(),
 }));
 
 // Mock the Auth0 JWT middleware before importing anything else
@@ -25,19 +25,15 @@ vi.mock('express-oauth2-jwt-bearer', () => ({
 
 import {
     validateUserData,
-    createUser,
     handleUserLogin,
-    formatUserResponse,
-    updateUserProfile,
-    deleteUserAccount,
+    getUserDetails,
+    createUser,
 } from '../../../src/services/authService';
 import { supabaseConnection } from '../../../src/database';
-import { getUserDetails } from '../../../src/routes/routeHelper';
 
 describe('AuthService', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        (getUserDetails as Mock).mockReset();
     });
 
     const mockAuth0User: Auth0User = {
@@ -115,7 +111,12 @@ describe('AuthService', () => {
 
     describe('createUser', () => {
         it('should create user successfully', async () => {
-            const mockInsert = vi.fn().mockResolvedValue({ error: null });
+            const mockSelect = vi
+                .fn()
+                .mockResolvedValue({ data: null, error: null });
+            const mockInsert = vi.fn().mockReturnValue({
+                select: mockSelect,
+            });
             (supabaseConnection.from as Mock).mockReturnValue({
                 insert: mockInsert,
             });
@@ -136,7 +137,12 @@ describe('AuthService', () => {
 
         it('should handle database error during user creation', async () => {
             const mockError = { message: 'Database constraint violation' };
-            const mockInsert = vi.fn().mockResolvedValue({ error: mockError });
+            const mockSelect = vi
+                .fn()
+                .mockResolvedValue({ data: null, error: mockError });
+            const mockInsert = vi.fn().mockReturnValue({
+                select: mockSelect,
+            });
             (supabaseConnection.from as Mock).mockReturnValue({
                 insert: mockInsert,
             });
@@ -151,7 +157,12 @@ describe('AuthService', () => {
                 sub: 'auth0|123',
                 email: 'test@example.com',
             };
-            const mockInsert = vi.fn().mockResolvedValue({ error: null });
+            const mockSelect = vi
+                .fn()
+                .mockResolvedValue({ data: null, error: null });
+            const mockInsert = vi.fn().mockReturnValue({
+                select: mockSelect,
+            });
             (supabaseConnection.from as Mock).mockReturnValue({
                 insert: mockInsert,
             });
@@ -171,7 +182,15 @@ describe('AuthService', () => {
 
     describe('handleUserLogin', () => {
         it('should return existing user when user already exists', async () => {
-            (getUserDetails as Mock).mockResolvedValue(mockDatabaseUser);
+            // Mock getUserDetails to return existing user
+            const mockEq = vi.fn().mockResolvedValue({
+                data: [mockDatabaseUser],
+                error: null,
+            });
+            const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+            (supabaseConnection.from as Mock).mockReturnValue({
+                select: mockSelect,
+            });
 
             const result = await handleUserLogin(mockAuth0User);
 
@@ -180,18 +199,28 @@ describe('AuthService', () => {
                 user: mockDatabaseUser,
                 isNewUser: false,
             });
-            expect(getUserDetails).toHaveBeenCalledWith(mockAuth0User.sub);
+            expect(supabaseConnection.from).toHaveBeenCalledWith('user');
         });
 
         it('should create new user when user does not exist', async () => {
-            (getUserDetails as Mock)
-                .mockResolvedValueOnce(null) // First call - user doesn't exist
-                .mockResolvedValueOnce(mockDatabaseUser); // Second call - newly created user
+            // Create separate mock functions for each database call
+            const mockEq1 = vi
+                .fn()
+                .mockResolvedValue({ data: [], error: null });
+            const mockSelect1 = vi.fn().mockReturnValue({ eq: mockEq1 });
 
-            const mockInsert = vi.fn().mockResolvedValue({ error: null });
-            (supabaseConnection.from as Mock).mockReturnValue({
-                insert: mockInsert,
-            });
+            // Mock createUser insert operation - should return the created user
+            const mockSelectForInsert = vi
+                .fn()
+                .mockResolvedValue({ data: [mockDatabaseUser], error: null });
+            const mockInsert = vi
+                .fn()
+                .mockReturnValue({ select: mockSelectForInsert });
+
+            // Set up the mock chain for two separate database calls
+            (supabaseConnection.from as Mock)
+                .mockReturnValueOnce({ select: mockSelect1 }) // First getUserDetails - user doesn't exist
+                .mockReturnValueOnce({ insert: mockInsert }); // createUser - returns created user
 
             const result = await handleUserLogin(mockAuth0User);
 
@@ -200,17 +229,30 @@ describe('AuthService', () => {
                 user: mockDatabaseUser,
                 isNewUser: true,
             });
-            expect(getUserDetails).toHaveBeenCalledTimes(2);
-            expect(mockInsert).toHaveBeenCalled();
+            expect(supabaseConnection.from).toHaveBeenCalledTimes(2);
+            expect(mockEq1).toHaveBeenCalledWith(
+                'auth0_sub',
+                mockAuth0User.sub
+            );
         });
 
         it('should handle database error during user creation', async () => {
-            (getUserDetails as Mock).mockResolvedValue(null);
+            // Mock getUserDetails to return null (user doesn't exist)
+            const mockEq = vi.fn().mockResolvedValue({ data: [], error: null });
+            const mockSelectForGet = vi.fn().mockReturnValue({ eq: mockEq });
+
+            // Mock createUser to return error
             const mockError = { message: 'Database error' };
-            const mockInsert = vi.fn().mockResolvedValue({ error: mockError });
-            (supabaseConnection.from as Mock).mockReturnValue({
-                insert: mockInsert,
-            });
+            const mockSelectForInsert = vi
+                .fn()
+                .mockResolvedValue({ data: null, error: mockError });
+            const mockInsert = vi
+                .fn()
+                .mockReturnValue({ select: mockSelectForInsert });
+
+            (supabaseConnection.from as Mock)
+                .mockReturnValueOnce({ select: mockSelectForGet }) // Call for getUserDetails
+                .mockReturnValueOnce({ insert: mockInsert }); // Call for createUser
 
             const result = await handleUserLogin(mockAuth0User);
 
@@ -223,7 +265,13 @@ describe('AuthService', () => {
 
         it('should handle getUserDetails error', async () => {
             const mockError = new Error('Database connection failed');
-            (getUserDetails as Mock).mockRejectedValue(mockError);
+            const mockEq = vi
+                .fn()
+                .mockResolvedValue({ data: null, error: mockError });
+            const mockSelect = vi.fn().mockReturnValue({ eq: mockEq });
+            (supabaseConnection.from as Mock).mockReturnValue({
+                select: mockSelect,
+            });
 
             const result = await handleUserLogin(mockAuth0User);
 
@@ -235,13 +283,21 @@ describe('AuthService', () => {
         });
 
         it('should handle unexpected errors during user creation', async () => {
-            (getUserDetails as Mock).mockResolvedValueOnce(null);
-            const mockInsert = vi
+            // Mock getUserDetails to return null (user doesn't exist)
+            const mockEq = vi.fn().mockResolvedValue({ data: [], error: null });
+            const mockSelectForGet = vi.fn().mockReturnValue({ eq: mockEq });
+
+            // Mock createUser to throw unexpected error
+            const mockSelectForInsert = vi
                 .fn()
                 .mockRejectedValue(new Error('Unexpected error'));
-            (supabaseConnection.from as Mock).mockReturnValue({
-                insert: mockInsert,
-            });
+            const mockInsert = vi
+                .fn()
+                .mockReturnValue({ select: mockSelectForInsert });
+
+            (supabaseConnection.from as Mock)
+                .mockReturnValueOnce({ select: mockSelectForGet }) // Call for getUserDetails
+                .mockReturnValueOnce({ insert: mockInsert }); // Call for createUser
 
             const result = await handleUserLogin(mockAuth0User);
 
@@ -250,197 +306,74 @@ describe('AuthService', () => {
         });
     });
 
-    describe('formatUserResponse', () => {
-        it('should format user with full name', () => {
-            const result = formatUserResponse(mockDatabaseUser);
-
-            expect(result).toEqual({
-                id: mockDatabaseUser.id,
-                email: mockDatabaseUser.email,
-                name: 'John Doe',
-                auth0_sub: mockDatabaseUser.auth0_sub,
-                picture: mockDatabaseUser.picture,
-            });
-        });
-
-        it('should use nickname when name parts are missing', () => {
-            const userWithNickname = {
-                ...mockDatabaseUser,
-                given_name: undefined,
-                family_name: undefined,
+    describe('getUserDetails', () => {
+        it('should return user data when user exists', async () => {
+            const mockUserData = {
+                id: 1,
+                auth0_sub: 'auth0|123',
+                email: 'test@example.com',
+                name: 'Test User',
             };
 
-            const result = formatUserResponse(userWithNickname);
-
-            expect(result.name).toBe(userWithNickname.nickname);
-        });
-
-        it('should use email when both name and nickname are missing', () => {
-            const userWithEmailOnly = {
-                ...mockDatabaseUser,
-                given_name: undefined,
-                family_name: undefined,
-                nickname: undefined,
+            const mockQuery = {
+                eq: vi.fn().mockResolvedValue({
+                    data: [mockUserData],
+                    error: null,
+                }),
             };
 
-            const result = formatUserResponse(userWithEmailOnly);
-
-            expect(result.name).toBe(userWithEmailOnly.email);
-        });
-
-        it('should handle null/undefined user', () => {
-            const result = formatUserResponse(null);
-
-            expect(result).toEqual({
-                id: undefined,
-                email: undefined,
-                name: undefined,
-                auth0_sub: undefined,
-                picture: undefined,
-            });
-        });
-
-        it('should handle user with only given_name', () => {
-            const userWithGivenName = {
-                ...mockDatabaseUser,
-                family_name: undefined,
+            const mockSelect = {
+                select: vi.fn().mockReturnValue(mockQuery),
             };
 
-            const result = formatUserResponse(userWithGivenName);
+            (supabaseConnection.from as Mock).mockReturnValue(mockSelect);
 
-            expect(result.name).toBe(userWithGivenName.nickname);
+            const result = await getUserDetails('auth0|123');
+
+            expect(supabaseConnection.from).toHaveBeenCalledWith('user');
+            expect(mockSelect.select).toHaveBeenCalled();
+            expect(mockQuery.eq).toHaveBeenCalledWith('auth0_sub', 'auth0|123');
+            expect(result).toEqual(mockUserData);
         });
-    });
 
-    describe('updateUserProfile', () => {
-        it('should update user profile successfully', async () => {
-            const updateData = {
-                email: 'newemail@example.com',
-                given_name: 'Jane',
+        it('should throw error when database query fails', async () => {
+            const mockError = new Error('Database connection failed');
+
+            const mockQuery = {
+                eq: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: mockError,
+                }),
             };
-            const updatedUser = { ...mockDatabaseUser, ...updateData };
 
-            const mockEq = vi.fn().mockResolvedValue({ error: null });
-            const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
-            (supabaseConnection.from as Mock).mockReturnValue({
-                update: mockUpdate,
-            });
-            (getUserDetails as Mock).mockResolvedValue(updatedUser);
+            const mockSelect = {
+                select: vi.fn().mockReturnValue(mockQuery),
+            };
 
-            const result = await updateUserProfile(
-                mockAuth0User.sub,
-                updateData
-            );
+            (supabaseConnection.from as Mock).mockReturnValue(mockSelect);
 
-            expect(result).toEqual({
-                success: true,
-                user: updatedUser,
-            });
-            expect(mockUpdate).toHaveBeenCalledWith({
-                email: updateData.email,
-                given_name: updateData.given_name,
-                family_name: undefined,
-                nickname: undefined,
-                picture: undefined,
-                updated_at: expect.any(String),
-            });
-            expect(mockEq).toHaveBeenCalledWith('auth0_sub', mockAuth0User.sub);
-        });
-
-        it('should handle database error during update', async () => {
-            const updateData = { email: 'newemail@example.com' };
-            const mockError = { message: 'Database update failed' };
-            const mockEq = vi.fn().mockResolvedValue({ error: mockError });
-            const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
-            (supabaseConnection.from as Mock).mockReturnValue({
-                update: mockUpdate,
-            });
-
-            const result = await updateUserProfile(
-                mockAuth0User.sub,
-                updateData
-            );
-
-            expect(result).toEqual({
-                success: false,
-                error: mockError,
-                message: 'Error updating user profile',
-            });
-        });
-
-        it('should handle unexpected errors during update', async () => {
-            const updateData = { email: 'newemail@example.com' };
-            const mockUpdate = vi.fn().mockImplementation(() => {
-                throw new Error('Unexpected error');
-            });
-            (supabaseConnection.from as Mock).mockReturnValue({
-                update: mockUpdate,
-            });
-
-            const result = await updateUserProfile(
-                mockAuth0User.sub,
-                updateData
-            );
-
-            expect(result.success).toBe(false);
-            expect(result.message).toBe(
-                'Internal server error during profile update'
+            await expect(getUserDetails('auth0|123')).rejects.toThrow(
+                'Database connection failed'
             );
         });
-    });
 
-    describe('deleteUserAccount', () => {
-        it('should soft delete user account successfully', async () => {
-            const mockEq = vi.fn().mockResolvedValue({ error: null });
-            const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
-            (supabaseConnection.from as Mock).mockReturnValue({
-                update: mockUpdate,
-            });
+        it('should return undefined when user not found', async () => {
+            const mockQuery = {
+                eq: vi.fn().mockResolvedValue({
+                    data: [],
+                    error: null,
+                }),
+            };
 
-            const result = await deleteUserAccount(mockAuth0User.sub);
+            const mockSelect = {
+                select: vi.fn().mockReturnValue(mockQuery),
+            };
 
-            expect(result).toEqual({
-                success: true,
-                message: 'User account deleted successfully',
-            });
-            expect(mockUpdate).toHaveBeenCalledWith({
-                is_active: false,
-                deleted_at: expect.any(String),
-            });
-            expect(mockEq).toHaveBeenCalledWith('auth0_sub', mockAuth0User.sub);
-        });
+            (supabaseConnection.from as Mock).mockReturnValue(mockSelect);
 
-        it('should handle database error during deletion', async () => {
-            const mockError = { message: 'Database deletion failed' };
-            const mockEq = vi.fn().mockResolvedValue({ error: mockError });
-            const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
-            (supabaseConnection.from as Mock).mockReturnValue({
-                update: mockUpdate,
-            });
+            const result = await getUserDetails('nonexistent');
 
-            const result = await deleteUserAccount(mockAuth0User.sub);
-
-            expect(result).toEqual({
-                success: false,
-                error: mockError,
-                message: 'Error deleting user account',
-            });
-        });
-
-        it('should handle unexpected errors during deletion', async () => {
-            const mockUpdate = vi.fn().mockImplementation(() => {
-                throw new Error('Unexpected error');
-            });
-            (supabaseConnection.from as Mock).mockReturnValue({
-                update: mockUpdate,
-            });
-
-            const result = await deleteUserAccount(mockAuth0User.sub);
-
-            expect(result.success).toBe(false);
-            expect(result.message).toBe(
-                'Internal server error during account deletion'
-            );
+            expect(result).toBeUndefined();
         });
     });
 });

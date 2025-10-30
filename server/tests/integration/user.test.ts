@@ -30,6 +30,7 @@ vi.mock('../../src/routes/routeHelper', () => ({
 import userRouter from '../../src/routes/user';
 import { supabaseConnection } from '../../src/database';
 import { getUserDetails, returnError } from '../../src/routes/routeHelper';
+import { Room } from '../../src/types/room';
 
 const app = express();
 app.use(json());
@@ -46,29 +47,27 @@ describe('User Routes', () => {
     describe('GET /users/:userSub/rooms', () => {
         const validUserSub = 'auth0|123456789';
         const mockUser = {
-            id: 1,
+            user_id: 1,
             auth0_sub: validUserSub,
             email: 'test@example.com',
             given_name: 'John',
             family_name: 'Doe',
         };
 
-        const mockRooms = [
+        const mockRooms: Room[] = [
             {
-                id: 1,
+                room_id: 1,
                 room_name: 'Planning Room 1',
                 admin_id: 1,
-                is_active: true,
                 created_at: '2024-01-01T10:00:00Z',
-                updated_at: '2024-01-01T10:00:00Z',
+                friendly_name: 'Sprint Planning',
             },
             {
-                id: 2,
+                room_id: 2,
                 room_name: 'Planning Room 2',
                 admin_id: 1,
-                is_active: true,
                 created_at: '2024-01-02T10:00:00Z',
-                updated_at: '2024-01-02T10:00:00Z',
+                friendly_name: 'Release Planning',
             },
         ];
 
@@ -107,12 +106,11 @@ describe('User Routes', () => {
             expect(supabaseConnection.from).toHaveBeenCalledWith('room');
             expect(mockSelect).toHaveBeenCalledWith(
                 `
-                id,
+                room_id,
                 room_name,
                 admin_id,
-                is_active,
                 created_at,
-                updated_at
+                friendly_name
             `
             );
             expect(mockEq).toHaveBeenCalledWith('admin_id', 1);

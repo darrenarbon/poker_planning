@@ -21,6 +21,8 @@ vi.mock('../../../src/routes/routeHelper', () => ({
 import { getUserRooms } from '../../../src/services/userService';
 import { supabaseConnection } from '../../../src/database';
 import { getUserDetails } from '../../../src/routes/routeHelper';
+import { Room } from '../../../src/types/room';
+import { User } from '../../../src/types/user';
 
 describe('UserService', () => {
     beforeEach(() => {
@@ -28,31 +30,30 @@ describe('UserService', () => {
         (getUserDetails as Mock).mockReset();
     });
 
-    const mockUser = {
-        id: 1,
+    const mockUser: User = {
+        user_id: 1,
         auth0_sub: 'auth0|123456789',
         email: 'test@example.com',
         given_name: 'John',
         family_name: 'Doe',
         created_at: '2025-01-01T00:00:00.000Z',
+        superuser: false,
     };
 
-    const mockRooms = [
+    const mockRooms: Room[] = [
         {
-            id: 1,
+            room_id: 1,
             room_name: 'Test Room 1',
             admin_id: 1,
-            is_active: true,
             created_at: '2025-01-01T10:00:00.000Z',
-            updated_at: '2025-01-01T10:00:00.000Z',
+            friendly_name: 'Friendly Room 1',
         },
         {
-            id: 2,
+            room_id: 2,
             room_name: 'Test Room 2',
             admin_id: 1,
-            is_active: true,
             created_at: '2025-01-01T09:00:00.000Z',
-            updated_at: '2025-01-01T09:00:00.000Z',
+            friendly_name: 'Friendly Room 2',
         },
     ];
 
@@ -86,14 +87,13 @@ describe('UserService', () => {
             expect(getUserDetails).toHaveBeenCalledWith('auth0|123456789');
             expect(supabaseConnection.from).toHaveBeenCalledWith('room');
             expect(mockSelect).toHaveBeenCalledWith(`
-                id,
+                room_id,
                 room_name,
                 admin_id,
-                is_active,
                 created_at,
-                updated_at
+                friendly_name
             `);
-            expect(mockEq).toHaveBeenCalledWith('admin_id', mockUser.id);
+            expect(mockEq).toHaveBeenCalledWith('admin_id', mockUser.user_id);
             expect(mockOrder).toHaveBeenCalledWith('created_at', {
                 ascending: false,
             });

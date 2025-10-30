@@ -12,7 +12,7 @@ vi.mock('../../../src/database', () => ({
     },
 }));
 
-import { getUserDetails, returnError } from '../../../src/routes/routeHelper';
+import { returnError } from '../../../src/routes/routeHelper';
 import { supabaseConnection } from '../../../src/database';
 
 describe('routeHelper', () => {
@@ -21,82 +21,6 @@ describe('routeHelper', () => {
         // Clear console mocks
         vi.spyOn(console, 'log').mockImplementation(() => {});
         vi.spyOn(console, 'error').mockImplementation(() => {});
-    });
-
-    describe('getUserDetails', () => {
-        it('should return user data when user exists', async () => {
-            const mockUserData = {
-                id: 1,
-                auth0_sub: 'auth0|123',
-                email: 'test@example.com',
-                name: 'Test User',
-            };
-
-            const mockQuery = {
-                eq: vi.fn().mockResolvedValue({
-                    data: [mockUserData],
-                    error: null,
-                }),
-            };
-
-            const mockSelect = {
-                select: vi.fn().mockReturnValue(mockQuery),
-            };
-
-            (supabaseConnection.from as Mock).mockReturnValue(mockSelect);
-
-            const result = await getUserDetails('auth0|123');
-
-            expect(supabaseConnection.from).toHaveBeenCalledWith('user');
-            expect(mockSelect.select).toHaveBeenCalled();
-            expect(mockQuery.eq).toHaveBeenCalledWith('auth0_sub', 'auth0|123');
-            expect(result).toEqual(mockUserData);
-            expect(console.log).toHaveBeenCalledWith(
-                'User details fetched:',
-                mockUserData
-            );
-        });
-
-        it('should throw error when database query fails', async () => {
-            const mockError = new Error('Database connection failed');
-
-            const mockQuery = {
-                eq: vi.fn().mockResolvedValue({
-                    data: null,
-                    error: mockError,
-                }),
-            };
-
-            const mockSelect = {
-                select: vi.fn().mockReturnValue(mockQuery),
-            };
-
-            (supabaseConnection.from as Mock).mockReturnValue(mockSelect);
-
-            await expect(getUserDetails('auth0|123')).rejects.toThrow(
-                'Database connection failed'
-            );
-            expect(console.error).toHaveBeenCalledWith(mockError);
-        });
-
-        it('should return undefined when user not found', async () => {
-            const mockQuery = {
-                eq: vi.fn().mockResolvedValue({
-                    data: [],
-                    error: null,
-                }),
-            };
-
-            const mockSelect = {
-                select: vi.fn().mockReturnValue(mockQuery),
-            };
-
-            (supabaseConnection.from as Mock).mockReturnValue(mockSelect);
-
-            const result = await getUserDetails('nonexistent');
-
-            expect(result).toBeUndefined();
-        });
     });
 
     describe('returnError', () => {

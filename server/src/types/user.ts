@@ -1,26 +1,15 @@
-// User related types
+import { Room } from './room';
 
 export interface User {
-    id: number;
+    user_id: number;
     auth0_sub: string;
     email: string;
     given_name?: string;
     family_name?: string;
     nickname?: string;
     picture?: string;
-    is_active?: boolean;
     created_at: string;
-    updated_at?: string;
-    deleted_at?: string;
-}
-
-export interface Room {
-    id: number;
-    room_name: string;
-    admin_id: number;
-    is_active: boolean;
-    created_at: string;
-    updated_at?: string;
+    superuser: boolean;
 }
 
 // Request/Response interfaces

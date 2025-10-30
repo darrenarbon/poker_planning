@@ -17,15 +17,24 @@ vi.mock('../../src/database', () => ({
     },
 }));
 
+// Partially mock the auth Service functions - preserve actual implementations except handleUserLogin
+vi.mock('../../src/services/authService', async () => {
+    const actual = await vi.importActual('../../src/services/authService');
+    return {
+        ...actual,
+        handleUserLogin: vi.fn(),
+    };
+});
+
 // Mock the route helper functions - no external variable references
 vi.mock('../../src/routes/routeHelper', () => ({
-    getUserDetails: vi.fn(),
     returnError: vi.fn(),
 }));
 
 import authRouter from '../../src/routes/auth';
 import { supabaseConnection } from '../../src/database';
-import { getUserDetails, returnError } from '../../src/routes/routeHelper';
+import { returnError } from '../../src/routes/routeHelper';
+import { handleUserLogin } from '../../src/services/authService';
 
 const app = express();
 app.use(json());
@@ -35,7 +44,7 @@ describe('Auth Routes', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         // Reset mock implementations
-        (getUserDetails as Mock).mockReset();
+        (handleUserLogin as Mock).mockReset();
         (returnError as Mock).mockReset();
     });
 
@@ -53,10 +62,14 @@ describe('Auth Routes', () => {
 
         it('should return 200 for existing user without creating new record', async () => {
             // Mock existing user
-            (getUserDetails as Mock).mockResolvedValue({
-                id: 1,
-                auth0_sub: 'auth0|123456789',
-                email: 'test@example.com',
+            (handleUserLogin as Mock).mockResolvedValue({
+                success: true,
+                user: {
+                    id: 1,
+                    auth0_sub: 'auth0|123456789',
+                    email: 'test@example.com',
+                },
+                isNewUser: false,
             });
 
             const response = await request(app)
@@ -73,21 +86,20 @@ describe('Auth Routes', () => {
                     name: 'test@example.com',
                 },
             });
-            expect(getUserDetails).toHaveBeenCalledWith('auth0|123456789');
+            expect(handleUserLogin).toHaveBeenCalledWith(validUserData.user);
             expect(supabaseConnection.from).not.toHaveBeenCalled();
         });
 
         it('should create new user and return 200 when user does not exist', async () => {
             // Mock no existing user
-            (getUserDetails as Mock).mockResolvedValue(null);
-
-            // Mock successful insert
-            const mockInsert = vi.fn().mockResolvedValue({
-                error: null,
-            });
-
-            (supabaseConnection.from as Mock).mockReturnValue({
-                insert: mockInsert,
+            (handleUserLogin as Mock).mockResolvedValue({
+                success: true,
+                user: {
+                    id: 1,
+                    auth0_sub: 'auth0|123456789',
+                    email: 'test@example.com',
+                },
+                isNewUser: true,
             });
 
             const response = await request(app)
@@ -98,60 +110,25 @@ describe('Auth Routes', () => {
             expect(response.body).toEqual({
                 isNewUser: true,
                 message: 'User created successfully',
-                user: {},
+                user: {
+                    id: 1,
+                    email: 'test@example.com',
+                    name: 'test@example.com',
+                },
             });
-            expect(getUserDetails).toHaveBeenCalledWith('auth0|123456789');
-            expect(supabaseConnection.from).toHaveBeenCalledWith('user');
-            expect(mockInsert).toHaveBeenCalledWith({
-                auth0_sub: 'auth0|123456789',
-                email: 'test@example.com',
-                given_name: 'John',
-                family_name: 'Doe',
-                nickname: 'johndoe',
-                picture: 'https://example.com/avatar.jpg',
-            });
+            expect(handleUserLogin).toHaveBeenCalledWith(validUserData.user);
         });
 
         it('should handle database error during user creation', async () => {
-            // Mock no existing user
-            (getUserDetails as Mock).mockResolvedValue(null);
-
-            // Mock database error during insert
-            const mockInsert = vi.fn().mockResolvedValue({
-                error: { message: 'Database insert failed' },
+            // Mock error creating user
+            (handleUserLogin as Mock).mockResolvedValue({
+                success: false,
+                error: {
+                    message: 'User creation failed',
+                    code: 500,
+                },
+                message: 'Error creating user',
             });
-
-            (supabaseConnection.from as Mock).mockReturnValue({
-                insert: mockInsert,
-            });
-
-            // Mock the returnError function to return a response
-            (returnError as Mock).mockImplementation(
-                (res: any, code: any, error: any, message: any) => {
-                    return res.status(code).json({ error: message });
-                }
-            );
-
-            const response = await request(app)
-                .post('/auth/login')
-                .send(validUserData)
-                .expect(500);
-
-            expect(getUserDetails).toHaveBeenCalledWith('auth0|123456789');
-            expect(supabaseConnection.from).toHaveBeenCalledWith('user');
-            expect(returnError).toHaveBeenCalledWith(
-                expect.anything(),
-                500,
-                { message: 'Database insert failed' },
-                'Error creating user'
-            );
-        });
-
-        it('should handle getUserDetails error', async () => {
-            // Mock getUserDetails throwing an error
-            (getUserDetails as Mock).mockRejectedValue(
-                new Error('Database connection failed')
-            );
 
             // Mock the returnError function
             (returnError as Mock).mockImplementation(
@@ -160,12 +137,42 @@ describe('Auth Routes', () => {
                 }
             );
 
-            const response = await request(app)
+            await request(app)
                 .post('/auth/login')
                 .send(validUserData)
                 .expect(500);
 
-            expect(getUserDetails).toHaveBeenCalledWith('auth0|123456789');
+            expect(handleUserLogin).toHaveBeenCalledWith(validUserData.user);
+
+            expect(returnError).toHaveBeenCalledWith(
+                expect.anything(),
+                500,
+                { code: 500, message: 'User creation failed' },
+                'Error creating user'
+            );
+        });
+
+        it('should handle handleUserLogin error', async () => {
+            // Mock handleUserLogin throwing an error
+            (handleUserLogin as Mock).mockResolvedValue({
+                success: false,
+                error: new Error('Database connection failed'),
+                message: 'Internal server error during login',
+            });
+
+            // Mock the returnError function
+            (returnError as Mock).mockImplementation(
+                (res: any, code: any, error: any, message: any) => {
+                    return res.status(code).json({ error: message });
+                }
+            );
+
+            await request(app)
+                .post('/auth/login')
+                .send(validUserData)
+                .expect(500);
+
+            expect(handleUserLogin).toHaveBeenCalledWith(validUserData.user);
             expect(returnError).toHaveBeenCalledWith(
                 expect.anything(),
                 500,
@@ -182,7 +189,7 @@ describe('Auth Routes', () => {
                 }
             );
 
-            const response = await request(app).post('/auth/login').expect(400);
+            await request(app).post('/auth/login').expect(400);
 
             expect(returnError).toHaveBeenCalledWith(
                 expect.anything(),
@@ -200,10 +207,7 @@ describe('Auth Routes', () => {
                 }
             );
 
-            const response = await request(app)
-                .post('/auth/login')
-                .send({})
-                .expect(400);
+            await request(app).post('/auth/login').send({}).expect(400);
 
             expect(returnError).toHaveBeenCalledWith(
                 expect.anything(),
@@ -229,7 +233,7 @@ describe('Auth Routes', () => {
                 }
             );
 
-            const response = await request(app)
+            await request(app)
                 .post('/auth/login')
                 .send(invalidUserData)
                 .expect(400);
@@ -251,16 +255,19 @@ describe('Auth Routes', () => {
                 },
             };
 
-            // Mock no existing user
-            (getUserDetails as Mock).mockResolvedValue(null);
-
-            // Mock successful insert
-            const mockInsert = vi.fn().mockResolvedValue({
-                error: null,
-            });
-
-            (supabaseConnection.from as Mock).mockReturnValue({
-                insert: mockInsert,
+            // Mock successful user creation with partial data
+            (handleUserLogin as Mock).mockResolvedValue({
+                success: true,
+                user: {
+                    id: 1,
+                    auth0_sub: 'auth0|123456789',
+                    email: 'test@example.com',
+                    given_name: null,
+                    family_name: null,
+                    nickname: null,
+                    picture: null,
+                },
+                isNewUser: true,
             });
 
             const response = await request(app)
@@ -268,18 +275,21 @@ describe('Auth Routes', () => {
                 .send(partialUserData)
                 .expect(200);
 
-            expect(mockInsert).toHaveBeenCalledWith({
-                auth0_sub: 'auth0|123456789',
-                email: 'test@example.com',
-                given_name: undefined,
-                family_name: undefined,
-                nickname: undefined,
-                picture: undefined,
+            expect(response.body).toEqual({
+                isNewUser: true,
+                message: 'User created successfully',
+                user: {
+                    id: 1,
+                    email: 'test@example.com',
+                    name: 'test@example.com',
+                },
             });
+
+            expect(handleUserLogin).toHaveBeenCalledWith(partialUserData.user);
         });
 
         it('should handle malformed JSON in request body', async () => {
-            const response = await request(app)
+            await request(app)
                 .post('/auth/login')
                 .set('Content-Type', 'application/json')
                 .send('invalid json')
@@ -301,39 +311,40 @@ describe('Auth Routes', () => {
                 },
             };
 
-            // Mock no existing user
-            (getUserDetails as Mock).mockResolvedValue(null);
-
-            // Mock successful insert
-            const mockInsert = vi.fn().mockResolvedValue({
-                error: null,
+            // Mock successful user creation
+            (handleUserLogin as Mock).mockResolvedValue({
+                success: true,
+                user: {
+                    id: 1,
+                    auth0_sub: 'auth0|123456789',
+                    email: 'test@example.com',
+                    given_name: 'John',
+                    family_name: 'Doe',
+                    nickname: 'johndoe',
+                    picture: 'https://example.com/avatar.jpg',
+                },
+                isNewUser: true,
             });
 
-            (supabaseConnection.from as Mock).mockReturnValue({
-                insert: mockInsert,
-            });
-
-            await request(app)
+            const response = await request(app)
                 .post('/auth/login')
                 .send(userWithExtraFields)
                 .expect(200);
 
-            // Verify only expected fields are passed to insert
-            expect(mockInsert).toHaveBeenCalledWith({
-                auth0_sub: 'auth0|123456789',
-                email: 'test@example.com',
-                given_name: 'John',
-                family_name: 'Doe',
-                nickname: 'johndoe',
-                picture: 'https://example.com/avatar.jpg',
+            expect(response.body).toEqual({
+                isNewUser: true,
+                message: 'User created successfully',
+                user: {
+                    id: 1,
+                    email: 'test@example.com',
+                    name: 'John Doe',
+                },
             });
 
-            // Verify extra fields are not included
-            expect(mockInsert).not.toHaveBeenCalledWith(
-                expect.objectContaining({
-                    extraField: expect.anything(),
-                    anotherField: expect.anything(),
-                })
+            // Verify handleUserLogin is called with the user object (including extra fields)
+            // The route passes the entire user object to handleUserLogin
+            expect(handleUserLogin).toHaveBeenCalledWith(
+                userWithExtraFields.user
             );
         });
     });

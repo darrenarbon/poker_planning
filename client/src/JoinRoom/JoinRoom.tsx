@@ -34,7 +34,7 @@ const JoinRoom = () => {
                 try {
                     const token = await getAccessTokenSilently();
 
-                    await fetch(`${config.apiUrl}/login`, {
+                    await fetch(`${config.apiUrl}/auth/login`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -69,7 +69,7 @@ const JoinRoom = () => {
 
     const navigateToRoom = (roomId: string) => (e: React.MouseEvent) => {
         e.preventDefault();
-        navigate(`/room/${roomId}/voting`);
+        navigate(`/rooms/${roomId}/voting`);
     };
 
     const createNewRoom = async () => {
@@ -84,7 +84,7 @@ const JoinRoom = () => {
             if (trimmedBaseUrl.endsWith('/')) {
                 trimmedBaseUrl = trimmedBaseUrl.slice(0, -1);
             }
-            const response = await fetch(`${config.apiUrl}/newroom`, {
+            const response = await fetch(`${config.apiUrl}/rooms`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

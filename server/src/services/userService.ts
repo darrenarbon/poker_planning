@@ -1,6 +1,6 @@
 import { supabaseConnection } from '../database';
 import { getUserDetails } from '../routes/routeHelper';
-import { UserRoomsResult, Room, User } from '../types/user';
+import { UserRoomsResult } from '../types/user';
 
 /**
  * Fetches all rooms administered by a specific user
@@ -27,15 +27,14 @@ export const getUserRooms = async (
             .from('room')
             .select(
                 `
-                id,
+                room_id,
                 room_name,
                 admin_id,
-                is_active,
                 created_at,
-                updated_at
+                friendly_name
             `
             )
-            .eq('admin_id', userDetails.id)
+            .eq('admin_id', userDetails.user_id)
             .order('created_at', { ascending: false });
 
         if (error) {

@@ -1,5 +1,4 @@
 import { supabaseConnection } from '../database';
-import { getUserDetails } from '../routes/routeHelper';
 import { Auth0User, LoginResult } from '../types/auth';
 import { auth } from 'express-oauth2-jwt-bearer';
 
@@ -39,16 +38,32 @@ export const validateUserData = (user: any): user is Auth0User => {
  * @returns Promise with the created user or error
  */
 export const createUser = async (userData: Auth0User) => {
-    const { error } = await supabaseConnection.from('user').insert({
-        auth0_sub: userData.sub,
-        email: userData.email,
-        given_name: userData.given_name,
-        family_name: userData.family_name,
-        nickname: userData.nickname,
-        picture: userData.picture,
-    });
+    const { data, error } = await supabaseConnection
+        .from('user')
+        .insert({
+            auth0_sub: userData.sub,
+            email: userData.email,
+            given_name: userData.given_name,
+            family_name: userData.family_name,
+            nickname: userData.nickname,
+            picture: userData.picture,
+        })
+        .select();
 
-    return { error };
+    return { data, error };
+};
+
+export const getUserDetails = async (sub: string) => {
+    const { data, error } = await supabaseConnection
+        .from('user')
+        .select()
+        .eq('auth0_sub', sub);
+
+    if (error) {
+        throw error;
+    }
+
+    return data[0];
 };
 
 /**
@@ -60,7 +75,6 @@ export const handleUserLogin = async (
     userData: Auth0User
 ): Promise<LoginResult> => {
     try {
-        // Check if user already exists
         const existingUser = await getUserDetails(userData.sub);
 
         if (existingUser) {
@@ -72,7 +86,7 @@ export const handleUserLogin = async (
         }
 
         // Create new user
-        const { error } = await createUser(userData);
+        const { data, error } = await createUser(userData);
 
         if (error) {
             return {
@@ -82,12 +96,9 @@ export const handleUserLogin = async (
             };
         }
 
-        // Fetch the newly created user
-        const newUser = await getUserDetails(userData.sub);
-
         return {
             success: true,
-            user: newUser,
+            user: data ? data[0] : undefined,
             isNewUser: true,
         };
     } catch (error) {
@@ -95,100 +106,6 @@ export const handleUserLogin = async (
             success: false,
             error: error,
             message: 'Internal server error during login',
-        };
-    }
-};
-
-/**
- * Formats user data for response
- * @param user - The user object from database
- * @returns Formatted user object for API response
- */
-export const formatUserResponse = (user: any) => {
-    return {
-        id: user?.id,
-        email: user?.email,
-        name:
-            user?.given_name && user?.family_name
-                ? `${user.given_name} ${user.family_name}`
-                : user?.nickname || user?.email,
-        auth0_sub: user?.auth0_sub,
-        picture: user?.picture,
-    };
-};
-
-/**
- * Updates user profile information
- * @param userId - The user ID
- * @param updateData - The data to update
- * @returns Promise with update result
- */
-export const updateUserProfile = async (
-    userId: string,
-    updateData: Partial<Auth0User>
-) => {
-    try {
-        const { error } = await supabaseConnection
-            .from('user')
-            .update({
-                email: updateData.email,
-                given_name: updateData.given_name,
-                family_name: updateData.family_name,
-                nickname: updateData.nickname,
-                picture: updateData.picture,
-                updated_at: new Date().toISOString(),
-            })
-            .eq('auth0_sub', userId);
-
-        if (error) {
-            return {
-                success: false,
-                error,
-                message: 'Error updating user profile',
-            };
-        }
-
-        const updatedUser = await getUserDetails(userId);
-        return { success: true, user: updatedUser };
-    } catch (error) {
-        return {
-            success: false,
-            error,
-            message: 'Internal server error during profile update',
-        };
-    }
-};
-
-/**
- * Soft deletes a user account
- * @param userId - The user ID (auth0_sub)
- * @returns Promise with deletion result
- */
-export const deleteUserAccount = async (userId: string) => {
-    try {
-        // Soft delete - mark as inactive instead of hard delete
-        const { error } = await supabaseConnection
-            .from('user')
-            .update({
-                is_active: false,
-                deleted_at: new Date().toISOString(),
-            })
-            .eq('auth0_sub', userId);
-
-        if (error) {
-            return {
-                success: false,
-                error,
-                message: 'Error deleting user account',
-            };
-        }
-
-        return { success: true, message: 'User account deleted successfully' };
-    } catch (error) {
-        return {
-            success: false,
-            error,
-            message: 'Internal server error during account deletion',
         };
     }
 };
