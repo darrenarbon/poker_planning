@@ -52,8 +52,9 @@ export const suggestVote = (votes: VoteModel[]): SuggestedVote => {
     if (!votes.length) throw new Error('no votes');
 
     const nums = votes.map((v) => v.vote);
+    // most frequent value; on a tie, the highest estimate wins
     const [mode, maxFreq] = [...countFrequencies(nums).entries()].sort(
-        (a, b) => b[1] - a[1],
+        (a, b) => b[1] - a[1] || b[0] - a[0],
     )[0];
 
     // strong majority: go with the mode
