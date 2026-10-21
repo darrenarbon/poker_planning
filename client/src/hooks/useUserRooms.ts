@@ -9,6 +9,7 @@ export const useUserRooms = () => {
     const api = useApi();
     const [rooms, setRooms] = useState<RoomSummary[]>([]);
     const [loaded, setLoaded] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -17,13 +18,17 @@ export const useUserRooms = () => {
             try {
                 await api.login(user);
                 setRooms(await api.getUserRooms(user?.sub));
-                setLoaded(true);
             } catch (error) {
                 console.error('Error logging in user:', error);
+                setError(
+                    'Could not load your rooms. Please refresh to try again.',
+                );
+            } finally {
+                setLoaded(true);
             }
         };
         load();
     }, [api, isAuthenticated, user]);
 
-    return { rooms, loaded };
+    return { rooms, loaded, error };
 };

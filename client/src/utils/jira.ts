@@ -1,13 +1,5 @@
 import { JiraTicket, JiraTicketResponse } from '../types';
 
-export const EMPTY_JIRA_TICKET: JiraTicket = {
-    summary: '',
-    description: '',
-    creator: '',
-    parent: '',
-    priority: '',
-};
-
 export const mapJiraTicket = ({
     fields,
     renderedFields,

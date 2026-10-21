@@ -8,16 +8,21 @@ export const useRoomDetails = (roomName: string) => {
     const [room, setRoom] = useState<Room>();
     const [tickets, setTickets] = useState<TicketForVoting[]>([]);
     const [users, setUsers] = useState<UserModel[]>([]);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     useEffect(() => {
+        setLoadError(null);
         api.getRoom(roomName)
             .then(({ room, tickets, users }) => {
                 setRoom(room);
                 setTickets(tickets);
                 setUsers(users);
             })
-            .catch((error) => console.error('Failed to load room:', error));
+            .catch((error) => {
+                console.error('Failed to load room:', error);
+                setLoadError(`Could not load room "${roomName}".`);
+            });
     }, [api, roomName]);
 
-    return { room, tickets, setTickets, users, setUsers };
+    return { room, tickets, setTickets, users, setUsers, loadError };
 };

@@ -22,22 +22,23 @@ export const PokerSessionProvider = ({
     const { user } = useAuth0();
     const api = useApi();
     const [searchParams] = useSearchParams();
-    const { room, tickets, setTickets, users, setUsers } =
+    const { room, tickets, setTickets, users, setUsers, loadError } =
         useRoomDetails(roomName);
     const [currentTicketId, setCurrentTicketId] = useState<string>();
-    const [showVotes, setShowVotes] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const dismissError = useCallback(() => setError(null), []);
 
     const currentTicket = tickets.find((t) => t.ticket_id === currentTicketId);
-    const jiraTicket = useJiraTicket(currentTicket?.ticket_number);
+    const showVotes = !!currentTicket?.votes_revealed;
+    const jira = useJiraTicket(currentTicket?.ticket_number);
 
     useRoomSocket({
         roomName,
         userSub: user?.sub,
-        currentTicketId,
         setTickets,
         setUsers,
         setCurrentTicketId,
-        setShowVotes,
+        onError: setError,
     });
 
     const isAdmin =
@@ -46,7 +47,6 @@ export const PokerSessionProvider = ({
 
     const selectTicket = useCallback((ticket: TicketForVoting) => {
         setCurrentTicketId(ticket.ticket_id);
-        setShowVotes(false);
     }, []);
 
     const submitVote = useCallback(
@@ -89,8 +89,9 @@ export const PokerSessionProvider = ({
             try {
                 const newTicket = await api.addTicket(roomName, ticketNumber);
                 setTickets((prev) => [newTicket, ...prev]);
-            } catch {
-                console.error('Failed to add new ticket');
+            } catch (e) {
+                console.error('Failed to add new ticket', e);
+                setError(`Could not add ticket ${ticketNumber}.`);
             }
         },
         [api, roomName, setTickets],
@@ -108,8 +109,9 @@ export const PokerSessionProvider = ({
                 prev.filter((t) => t.ticket_id !== currentTicket.ticket_id),
             );
             setCurrentTicketId(undefined);
-        } catch {
-            console.error('Failed to delete ticket');
+        } catch (e) {
+            console.error('Failed to delete ticket', e);
+            setError(`Could not delete ticket ${currentTicket.ticket_number}.`);
         }
     }, [api, currentTicket, setTickets]);
 
@@ -121,9 +123,12 @@ export const PokerSessionProvider = ({
             users,
             tickets,
             currentTicket,
-            jiraTicket,
+            jira,
             showVotes,
             isAdmin,
+            loadError,
+            error,
+            dismissError,
             selectTicket,
             submitVote,
             revealVotes,
@@ -138,9 +143,12 @@ export const PokerSessionProvider = ({
             users,
             tickets,
             currentTicket,
-            jiraTicket,
+            jira,
             showVotes,
             isAdmin,
+            loadError,
+            error,
+            dismissError,
             selectTicket,
             submitVote,
             revealVotes,

@@ -23,4 +23,6 @@ export interface TicketForVoting {
     chosen_estimate?: number;
     mode?: number | number[];
     suggested_vote?: SuggestedVote;
+    /** client-side only: set once the admin has revealed votes for this ticket */
+    votes_revealed?: boolean;
 }

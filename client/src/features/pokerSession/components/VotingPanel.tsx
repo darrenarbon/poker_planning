@@ -5,7 +5,7 @@ import JiraTicketModal, { JIRA_MODAL_ID } from './JiraTicketModal';
 import PlayerVotesTable from './PlayerVotesTable';
 
 const VotingPanel = () => {
-    const { currentTicket, user, users, showVotes, jiraTicket, submitVote } =
+    const { currentTicket, user, users, showVotes, jira, submitVote } =
         usePokerSession();
 
     if (!currentTicket) return null;
@@ -23,7 +23,7 @@ const VotingPanel = () => {
                     Open Jira Ticket Preview
                 </button>
             </h4>
-            <JiraTicketModal jiraTicket={jiraTicket} />
+            <JiraTicketModal {...jira} />
             <div>
                 <div className="w-75 mx-auto text-center">
                     <VoteValueButtons

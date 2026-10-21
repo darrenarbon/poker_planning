@@ -1,4 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react';
+import ErrorAlert from '../../components/ErrorAlert';
 import Loading from '../../components/Loading';
 import NavBar from '../../components/NavBar';
 import { useUserRooms } from '../../hooks';
@@ -8,7 +9,7 @@ import MyRoomsList from './components/MyRoomsList';
 
 const JoinRoomPage = () => {
     const { user, isAuthenticated } = useAuth0();
-    const { rooms, loaded } = useUserRooms();
+    const { rooms, loaded, error } = useUserRooms();
 
     const renderContent = () => {
         if (!isAuthenticated) {
@@ -34,6 +35,7 @@ const JoinRoomPage = () => {
     return (
         <div className="container mt-4">
             <NavBar />
+            <ErrorAlert message={error} />
             {renderContent()}
         </div>
     );

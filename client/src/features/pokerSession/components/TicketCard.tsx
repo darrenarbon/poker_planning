@@ -45,6 +45,8 @@ const TicketCard = ({
             <a
                 href={`${ticketBaseUrl}/${ticket.ticket_number}`}
                 target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
             >
                 View Ticket
             </a>

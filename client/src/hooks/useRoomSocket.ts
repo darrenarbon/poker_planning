@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useEffect, useRef } from 'react';
+import { Dispatch, SetStateAction, useEffect } from 'react';
 import { socket } from '../services/socket';
 import { ServerToClientEvents, TicketForVoting, UserModel } from '../types';
 import { replaceTicket, withVote, withVoteStats } from '../utils';
@@ -6,31 +6,40 @@ import { replaceTicket, withVote, withVoteStats } from '../utils';
 type UseRoomSocketArgs = {
     roomName: string;
     userSub: string | undefined;
-    currentTicketId: string | undefined;
     setTickets: Dispatch<SetStateAction<TicketForVoting[]>>;
     setUsers: Dispatch<SetStateAction<UserModel[]>>;
     setCurrentTicketId: Dispatch<SetStateAction<string | undefined>>;
-    setShowVotes: Dispatch<SetStateAction<boolean>>;
+    onError: (message: string) => void;
 };
 
-/** Joins the room's socket channel and applies server events to local state */
+/**
+ * Connects the socket while a logged-in user is in the room, (re-)joining the
+ * room on every connect, and applies server events to local state.
+ */
 export const useRoomSocket = ({
     roomName,
     userSub,
-    currentTicketId,
     setTickets,
     setUsers,
     setCurrentTicketId,
-    setShowVotes,
+    onError,
 }: UseRoomSocketArgs) => {
-    // a ref lets the listeners read the latest value without re-subscribing
-    const currentTicketIdRef = useRef(currentTicketId);
-    currentTicketIdRef.current = currentTicketId;
-
     useEffect(() => {
-        if (userSub) {
-            socket.emit('join', { roomName, userSub });
+        if (!userSub) return;
+
+        const join = () => socket.emit('join', { roomName, userSub });
+
+        socket.on('connect', join);
+        if (socket.connected) {
+            join();
+        } else {
+            socket.connect();
         }
+
+        return () => {
+            socket.off('connect', join);
+            socket.disconnect();
+        };
     }, [roomName, userSub]);
 
     useEffect(() => {
@@ -48,17 +57,15 @@ export const useRoomSocket = ({
                 ),
             );
 
-        const onShowVotes: ServerToClientEvents['showVotes'] = ({
-            ticketId,
-        }) => {
-            if (ticketId !== currentTicketIdRef.current) return;
+        // reveal on every client, whichever ticket they are currently viewing
+        const onShowVotes: ServerToClientEvents['showVotes'] = ({ ticketId }) =>
             setTickets((prev) =>
                 prev.map((t) =>
-                    t.ticket_id === ticketId ? withVoteStats(t) : t,
+                    t.ticket_id === ticketId
+                        ? { ...withVoteStats(t), votes_revealed: true }
+                        : t,
                 ),
             );
-            setShowVotes(true);
-        };
 
         // everyone in the room jumps to the ticket that was just estimated
         const onShowEstimate: ServerToClientEvents['showEstimate'] = ({
@@ -68,15 +75,22 @@ export const useRoomSocket = ({
             setCurrentTicketId(currentTicket.ticket_id);
         };
 
+        const onConnectError = () =>
+            onError('Lost connection to the server. Retrying…');
+
         socket.on('userJoined', onUserJoined);
         socket.on('voteReceived', onVoteReceived);
         socket.on('showVotes', onShowVotes);
         socket.on('showEstimate', onShowEstimate);
+        socket.on('error', onError);
+        socket.on('connect_error', onConnectError);
         return () => {
             socket.off('userJoined', onUserJoined);
             socket.off('voteReceived', onVoteReceived);
             socket.off('showVotes', onShowVotes);
             socket.off('showEstimate', onShowEstimate);
+            socket.off('error', onError);
+            socket.off('connect_error', onConnectError);
         };
-    }, [setTickets, setUsers, setCurrentTicketId, setShowVotes]);
+    }, [setTickets, setUsers, setCurrentTicketId, onError]);
 };

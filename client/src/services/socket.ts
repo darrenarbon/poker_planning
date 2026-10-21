@@ -4,4 +4,5 @@ import { ClientToServerEvents, ServerToClientEvents } from '../types';
 
 export type PokerSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
-export const socket: PokerSocket = io(config.apiUrl);
+// connected only while a poker session is open; see useRoomSocket
+export const socket: PokerSocket = io(config.apiUrl, { autoConnect: false });

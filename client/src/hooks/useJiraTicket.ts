@@ -1,20 +1,51 @@
 import { useEffect, useState } from 'react';
 import { JiraTicket } from '../types';
-import { EMPTY_JIRA_TICKET } from '../utils';
 import { useApi } from './useApi';
 
-export const useJiraTicket = (ticketNumber: string | undefined): JiraTicket => {
+type JiraTicketState = {
+    jiraTicket: JiraTicket | null;
+    loading: boolean;
+    error: string | null;
+};
+
+const IDLE: JiraTicketState = { jiraTicket: null, loading: false, error: null };
+
+export const useJiraTicket = (
+    ticketNumber: string | undefined,
+): JiraTicketState => {
     const api = useApi();
-    const [jiraTicket, setJiraTicket] = useState<JiraTicket>(EMPTY_JIRA_TICKET);
+    const [state, setState] = useState<JiraTicketState>(IDLE);
 
     useEffect(() => {
-        if (!ticketNumber) return;
+        if (!ticketNumber) {
+            setState(IDLE);
+            return;
+        }
+
+        // ignore responses for a ticket that is no longer selected
+        let cancelled = false;
+        setState({ jiraTicket: null, loading: true, error: null });
+
         api.getJiraTicket(ticketNumber)
-            .then(setJiraTicket)
-            .catch((error) =>
-                console.error('Failed to load Jira ticket:', error),
-            );
+            .then((jiraTicket) => {
+                if (!cancelled)
+                    setState({ jiraTicket, loading: false, error: null });
+            })
+            .catch((error) => {
+                console.error('Failed to load Jira ticket:', error);
+                if (!cancelled) {
+                    setState({
+                        jiraTicket: null,
+                        loading: false,
+                        error: `Could not load Jira details for ${ticketNumber}.`,
+                    });
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
     }, [api, ticketNumber]);
 
-    return jiraTicket;
+    return state;
 };

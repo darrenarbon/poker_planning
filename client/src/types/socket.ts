@@ -10,6 +10,7 @@ export interface ServerToClientEvents {
     }) => void;
     showVotes: (payload: { ticketId: string }) => void;
     showEstimate: (payload: { currentTicket: TicketForVoting }) => void;
+    error: (message: string) => void;
 }
 
 export interface ClientToServerEvents {

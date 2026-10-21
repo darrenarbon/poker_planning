@@ -9,9 +9,18 @@ export interface PokerSessionContextValue {
     users: UserModel[];
     tickets: TicketForVoting[];
     currentTicket: TicketForVoting | undefined;
-    jiraTicket: JiraTicket;
+    jira: {
+        jiraTicket: JiraTicket | null;
+        loading: boolean;
+        error: string | null;
+    };
     showVotes: boolean;
     isAdmin: boolean;
+    /** the room could not be loaded at all */
+    loadError: string | null;
+    /** a recoverable error from an action or the socket */
+    error: string | null;
+    dismissError: () => void;
     selectTicket: (ticket: TicketForVoting) => void;
     submitVote: (vote: number) => void;
     revealVotes: () => void;
