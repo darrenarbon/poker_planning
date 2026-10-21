@@ -40,7 +40,7 @@ const PlayerVotesTable = ({
                         <td>
                             {describeVote(
                                 findVote(ticket, player.auth0_sub),
-                                showVotes || isMe,
+                                showVotes || isMe
                             )}
                         </td>
                     </tr>

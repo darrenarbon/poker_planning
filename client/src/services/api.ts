@@ -13,7 +13,7 @@ export type GetToken = () => Promise<string>;
 export class ApiError extends Error {
     constructor(
         message: string,
-        public readonly status: number,
+        public readonly status: number
     ) {
         super(message);
     }
@@ -22,7 +22,7 @@ export class ApiError extends Error {
 const request = async (
     getToken: GetToken,
     path: string,
-    init: { method?: string; body?: unknown } = {},
+    init: { method?: string; body?: unknown } = {}
 ): Promise<Response> => {
     const token = await getToken();
     const response = await fetch(`${config.apiUrl}${path}`, {
@@ -36,7 +36,7 @@ const request = async (
     if (!response.ok) {
         throw new ApiError(
             `${init.method ?? 'GET'} ${path} failed`,
-            response.status,
+            response.status
         );
     }
     return response;
@@ -54,7 +54,7 @@ export const createApi = (getToken: GetToken) => ({
         (
             await requestJson<{ rooms: RoomSummary[] }>(
                 getToken,
-                `/users/${userSub}/rooms`,
+                `/users/${userSub}/rooms`
             )
         ).rooms,
 
@@ -77,12 +77,12 @@ export const createApi = (getToken: GetToken) => ({
 
     addTicket: async (
         roomName: string,
-        ticketNumber: string,
+        ticketNumber: string
     ): Promise<TicketForVoting> => {
         const ticket = await requestJson<TicketForVoting>(
             getToken,
             `/room/${roomName}/newTicket`,
-            { method: 'POST', body: { ticketNumber } },
+            { method: 'POST', body: { ticketNumber } }
         );
         return { ...ticket, votes: [] };
     },
@@ -92,7 +92,7 @@ export const createApi = (getToken: GetToken) => ({
 
     getJiraTicket: async (ticketNumber: string): Promise<JiraTicket> =>
         mapJiraTicket(
-            await requestJson(getToken, `/jiraticket/${ticketNumber}`),
+            await requestJson(getToken, `/jiraticket/${ticketNumber}`)
         ),
 });
 

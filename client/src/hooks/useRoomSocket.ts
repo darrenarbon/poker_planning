@@ -3,6 +3,9 @@ import { socket } from '../services/socket';
 import { ServerToClientEvents, TicketForVoting, UserModel } from '../types';
 import { replaceTicket, withVote, withVoteStats } from '../utils';
 
+export const CONNECTION_LOST_MESSAGE =
+    'Lost connection to the server. Retrying…';
+
 type UseRoomSocketArgs = {
     roomName: string;
     userSub: string | undefined;
@@ -10,6 +13,7 @@ type UseRoomSocketArgs = {
     setUsers: Dispatch<SetStateAction<UserModel[]>>;
     setCurrentTicketId: Dispatch<SetStateAction<string | undefined>>;
     onError: (message: string) => void;
+    onReconnect: () => void;
 };
 
 /**
@@ -23,6 +27,7 @@ export const useRoomSocket = ({
     setUsers,
     setCurrentTicketId,
     onError,
+    onReconnect,
 }: UseRoomSocketArgs) => {
     useEffect(() => {
         if (!userSub) return;
@@ -53,8 +58,8 @@ export const useRoomSocket = ({
         }) =>
             setTickets((prev) =>
                 prev.map((t) =>
-                    t.ticket_id === ticketId ? withVote(t, vote, userSub) : t,
-                ),
+                    t.ticket_id === ticketId ? withVote(t, vote, userSub) : t
+                )
             );
 
         // reveal on every client, whichever ticket they are currently viewing
@@ -63,8 +68,8 @@ export const useRoomSocket = ({
                 prev.map((t) =>
                     t.ticket_id === ticketId
                         ? { ...withVoteStats(t), votes_revealed: true }
-                        : t,
-                ),
+                        : t
+                )
             );
 
         // everyone in the room jumps to the ticket that was just estimated
@@ -75,8 +80,7 @@ export const useRoomSocket = ({
             setCurrentTicketId(currentTicket.ticket_id);
         };
 
-        const onConnectError = () =>
-            onError('Lost connection to the server. Retrying…');
+        const onConnectError = () => onError(CONNECTION_LOST_MESSAGE);
 
         socket.on('userJoined', onUserJoined);
         socket.on('voteReceived', onVoteReceived);
@@ -84,6 +88,7 @@ export const useRoomSocket = ({
         socket.on('showEstimate', onShowEstimate);
         socket.on('error', onError);
         socket.on('connect_error', onConnectError);
+        socket.on('connect', onReconnect);
         return () => {
             socket.off('userJoined', onUserJoined);
             socket.off('voteReceived', onVoteReceived);
@@ -91,6 +96,7 @@ export const useRoomSocket = ({
             socket.off('showEstimate', onShowEstimate);
             socket.off('error', onError);
             socket.off('connect_error', onConnectError);
+            socket.off('connect', onReconnect);
         };
-    }, [setTickets, setUsers, setCurrentTicketId, onError]);
+    }, [setTickets, setUsers, setCurrentTicketId, onError, onReconnect]);
 };

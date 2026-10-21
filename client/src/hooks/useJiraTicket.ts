@@ -11,7 +11,7 @@ type JiraTicketState = {
 const IDLE: JiraTicketState = { jiraTicket: null, loading: false, error: null };
 
 export const useJiraTicket = (
-    ticketNumber: string | undefined,
+    ticketNumber: string | undefined
 ): JiraTicketState => {
     const api = useApi();
     const [state, setState] = useState<JiraTicketState>(IDLE);

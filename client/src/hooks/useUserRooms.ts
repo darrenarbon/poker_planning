@@ -21,7 +21,7 @@ export const useUserRooms = () => {
             } catch (error) {
                 console.error('Error logging in user:', error);
                 setError(
-                    'Could not load your rooms. Please refresh to try again.',
+                    'Could not load your rooms. Please refresh to try again.'
                 );
             } finally {
                 setLoaded(true);

@@ -23,7 +23,7 @@ const CreateRoomForm = () => {
         try {
             const roomId = await api.createRoom(
                 roomName,
-                normaliseBaseUrl(baseUrl),
+                normaliseBaseUrl(baseUrl)
             );
             navigate(roomTicketsPath(roomId));
         } catch (error) {

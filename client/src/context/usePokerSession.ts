@@ -8,7 +8,7 @@ export const usePokerSession = (): PokerSessionContextValue => {
     const context = useContext(PokerSessionContext);
     if (!context) {
         throw new Error(
-            'usePokerSession must be used within a PokerSessionProvider',
+            'usePokerSession must be used within a PokerSessionProvider'
         );
     }
     return context;

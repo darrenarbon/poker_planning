@@ -15,7 +15,7 @@ const JiraTicketDetails = ({ jiraTicket }: { jiraTicket: JiraTicket }) => {
     // Jira's rendered HTML is untrusted, so strip scripts and event handlers
     const safeDescription = useMemo(
         () => DOMPurify.sanitize(jiraTicket.description ?? ''),
-        [jiraTicket.description],
+        [jiraTicket.description]
     );
 
     return (

@@ -7,6 +7,6 @@ export const useApi = (): Api => {
     const { getAccessTokenSilently } = useAuth0();
     return useMemo(
         () => createApi(() => getAccessTokenSilently()),
-        [getAccessTokenSilently],
+        [getAccessTokenSilently]
     );
 };

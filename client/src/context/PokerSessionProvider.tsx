@@ -1,7 +1,13 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { ReactNode, useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useApi, useJiraTicket, useRoomDetails, useRoomSocket } from '../hooks';
+import {
+    CONNECTION_LOST_MESSAGE,
+    useApi,
+    useJiraTicket,
+    useRoomDetails,
+    useRoomSocket,
+} from '../hooks';
 import { socket } from '../services/socket';
 import { TicketForVoting } from '../types';
 import { replaceTicket, withVote } from '../utils';
@@ -27,6 +33,13 @@ export const PokerSessionProvider = ({
     const [currentTicketId, setCurrentTicketId] = useState<string>();
     const [error, setError] = useState<string | null>(null);
     const dismissError = useCallback(() => setError(null), []);
+    const clearConnectionError = useCallback(
+        () =>
+            setError((current) =>
+                current === CONNECTION_LOST_MESSAGE ? null : current
+            ),
+        []
+    );
 
     const currentTicket = tickets.find((t) => t.ticket_id === currentTicketId);
     const showVotes = !!currentTicket?.votes_revealed;
@@ -39,6 +52,7 @@ export const PokerSessionProvider = ({
         setUsers,
         setCurrentTicketId,
         onError: setError,
+        onReconnect: clearConnectionError,
     });
 
     const isAdmin =
@@ -59,10 +73,10 @@ export const PokerSessionProvider = ({
                 userSub: user?.sub,
             });
             setTickets((prev) =>
-                replaceTicket(prev, withVote(currentTicket, vote, user?.sub)),
+                replaceTicket(prev, withVote(currentTicket, vote, user?.sub))
             );
         },
-        [currentTicket, roomName, setTickets, user?.sub],
+        [currentTicket, roomName, setTickets, user?.sub]
     );
 
     const revealVotes = useCallback(() => {
@@ -80,7 +94,7 @@ export const PokerSessionProvider = ({
             setTickets((prev) => replaceTicket(prev, updated));
             socket.emit('setEstimate', { roomName, currentTicket: updated });
         },
-        [currentTicket, roomName, setTickets],
+        [currentTicket, roomName, setTickets]
     );
 
     const addTicket = useCallback(
@@ -94,19 +108,19 @@ export const PokerSessionProvider = ({
                 setError(`Could not add ticket ${ticketNumber}.`);
             }
         },
-        [api, roomName, setTickets],
+        [api, roomName, setTickets]
     );
 
     const deleteCurrentTicket = useCallback(async () => {
         if (!currentTicket) return;
         const confirmed = confirm(
-            `Are you sure you want to delete ticket ${currentTicket.ticket_number}? This action cannot be undone.`,
+            `Are you sure you want to delete ticket ${currentTicket.ticket_number}? This action cannot be undone.`
         );
         if (!confirmed) return;
         try {
             await api.deleteTicket(currentTicket.ticket_id);
             setTickets((prev) =>
-                prev.filter((t) => t.ticket_id !== currentTicket.ticket_id),
+                prev.filter((t) => t.ticket_id !== currentTicket.ticket_id)
             );
             setCurrentTicketId(undefined);
         } catch (e) {
@@ -155,7 +169,7 @@ export const PokerSessionProvider = ({
             setEstimate,
             addTicket,
             deleteCurrentTicket,
-        ],
+        ]
     );
 
     return (

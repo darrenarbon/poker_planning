@@ -13,7 +13,7 @@ const countFrequencies = (nums: number[]): Map<number, number> => {
 };
 
 export const calculateMode = (
-    votes: VoteModel[],
+    votes: VoteModel[]
 ): number | number[] | undefined => {
     if (votes.length === 0) return undefined;
 
@@ -30,7 +30,7 @@ export const calculateMode = (
 export const toFib = (
     x: number,
     how: 'nearest' | 'ceil' = 'nearest',
-    fibs: readonly VotingValue[] = votingValues,
+    fibs: readonly VotingValue[] = votingValues
 ): number => {
     if (fibs.length === 0) throw new Error('scale is empty');
 
@@ -44,7 +44,7 @@ export const toFib = (
     return fibs.reduce(
         (best, card) =>
             Math.abs(card.value - x) < Math.abs(best.value - x) ? card : best,
-        fibs[0],
+        fibs[0]
     ).value;
 };
 
@@ -54,7 +54,7 @@ export const suggestVote = (votes: VoteModel[]): SuggestedVote => {
     const nums = votes.map((v) => v.vote);
     // most frequent value; on a tie, the highest estimate wins
     const [mode, maxFreq] = [...countFrequencies(nums).entries()].sort(
-        (a, b) => b[1] - a[1] || b[0] - a[0],
+        (a, b) => b[1] - a[1] || b[0] - a[0]
     )[0];
 
     // strong majority: go with the mode
@@ -63,7 +63,7 @@ export const suggestVote = (votes: VoteModel[]): SuggestedVote => {
 
     const mean = nums.reduce((a, b) => a + b) / nums.length;
     const sd = Math.sqrt(
-        nums.reduce((s, x) => s + (x - mean) ** 2, 0) / nums.length,
+        nums.reduce((s, x) => s + (x - mean) ** 2, 0) / nums.length
     );
     const cv = sd / mean;
 
