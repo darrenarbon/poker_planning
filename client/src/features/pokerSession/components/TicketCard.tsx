@@ -1,4 +1,5 @@
 import classNames from 'classnames';
+import { NO_IDEA_VOTE } from '../../../constants';
 import { TicketForVoting } from '../../../types';
 import { findVote } from '../../../utils';
 
@@ -14,8 +15,8 @@ const getStatus = (ticket: TicketForVoting, myVote: number | null): string => {
     if (ticket.chosen_estimate) {
         return `Estimated: ${ticket.chosen_estimate}`;
     }
-    if (myVote) {
-        return `Voted: ${myVote}`;
+    if (myVote !== null) {
+        return `Voted: ${myVote === NO_IDEA_VOTE ? 'No Idea' : myVote}`;
     }
     return 'Not voted yet';
 };

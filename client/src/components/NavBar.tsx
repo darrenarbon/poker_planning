@@ -27,7 +27,7 @@ const NavBar = () => {
                 </button>
                 <div
                     className="collapse navbar-collapse"
-                    id="navbarTogglerDemo01"
+                    id="navbarSupportedContent"
                 >
                     <ul className="navbar-nav me-auto"></ul>
                     <div className="d-flex">

@@ -1,4 +1,4 @@
-import { VotingValue, votingValues } from '../constants';
+import { NO_IDEA_VOTE, VotingValue, votingValues } from '../constants';
 import {
     SuggestedVote,
     SuggestedVoteRule,
@@ -74,28 +74,32 @@ export const suggestVote = (votes: VoteModel[]): SuggestedVote => {
 };
 
 /** Returns a copy of the ticket with average, deviation, mode and suggestion filled in */
+/**
+ * Returns a copy of the ticket with average, deviation, mode and suggestion
+ * filled in. "No Idea" votes are excluded from every statistic, and the
+ * statistics are left unset when there are no numeric votes.
+ */
 export const withVoteStats = (ticket: TicketForVoting): TicketForVoting => {
-    const sum = ticket.votes.reduce((acc, v) => acc + v.vote, 0);
-    const totalVotes = ticket.votes.filter((v) => v.vote > 0).length;
-    const average_vote = parseFloat((sum / totalVotes).toFixed(2));
+    const votes = ticket.votes.filter((v) => v.vote !== NO_IDEA_VOTE);
+    if (votes.length === 0) {
+        return {
+            ...ticket,
+            average_vote: undefined,
+            standard_deviation: undefined,
+            mode: undefined,
+            suggested_vote: undefined,
+        };
+    }
 
-    const standard_deviation =
-        totalVotes <= 1
-            ? 0
-            : parseFloat(
-                  Math.sqrt(
-                      ticket.votes.reduce(
-                          (acc, v) => acc + (v.vote - (average_vote || 0)) ** 2,
-                          0,
-                      ) / totalVotes,
-                  ).toFixed(2),
-              );
+    const mean = votes.reduce((acc, v) => acc + v.vote, 0) / votes.length;
+    const variance =
+        votes.reduce((acc, v) => acc + (v.vote - mean) ** 2, 0) / votes.length;
 
     return {
         ...ticket,
-        average_vote,
-        standard_deviation,
-        mode: calculateMode(ticket.votes),
-        suggested_vote: suggestVote(ticket.votes),
+        average_vote: parseFloat(mean.toFixed(2)),
+        standard_deviation: parseFloat(Math.sqrt(variance).toFixed(2)),
+        mode: calculateMode(votes),
+        suggested_vote: suggestVote(votes),
     };
 };

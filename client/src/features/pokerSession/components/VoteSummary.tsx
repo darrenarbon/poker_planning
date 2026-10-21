@@ -6,7 +6,7 @@ type VoteSummaryProps = {
 
 /** Suggested estimate plus mode / average stats, once votes have been revealed */
 const VoteSummary = ({ ticket }: VoteSummaryProps) => {
-    if (!ticket.average_vote || ticket.suggested_vote == null) {
+    if (ticket.average_vote == null || ticket.suggested_vote == null) {
         return null;
     }
 

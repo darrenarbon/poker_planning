@@ -5,6 +5,7 @@ import { roomVotingPath } from '../../../routes';
 const JoinExistingRoom = () => {
     const [roomId, setRoomId] = useState('');
     const navigate = useNavigate();
+    const trimmedRoomId = roomId.trim();
 
     return (
         <>
@@ -22,7 +23,8 @@ const JoinExistingRoom = () => {
             </div>
             <button
                 className="btn btn-primary btn-lg mt-2"
-                onClick={() => navigate(roomVotingPath(roomId))}
+                onClick={() => navigate(roomVotingPath(trimmedRoomId))}
+                disabled={!trimmedRoomId}
             >
                 Join room
             </button>
