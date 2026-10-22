@@ -11,6 +11,7 @@ export const createFakeSocket = () => {
 
     const fake = {
         connected: false,
+        auth: undefined as unknown,
         on: vi.fn((event: string, handler: Handler) => {
             if (!handlers.has(event)) handlers.set(event, new Set());
             handlers.get(event)!.add(handler);

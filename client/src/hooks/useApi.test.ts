@@ -27,11 +27,11 @@ describe('useApi', () => {
 
     it('authenticates requests with the current Auth0 token', async () => {
         const { result } = renderHook(() => useApi());
-        await result.current.getUserRooms('user-1');
+        await result.current.getUserRooms();
 
         expect(getAccessTokenSilently).toHaveBeenCalled();
         const [url, init] = fetchMock.mock.calls[0];
-        expect(url).toMatch(/\/users\/user-1\/rooms$/);
+        expect(url).toMatch(/\/me\/rooms$/);
         expect(init.headers.Authorization).toBe('Bearer token-123');
     });
 

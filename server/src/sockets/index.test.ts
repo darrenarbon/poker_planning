@@ -10,6 +10,7 @@ describe('registerSockets', () => {
         vi.spyOn(console, 'log').mockImplementation(() => {});
         let onConnection: ((socket: unknown) => void) | undefined;
         const io = {
+            use: vi.fn(),
             on: vi.fn((event: string, cb: (socket: unknown) => void) => {
                 if (event === 'connection') onConnection = cb;
             }),
@@ -21,5 +22,6 @@ describe('registerSockets', () => {
 
         const events = socket.on.mock.calls.map(([event]) => event);
         expect(events).toEqual(['join', 'vote', 'showVotes', 'setEstimate']);
+        expect(io.use).toHaveBeenCalledTimes(1);
     });
 });

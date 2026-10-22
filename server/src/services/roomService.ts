@@ -70,13 +70,24 @@ export const getRoomsForUser = async (userSub: string): Promise<UserRoom[]> => {
     );
 };
 
-const getRoomAsAdmin = async (roomName: string, userSub: string) => {
-    const room = await getRoomByName(roomName);
+/** Throws a 403 unless the user is the room's admin. */
+export const assertRoomAdmin = async (room: Room, userSub: string) => {
     const user = await getUserBySub(userSub);
     if (room.admin_id !== user.user_id) {
         throw new AppError(403, 'Only the room admin can do that');
     }
     return room;
+};
+
+export const getRoomAsAdmin = async (roomName: string, userSub: string) =>
+    assertRoomAdmin(await getRoomByName(roomName), userSub);
+
+export const getRoomByIdAsAdmin = async (roomId: number, userSub: string) => {
+    const room = await roomRepository.findRoomById(roomId);
+    if (!room) {
+        throw notFound('Room not found');
+    }
+    return assertRoomAdmin(room, userSub);
 };
 
 /** Stars or un-stars a room for one user, joining them to it if needed. */

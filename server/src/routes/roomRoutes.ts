@@ -33,10 +33,6 @@ router.post(
     checkJwt,
     asyncHandler(roomController.addTicket)
 );
-router.get(
-    '/users/:userSub/rooms',
-    checkJwt,
-    asyncHandler(roomController.getRoomsForUser)
-);
+router.get('/me/rooms', checkJwt, asyncHandler(roomController.getRoomsForUser));
 
 export default router;

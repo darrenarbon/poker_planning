@@ -9,6 +9,7 @@ export const CONNECTION_LOST_MESSAGE =
 type UseRoomSocketArgs = {
     roomName: string;
     userSub: string | undefined;
+    getToken: () => Promise<string>;
     setTickets: Dispatch<SetStateAction<TicketForVoting[]>>;
     setUsers: Dispatch<SetStateAction<UserModel[]>>;
     setCurrentTicketId: Dispatch<SetStateAction<string | undefined>>;
@@ -18,11 +19,13 @@ type UseRoomSocketArgs = {
 
 /**
  * Connects the socket while a logged-in user is in the room, (re-)joining the
- * room on every connect, and applies server events to local state.
+ * room on every connect, and applies server events to local state. The server
+ * identifies the user from the access token sent with each handshake.
  */
 export const useRoomSocket = ({
     roomName,
     userSub,
+    getToken,
     setTickets,
     setUsers,
     setCurrentTicketId,
@@ -32,7 +35,14 @@ export const useRoomSocket = ({
     useEffect(() => {
         if (!userSub) return;
 
-        const join = () => socket.emit('join', { roomName, userSub });
+        // called on every (re)connect, so an expired token is refreshed
+        socket.auth = (cb) => {
+            getToken().then(
+                (token) => cb({ token }),
+                () => cb({})
+            );
+        };
+        const join = () => socket.emit('join', { roomName });
 
         socket.on('connect', join);
         if (socket.connected) {
@@ -45,7 +55,7 @@ export const useRoomSocket = ({
             socket.off('connect', join);
             socket.disconnect();
         };
-    }, [roomName, userSub]);
+    }, [roomName, userSub, getToken]);
 
     useEffect(() => {
         const onUserJoined: ServerToClientEvents['userJoined'] = ({ users }) =>

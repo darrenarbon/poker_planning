@@ -2,7 +2,11 @@ import * as ticketRepository from '../repositories/ticketRepository.js';
 import * as voteRepository from '../repositories/voteRepository.js';
 import type { Ticket, TicketEstimate } from '../types/models.js';
 import { notFound } from '../utils/errors.js';
-import { getRoomByName } from './roomService.js';
+import {
+    getRoomAsAdmin,
+    getRoomByIdAsAdmin,
+    getRoomByName,
+} from './roomService.js';
 
 export const getTicketById = async (
     ticketId: number | string
@@ -16,14 +20,16 @@ export const getTicketById = async (
 
 export const addTicketsToRoom = async (
     roomName: string,
+    userSub: string,
     ticketNumbers: string[]
 ) => {
-    const room = await getRoomByName(roomName);
+    const room = await getRoomAsAdmin(roomName, userSub);
     return ticketRepository.createTickets(room.room_id, ticketNumbers);
 };
 
-export const deleteTicket = async (ticketId: string) => {
-    await getTicketById(ticketId);
+export const deleteTicket = async (ticketId: string, userSub: string) => {
+    const ticket = await getTicketById(ticketId);
+    await getRoomByIdAsAdmin(ticket.room_id, userSub);
     // votes reference the ticket, so they must go first
     await voteRepository.deleteVotesForTicket(ticketId);
     await ticketRepository.deleteTicket(ticketId);
@@ -44,6 +50,6 @@ export const setEstimate = async (
     ticketId: number,
     estimate: TicketEstimate
 ) => {
-    await getRoomByName(roomName);
+    await getTicketInRoom(roomName, ticketId);
     await ticketRepository.updateTicketEstimate(ticketId, estimate);
 };

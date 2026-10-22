@@ -14,12 +14,11 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
-    join: (payload: { roomName: string; userSub: string | undefined }) => void;
+    join: (payload: { roomName: string }) => void;
     vote: (payload: {
         roomName: string;
         ticketId: string;
         vote: number;
-        userSub: string | undefined;
     }) => void;
     showVotes: (payload: { roomName: string; ticketId: string }) => void;
     setEstimate: (payload: {

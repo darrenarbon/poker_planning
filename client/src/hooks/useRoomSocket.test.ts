@@ -29,6 +29,7 @@ const renderRoomSocket = ({ loggedIn = true } = {}) => {
     const userSub = loggedIn ? 'user-1' : undefined;
     const onError = vi.fn();
     const onReconnect = vi.fn();
+    const getToken = vi.fn().mockResolvedValue('token-1');
     const hook = renderHook(
         ({ roomName, sub }) => {
             const [tickets, setTickets] =
@@ -38,6 +39,7 @@ const renderRoomSocket = ({ loggedIn = true } = {}) => {
             useRoomSocket({
                 roomName,
                 userSub: sub,
+                getToken,
                 setTickets,
                 setUsers,
                 setCurrentTicketId,
@@ -48,7 +50,7 @@ const renderRoomSocket = ({ loggedIn = true } = {}) => {
         },
         { initialProps: { roomName: 'room-abc', sub: userSub } }
     );
-    return { ...hook, onError, onReconnect };
+    return { ...hook, onError, onReconnect, getToken };
 };
 
 describe('useRoomSocket', () => {
@@ -66,8 +68,17 @@ describe('useRoomSocket', () => {
             expect(fakeSocket.connect).toHaveBeenCalled();
             expect(fakeSocket.emit).toHaveBeenCalledWith('join', {
                 roomName: 'room-abc',
-                userSub: 'user-1',
             });
+        });
+
+        it('sends a fresh access token with each handshake', async () => {
+            const { getToken } = renderRoomSocket();
+            const auth = fakeSocket.auth as (
+                cb: (data: object) => void
+            ) => void;
+            const data = await new Promise((resolve) => auth(resolve));
+            expect(data).toEqual({ token: 'token-1' });
+            expect(getToken).toHaveBeenCalled();
         });
 
         it('joins straight away if the socket is already connected', () => {
@@ -87,7 +98,6 @@ describe('useRoomSocket', () => {
             act(() => fakeSocket.serverEmit('connect'));
             expect(fakeSocket.emit).toHaveBeenCalledWith('join', {
                 roomName: 'room-abc',
-                userSub: 'user-1',
             });
         });
 
@@ -115,7 +125,6 @@ describe('useRoomSocket', () => {
             expect(fakeSocket.disconnect).toHaveBeenCalled();
             expect(fakeSocket.emit).toHaveBeenCalledWith('join', {
                 roomName: 'room-xyz',
-                userSub: 'user-1',
             });
         });
     });

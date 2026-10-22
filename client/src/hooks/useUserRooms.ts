@@ -17,7 +17,7 @@ export const useUserRooms = () => {
         const load = async () => {
             try {
                 await api.login(user);
-                setRooms(await api.getUserRooms(user?.sub));
+                setRooms(await api.getUserRooms());
             } catch (error) {
                 console.error('Error logging in user:', error);
                 setError(

@@ -50,13 +50,9 @@ export const createApi = (getToken: GetToken) => ({
     login: (user: User | undefined) =>
         request(getToken, '/login', { method: 'POST', body: { user } }),
 
-    getUserRooms: async (userSub: string | undefined) =>
-        (
-            await requestJson<{ rooms: RoomSummary[] }>(
-                getToken,
-                `/users/${userSub}/rooms`
-            )
-        ).rooms,
+    getUserRooms: async () =>
+        (await requestJson<{ rooms: RoomSummary[] }>(getToken, '/me/rooms'))
+            .rooms,
 
     createRoom: async (roomName: string, baseUrl: string) =>
         (

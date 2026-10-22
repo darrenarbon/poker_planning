@@ -90,7 +90,6 @@ describe('PokerSessionProvider', () => {
             expect(result.current.currentTicket).toBeUndefined();
             expect(fakeSocket.emit).toHaveBeenCalledWith('join', {
                 roomName: 'room-abc',
-                userSub: 'user-1',
             });
         });
 
@@ -116,10 +115,10 @@ describe('PokerSessionProvider', () => {
             expect(result.current.isAdmin).toBe(true);
         });
 
-        it('is true with ?admin=true', async () => {
+        it('ignores ?admin=true', async () => {
             searchParams.value = new URLSearchParams('admin=true');
             const { result } = await renderSession();
-            expect(result.current.isAdmin).toBe(true);
+            expect(result.current.isAdmin).toBe(false);
         });
     });
 
@@ -149,7 +148,6 @@ describe('PokerSessionProvider', () => {
                 roomName: 'room-abc',
                 ticketId: 'a',
                 vote: 5,
-                userSub: 'user-1',
             });
             expect(result.current.currentTicket?.votes).toEqual([
                 { usersub: 'user-1', vote: 5 },
