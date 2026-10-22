@@ -5,6 +5,7 @@ import { makeVote } from '../test/factories.js';
 import { fail, ok, queueResults } from '../test/supabaseMock.js';
 import {
     createVote,
+    deleteVotesForTicket,
     findVote,
     findVotesForTickets,
     updateVote,
@@ -56,5 +57,12 @@ describe('voteRepository', () => {
             user_id: 1,
             vote: '5',
         });
+    });
+
+    it('deleteVotesForTicket deletes by ticket id', async () => {
+        const [query] = queueResults(from, ok(null));
+        await deleteVotesForTicket('100');
+        expect(query.delete).toHaveBeenCalled();
+        expect(query.eq).toHaveBeenCalledWith('ticket_id', '100');
     });
 });

@@ -30,7 +30,7 @@ describe('SessionLayout', () => {
 
     it('renders the room header, ticket list and current ticket', () => {
         renderWithSession(<SessionLayout />);
-        expect(screen.getByText('Sprint Planning (room-abc)')).toBeVisible();
+        expect(screen.getByText('Sprint Planning')).toBeVisible();
         expect(screen.getByText('ticket-list')).toBeInTheDocument();
         expect(screen.getByText('current-ticket')).toBeInTheDocument();
         expect(screen.queryByRole('alert')).not.toBeInTheDocument();

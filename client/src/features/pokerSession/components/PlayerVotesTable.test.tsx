@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { makeTicket, makeUserModel } from '../../../test/factories';
 import PlayerVotesTable from './PlayerVotesTable';
@@ -23,7 +23,7 @@ const ticket = makeTicket({
 });
 
 const voteFor = (name: string) =>
-    within(screen.getByText(name).closest('tr')!).getAllByRole('cell')[1]
+    screen.getByText(name).closest('li')!.querySelector('.vote-badge')!
         .textContent;
 
 describe('PlayerVotesTable', () => {
@@ -54,6 +54,19 @@ describe('PlayerVotesTable', () => {
         expect(voteFor('Bob Ross')).toBe('8');
         expect(voteFor('cat.nick')).toBe('No Idea');
         expect(voteFor('Dan D')).toBe('Not Voted');
+    });
+
+    it("hides the current user's vote in refinement mode", () => {
+        render(
+            <PlayerVotesTable
+                ticket={ticket}
+                users={users}
+                currentUserSub="me"
+                showVotes={false}
+                hideOwnVote
+            />
+        );
+        expect(voteFor('Ada Lovelace')).toBe('Voted');
     });
 
     it('bolds the current user', () => {

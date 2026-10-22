@@ -3,12 +3,12 @@ import Loading from '../../../components/Loading';
 import { usePokerSession } from '../../../context';
 import CurrentTicketPanel from './CurrentTicketPanel';
 import RoomHeader from './RoomHeader';
+import SessionControls from './SessionControls';
 import TicketList from './TicketList';
 
-const scrollColumnStyle = { overflowY: 'auto', height: '90vh' } as const;
-
 const SessionLayout = () => {
-    const { user, room, loadError, error, dismissError } = usePokerSession();
+    const { user, room, loadError, error, dismissError, toggleFavourite } =
+        usePokerSession();
 
     if (loadError) {
         return (
@@ -23,14 +23,18 @@ const SessionLayout = () => {
     }
 
     return (
-        <div className="container-fluid">
-            <div className="row" style={{ height: '90vh' }}>
-                <div className="col-2 border-end" style={scrollColumnStyle}>
+        <div className="container-fluid session-layout px-0">
+            <div className="row g-0">
+                <aside className="col-md-4 col-lg-3 col-xl-2 session-sidebar p-3">
                     <TicketList />
-                </div>
-                <div className="col-10" style={scrollColumnStyle}>
+                </aside>
+                <div className="col-md-8 col-lg-9 col-xl-10 session-main px-4 py-2">
                     <ErrorAlert message={error} onDismiss={dismissError} />
-                    <RoomHeader room={room} />
+                    <RoomHeader
+                        room={room}
+                        onToggleFavourite={toggleFavourite}
+                    />
+                    <SessionControls />
                     <CurrentTicketPanel />
                 </div>
             </div>

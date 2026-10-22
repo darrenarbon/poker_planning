@@ -15,7 +15,12 @@ export const createRoom = async (req: Request, res: Response) => {
 };
 
 export const getRoom = async (req: Request, res: Response) => {
-    res.json(await roomService.getRoomDetails(req.params.roomName));
+    res.json(
+        await roomService.getRoomDetails(
+            req.params.roomName,
+            req.auth?.payload.sub
+        )
+    );
 };
 
 export const getRoomsForUser = async (req: Request, res: Response) => {
@@ -38,4 +43,44 @@ export const addTicket = async (req: Request, res: Response) => {
         ticketNumber,
     ]);
     res.json(ticket);
+};
+
+export const updateBaseUrl = async (req: Request, res: Response) => {
+    const { baseUrl } = req.body;
+    if (typeof baseUrl !== 'string' || !baseUrl.trim()) {
+        throw new AppError(400, 'baseUrl must be a non-empty string');
+    }
+    await roomService.updateBaseUrl(
+        req.params.roomName,
+        req.auth!.payload.sub!,
+        baseUrl.trim()
+    );
+    res.json({ message: 'Base URL updated' });
+};
+
+const requireBoolean = (value: unknown, name: string): boolean => {
+    if (typeof value !== 'boolean') {
+        throw new AppError(400, `${name} must be true or false`);
+    }
+    return value;
+};
+
+export const setFavourite = async (req: Request, res: Response) => {
+    const favourite = requireBoolean(req.body.favourite, 'favourite');
+    await roomService.setFavourite(
+        req.params.roomName,
+        req.auth!.payload.sub!,
+        favourite
+    );
+    res.json({ favourite });
+};
+
+export const setHidden = async (req: Request, res: Response) => {
+    const hidden = requireBoolean(req.body.hidden, 'hidden');
+    await roomService.setHidden(
+        req.params.roomName,
+        req.auth!.payload.sub!,
+        hidden
+    );
+    res.json({ hidden });
 };

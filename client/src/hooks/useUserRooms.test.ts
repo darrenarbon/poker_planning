@@ -1,10 +1,10 @@
 import { useAuth0 } from '@auth0/auth0-react';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeAuthUser, makeRoomSummary } from '../test/factories';
 import { useUserRooms } from './useUserRooms';
 
-const api = { login: vi.fn(), getUserRooms: vi.fn() };
+const api = { login: vi.fn(), getUserRooms: vi.fn(), setFavourite: vi.fn() };
 vi.mock('@auth0/auth0-react', () => ({ useAuth0: vi.fn() }));
 vi.mock('./useApi', () => ({ useApi: () => api }));
 
@@ -26,7 +26,7 @@ describe('useUserRooms', () => {
         mockAuth(false);
         const { result } = renderHook(() => useUserRooms());
         expect(api.login).not.toHaveBeenCalled();
-        expect(result.current).toEqual({
+        expect(result.current).toMatchObject({
             rooms: [],
             loaded: false,
             error: null,
@@ -57,5 +57,35 @@ describe('useUserRooms', () => {
         await waitFor(() => expect(result.current.loaded).toBe(true));
         expect(result.current.error).toMatch(/Could not load your rooms/);
         expect(result.current.rooms).toEqual([]);
+    });
+
+    it('stars a room straight away and saves it', async () => {
+        mockAuth(true);
+        api.login.mockResolvedValue(undefined);
+        api.getUserRooms.mockResolvedValue([makeRoomSummary()]);
+        api.setFavourite.mockResolvedValue(undefined);
+        const { result } = renderHook(() => useUserRooms());
+        await waitFor(() => expect(result.current.loaded).toBe(true));
+
+        await act(() =>
+            result.current.toggleFavourite(result.current.rooms[0])
+        );
+        expect(result.current.rooms[0].favourite).toBe(true);
+        expect(api.setFavourite).toHaveBeenCalledWith('room-abc', true);
+    });
+
+    it('undoes the star if saving fails', async () => {
+        mockAuth(true);
+        api.login.mockResolvedValue(undefined);
+        api.getUserRooms.mockResolvedValue([makeRoomSummary()]);
+        api.setFavourite.mockRejectedValue(new Error('boom'));
+        const { result } = renderHook(() => useUserRooms());
+        await waitFor(() => expect(result.current.loaded).toBe(true));
+
+        await act(() =>
+            result.current.toggleFavourite(result.current.rooms[0])
+        );
+        expect(result.current.rooms[0].favourite).toBe(false);
+        expect(result.current.error).toMatch(/favourites/);
     });
 });

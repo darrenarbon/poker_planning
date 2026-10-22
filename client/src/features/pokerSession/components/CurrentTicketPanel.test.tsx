@@ -4,11 +4,13 @@ import { makeTicket } from '../../../test/factories';
 import { renderWithSession } from '../../../test/renderWithSession';
 import CurrentTicketPanel from './CurrentTicketPanel';
 
+vi.mock('canvas-confetti', () => ({ default: vi.fn() }));
 vi.mock('./VotingPanel', () => ({ default: () => <div>voting-panel</div> }));
 vi.mock('./VotingComplete', () => ({
     default: () => <div>voting-complete</div>,
 }));
 vi.mock('./VoteSummary', () => ({ default: () => <div>vote-summary</div> }));
+vi.mock('./PlayersPanel', () => ({ default: () => <div>players-panel</div> }));
 vi.mock('./AdminPanel', () => ({ default: () => <div>admin-panel</div> }));
 
 describe('CurrentTicketPanel', () => {

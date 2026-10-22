@@ -11,6 +11,11 @@ import {
     findRoomUserIds,
     findUsersInRoom,
     isUserInRoom,
+    findMembership,
+    findMemberships,
+    updateMembership,
+    updateRoomBaseUrl,
+    updateRoomHidden,
 } from './roomRepository.js';
 
 vi.mock('../db/supabase.js', () => ({ supabase: { from: vi.fn() } }));
@@ -75,5 +80,44 @@ describe('roomRepository', () => {
         const user = makeUser();
         queueResults(from, ok([{ user_id: 1, user }]));
         await expect(findUsersInRoom(10)).resolves.toEqual([user]);
+    });
+
+    it('updateRoomBaseUrl updates the room by id', async () => {
+        const [query] = queueResults(from, ok(null));
+        await updateRoomBaseUrl(10, 'https://new');
+        expect(query.update).toHaveBeenCalledWith({
+            ticket_base_url: 'https://new',
+        });
+        expect(query.eq).toHaveBeenCalledWith('room_id', 10);
+    });
+
+    it('findMemberships joins each room for the user', async () => {
+        const [query] = queueResults(from, ok([]));
+        await findMemberships(1);
+        expect(query.select).toHaveBeenCalledWith(
+            'favourite, last_joined_at, room:room_id(*)'
+        );
+        expect(query.eq).toHaveBeenCalledWith('user_id', 1);
+    });
+
+    it('findMembership returns the first row', async () => {
+        const row = { favourite: true, last_joined_at: null };
+        queueResults(from, ok([row]));
+        await expect(findMembership(10, 1)).resolves.toEqual(row);
+    });
+
+    it('updateMembership updates the user row in the room', async () => {
+        const [query] = queueResults(from, ok(null));
+        await updateMembership(10, 1, { favourite: true });
+        expect(query.update).toHaveBeenCalledWith({ favourite: true });
+        expect(query.eq).toHaveBeenCalledWith('room_id', 10);
+        expect(query.eq).toHaveBeenCalledWith('user_id', 1);
+    });
+
+    it('updateRoomHidden updates the room', async () => {
+        const [query] = queueResults(from, ok(null));
+        await updateRoomHidden(10, true);
+        expect(query.update).toHaveBeenCalledWith({ hidden: true });
+        expect(query.eq).toHaveBeenCalledWith('room_id', 10);
     });
 });

@@ -9,16 +9,32 @@ type TicketCardProps = {
     onSelect: (ticket: TicketForVoting) => void;
     userSub: string | undefined;
     ticketBaseUrl: string;
+    /** refinement mode: say "Voted" without the value */
+    hideMyVote?: boolean;
 };
 
-const getStatus = (ticket: TicketForVoting, myVote: number | null): string => {
+type Status = { text: string; badge: string };
+
+const getStatus = (
+    ticket: TicketForVoting,
+    myVote: number | null,
+    hideMyVote: boolean
+): Status => {
     if (ticket.chosen_estimate) {
-        return `Estimated: ${ticket.chosen_estimate}`;
+        return {
+            text: `Estimated: ${ticket.chosen_estimate}`,
+            badge: 'text-bg-success',
+        };
     }
     if (myVote !== null) {
-        return `Voted: ${myVote === NO_IDEA_VOTE ? 'No Idea' : myVote}`;
+        return {
+            text: hideMyVote
+                ? 'Voted'
+                : `Voted: ${myVote === NO_IDEA_VOTE ? 'No Idea' : myVote}`,
+            badge: 'text-bg-primary',
+        };
     }
-    return 'Not voted yet';
+    return { text: 'Not voted yet', badge: 'text-bg-light text-secondary' };
 };
 
 const TicketCard = ({
@@ -27,31 +43,38 @@ const TicketCard = ({
     onSelect,
     userSub,
     ticketBaseUrl,
-}: TicketCardProps) => (
-    <div
-        className={classNames('card border-success mb-2', {
-            'bg-success-subtle': isSelected,
-        })}
-        style={{ cursor: 'pointer' }}
-        onClick={() => onSelect(ticket)}
-    >
-        <div className="card-header text-center fw-bold">
-            {ticket.ticket_number}
+    hideMyVote = false,
+}: TicketCardProps) => {
+    const status = getStatus(ticket, findVote(ticket, userSub), hideMyVote);
+
+    return (
+        <div
+            className={classNames('card ticket-card mb-2', {
+                selected: isSelected,
+            })}
+            role="button"
+            aria-current={isSelected || undefined}
+            onClick={() => onSelect(ticket)}
+        >
+            <div className="card-body py-2 px-3">
+                <div className="d-flex justify-content-between align-items-center gap-2">
+                    <span className="fw-bold">{ticket.ticket_number}</span>
+                    <a
+                        className="small"
+                        href={`${ticketBaseUrl}/${ticket.ticket_number}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        View Ticket
+                    </a>
+                </div>
+                <span className={`badge rounded-pill mt-1 ${status.badge}`}>
+                    {status.text}
+                </span>
+            </div>
         </div>
-        <div className="card-body">
-            <span className="fw-bold">Status:</span>{' '}
-            {getStatus(ticket, findVote(ticket, userSub))}
-            <br />
-            <a
-                href={`${ticketBaseUrl}/${ticket.ticket_number}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-            >
-                View Ticket
-            </a>
-        </div>
-    </div>
-);
+    );
+};
 
 export default TicketCard;

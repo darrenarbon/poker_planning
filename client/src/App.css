@@ -187,3 +187,322 @@
             calc(-9 * var(--w)) 0 #000;
     }
 }
+
+.logged-out-welcome .welcome-lead {
+    max-width: 40rem;
+}
+
+.welcome-cards {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.welcome-card {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 5rem;
+    border: 2px solid var(--bs-primary);
+    border-radius: 0.5rem;
+    background: var(--bs-body-bg);
+    color: var(--bs-primary);
+    font-size: 1.5rem;
+    font-weight: bold;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+}
+
+.welcome-card:nth-child(odd) {
+    transform: rotate(-6deg);
+}
+
+.welcome-card:nth-child(even) {
+    transform: rotate(6deg) translateY(-0.5rem);
+}
+
+.welcome-card:hover {
+    transform: translateY(-0.75rem);
+}
+
+.welcome-step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background: var(--bs-primary);
+    color: #fff;
+    font-weight: bold;
+}
+
+.dashboard-card {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.room-card {
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+    border-left: 4px solid var(--bs-primary);
+}
+
+.room-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12);
+}
+
+/* Voting screen */
+.session-layout {
+    min-height: calc(100vh - var(--navbar-height));
+}
+
+.session-sidebar {
+    background: var(--bs-tertiary-bg);
+    border-right: 1px solid var(--bs-border-color);
+}
+
+@media (min-width: 768px) {
+    .session-sidebar,
+    .session-main {
+        height: calc(100vh - var(--navbar-height));
+        overflow-y: auto;
+    }
+}
+
+.room-id-pill {
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+}
+
+.ticket-card {
+    cursor: pointer;
+    border: 1px solid var(--bs-border-color);
+    border-left: 4px solid transparent;
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.ticket-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.ticket-card.selected {
+    border-left-color: var(--bs-primary);
+    background: var(--bs-primary-bg-subtle);
+}
+
+.vote-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.vote-cards .vote-card {
+    margin: 0 !important;
+    width: 4.5rem;
+    height: 6.25rem;
+    border-width: 2px;
+    border-radius: 0.6rem;
+    font-size: 1.5rem;
+    font-weight: bold;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.vote-cards .vote-card:first-child {
+    font-size: 0.95rem;
+}
+
+.vote-cards .vote-card:hover,
+.vote-cards .vote-card.btn-primary {
+    transform: translateY(-6px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.player-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: var(--bs-primary-bg-subtle);
+    color: var(--bs-primary-text-emphasis);
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.final-estimate {
+    font-weight: bold;
+    color: var(--bs-primary);
+    font-size: 3.5rem;
+    line-height: 1.1;
+}
+
+.admin-panel {
+    background: var(--bs-warning-bg-subtle);
+    border: 1px solid var(--bs-warning-border-subtle);
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+}
+
+/* Players panel stays on screen and scrolls on its own */
+@media (min-width: 992px) {
+    .players-panel {
+        position: sticky;
+        top: 0;
+        max-height: calc(100vh - var(--navbar-height) - 3rem);
+    }
+
+    .players-panel .card-body {
+        min-height: 0;
+    }
+
+    .players-scroll {
+        overflow-y: auto;
+        min-height: 0;
+        margin-right: -0.5rem;
+        padding-right: 0.5rem;
+    }
+}
+
+.player-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+
+.player-row:last-child {
+    border-bottom: 0;
+}
+
+.player-row .player-avatar {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.7rem;
+    flex-shrink: 0;
+}
+
+.player-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.9rem;
+}
+
+.vote-badge {
+    min-width: 4.25rem;
+    font-size: 0.8rem;
+}
+
+.vote-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+
+.vote-stat {
+    background: var(--bs-tertiary-bg);
+    border-radius: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    text-align: center;
+}
+
+.vote-stat-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+
+.vote-stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--bs-primary);
+    line-height: 1.2;
+}
+
+.vote-stat-detail {
+    font-size: 0.85rem;
+    font-weight: normal;
+    color: var(--bs-secondary-color);
+}
+
+.vote-reason {
+    color: var(--bs-secondary-color);
+}
+
+.refinement-note {
+    background: var(--bs-dark-bg-subtle);
+    border-radius: 0.5rem;
+    padding: 0.4rem 0.75rem;
+}
+
+/* Set tickets screen */
+.set-tickets {
+    max-width: 48rem;
+}
+
+.ticket-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.2rem 0.4rem 0.2rem 0.7rem;
+    border: 1px solid var(--bs-primary-border-subtle);
+    background: var(--bs-primary-bg-subtle);
+    border-radius: 999px;
+    font-family: var(--bs-font-monospace);
+    font-size: 0.85rem;
+}
+
+.ticket-chip a {
+    text-decoration: none;
+}
+
+.ticket-chip .btn-close {
+    font-size: 0.55rem;
+}
+
+.favourite-button {
+    border: 0;
+    background: none;
+    padding: 0 0.25rem;
+    font-size: 1.35rem;
+    line-height: 1;
+    color: var(--bs-secondary-color);
+    align-self: flex-start;
+    transition: transform 0.15s ease;
+}
+
+.favourite-button:hover {
+    transform: scale(1.15);
+    color: var(--bs-warning);
+}
+
+.favourite-button.active {
+    color: var(--bs-warning);
+}
+
+.min-w-0 {
+    min-width: 0;
+}
+
+.session-controls {
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+}

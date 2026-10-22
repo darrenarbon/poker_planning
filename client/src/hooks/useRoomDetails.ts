@@ -24,5 +24,13 @@ export const useRoomDetails = (roomName: string) => {
             });
     }, [api, roomName]);
 
-    return { room, tickets, setTickets, users, setUsers, loadError };
+    return {
+        room,
+        setRoom,
+        tickets,
+        setTickets,
+        users,
+        setUsers,
+        loadError,
+    };
 };

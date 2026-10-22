@@ -78,6 +78,9 @@ describe('authenticated routes', () => {
         ['get', '/room/abc'],
         ['post', '/room/abc/tickets'],
         ['post', '/room/abc/newTicket'],
+        ['put', '/room/abc/baseUrl'],
+        ['put', '/room/abc/favourite'],
+        ['put', '/room/abc/hidden'],
         ['get', '/users/x/rooms'],
         ['delete', '/ticket/1'],
         ['get', '/jiraticket/PP-1'],
@@ -113,7 +116,10 @@ describe('room routes', () => {
         const res = await request(app).get('/room/abc').set(AUTH);
         expect(res.status).toBe(200);
         expect(res.body).toEqual(details);
-        expect(roomService.getRoomDetails).toHaveBeenCalledWith('abc');
+        expect(roomService.getRoomDetails).toHaveBeenCalledWith(
+            'abc',
+            TEST_SUB
+        );
     });
 
     it('GET /room/:roomName returns 404 for an unknown room', async () => {
@@ -124,6 +130,50 @@ describe('room routes', () => {
         expect(res.status).toBe(404);
         expect(res.body).toEqual({ error: 'Room not found' });
     });
+
+    it('PUT /room/:roomName/baseUrl updates it for the caller', async () => {
+        const res = await request(app)
+            .put('/room/abc/baseUrl')
+            .set(AUTH)
+            .send({ baseUrl: ' https://jira.example.com/browse ' });
+        expect(res.status).toBe(200);
+        expect(roomService.updateBaseUrl).toHaveBeenCalledWith(
+            'abc',
+            TEST_SUB,
+            'https://jira.example.com/browse'
+        );
+    });
+
+    it('PUT /room/:roomName/baseUrl rejects an empty url', async () => {
+        const res = await request(app)
+            .put('/room/abc/baseUrl')
+            .set(AUTH)
+            .send({ baseUrl: '  ' });
+        expect(res.status).toBe(400);
+    });
+
+    it.each([
+        ['favourite', roomService.setFavourite],
+        ['hidden', roomService.setHidden],
+    ] as const)('PUT /room/:roomName/%s saves the flag', async (flag, fn) => {
+        const res = await request(app)
+            .put(`/room/abc/${flag}`)
+            .set(AUTH)
+            .send({ [flag]: true });
+        expect(res.body).toEqual({ [flag]: true });
+        expect(fn).toHaveBeenCalledWith('abc', TEST_SUB, true);
+    });
+
+    it.each(['favourite', 'hidden'])(
+        'PUT /room/:roomName/%s rejects a non-boolean',
+        async (flag) => {
+            const res = await request(app)
+                .put(`/room/abc/${flag}`)
+                .set(AUTH)
+                .send({ [flag]: 'yes' });
+            expect(res.status).toBe(400);
+        }
+    );
 
     it('POST /room/:roomName/tickets adds the tickets', async () => {
         const res = await request(app)
@@ -160,7 +210,12 @@ describe('room routes', () => {
     });
 
     it('GET /users/:userSub/rooms returns their rooms', async () => {
-        const room = makeRoom();
+        const room = {
+            ...makeRoom(),
+            is_admin: true,
+            favourite: false,
+            last_joined_at: null,
+        };
         vi.mocked(roomService.getRoomsForUser).mockResolvedValue([room]);
         const res = await request(app).get('/users/auth0%7Cx/rooms').set(AUTH);
         expect(res.body).toEqual({ rooms: [room] });

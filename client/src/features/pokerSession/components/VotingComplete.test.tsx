@@ -7,10 +7,9 @@ import VotingComplete from './VotingComplete';
 describe('VotingComplete', () => {
     it('shows the ticket and final estimate', () => {
         render(<VotingComplete ticket={makeTicket({ chosen_estimate: 8 })} />);
-        expect(
-            screen.getByText('Voting on ticket: ABC-1 is complete')
-        ).toBeInTheDocument();
-        expect(screen.getByText('Final Estimate: 8')).toBeInTheDocument();
+        expect(screen.getByText('Voting complete')).toBeInTheDocument();
+        expect(screen.getByText('ABC-1')).toBeInTheDocument();
+        expect(screen.getByText('8')).toHaveClass('final-estimate');
     });
 
     it('includes the vote summary when stats are available', () => {
@@ -23,6 +22,6 @@ describe('VotingComplete', () => {
                 })}
             />
         );
-        expect(screen.getByText('Suggested Vote: 8')).toBeInTheDocument();
+        expect(screen.getByText('Suggested vote')).toBeInTheDocument();
     });
 });

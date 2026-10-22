@@ -7,12 +7,16 @@ type VotingCompleteProps = {
 
 const VotingComplete = ({ ticket }: VotingCompleteProps) => (
     <>
-        <h4 className="text-center pb-4">
-            Voting on ticket: {ticket.ticket_number} is complete
-        </h4>
-        <h5 className="text-center">
-            Final Estimate: {ticket.chosen_estimate}
-        </h5>
+        <section className="card dashboard-card text-center">
+            <div className="card-body p-4">
+                <div className="text-success small text-uppercase fw-semibold">
+                    Voting complete
+                </div>
+                <h2 className="h3 fw-bold">{ticket.ticket_number}</h2>
+                <div className="text-secondary">Final estimate</div>
+                <div className="final-estimate">{ticket.chosen_estimate}</div>
+            </div>
+        </section>
         <VoteSummary ticket={ticket} />
     </>
 );

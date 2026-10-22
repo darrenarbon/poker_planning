@@ -5,39 +5,55 @@ import NavBar from '../../components/NavBar';
 import { useUserRooms } from '../../hooks';
 import CreateRoomForm from './components/CreateRoomForm';
 import JoinExistingRoom from './components/JoinExistingRoom';
-import MyRoomsList from './components/MyRoomsList';
+import LoggedOutWelcome from './components/LoggedOutWelcome';
+import RoomLists from './components/RoomLists';
 
 const JoinRoomPage = () => {
-    const { user, isAuthenticated } = useAuth0();
-    const { rooms, loaded, error } = useUserRooms();
+    const { user, isAuthenticated, isLoading } = useAuth0();
+    const { rooms, loaded, error, toggleFavourite } = useUserRooms();
 
     const renderContent = () => {
+        if (isLoading) {
+            return <Loading />;
+        }
         if (!isAuthenticated) {
-            return <h2>Please log in to create or join a room</h2>;
+            return <LoggedOutWelcome />;
         }
         if (!loaded || !user) {
             return <Loading />;
         }
         return (
-            <div className="row">
-                <div className="col-6 text-center p-4">
-                    <JoinExistingRoom />
+            <div className="dashboard">
+                <header className="mb-4">
+                    <h1 className="h3 fw-bold mb-1">
+                        Welcome back
+                        {user.given_name ? `, ${user.given_name}` : ''}
+                    </h1>
+                    <p className="text-secondary mb-0">
+                        Join your team&apos;s session or start a new one.
+                    </p>
+                </header>
+                <div className="row g-4">
+                    <div className="col-lg-5">
+                        <JoinExistingRoom />
+                    </div>
+                    <div className="col-lg-7">
+                        <CreateRoomForm />
+                    </div>
                 </div>
-                <div className="col-6 border-start border-dark p-4">
-                    <CreateRoomForm />
-                    <hr />
-                    <MyRoomsList rooms={rooms} />
-                </div>
+                <RoomLists rooms={rooms} onToggleFavourite={toggleFavourite} />
             </div>
         );
     };
 
     return (
-        <div className="container mt-4">
+        <>
             <NavBar />
-            <ErrorAlert message={error} />
-            {renderContent()}
-        </div>
+            <div className="container mt-4 pb-5">
+                <ErrorAlert message={error} />
+                {renderContent()}
+            </div>
+        </>
     );
 };
 

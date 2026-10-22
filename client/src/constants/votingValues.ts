@@ -16,32 +16,40 @@ export const votingValues: readonly VotingValue[] = [
     {
         value: 1,
         label: '1',
-        tooltip: 'This is a very small task, typically a non code change',
+        tooltip: 'This is a very small task',
     },
     {
         value: 2,
         label: '2',
-        tooltip: 'This is a small task, 1 - 2 hours of work',
+        tooltip: 'This is a small task',
     },
     {
         value: 3,
         label: '3',
-        tooltip: 'This is a medium task, half a day of work',
+        tooltip:
+            'This is a medium task, typically only covering the UI or the API',
     },
-    { value: 5, label: '5', tooltip: 'This is a large task, 1 day of work' },
+    {
+        value: 5,
+        label: '5',
+        tooltip:
+            'This is a large task, typically covering both the UI and the API',
+    },
     {
         value: 8,
         label: '8',
-        tooltip: 'This is a very large task, 1.5 days of work',
+        tooltip:
+            'This is a very large task, typically this would need to be broken down',
     },
     {
         value: 13,
         label: '13',
-        tooltip: 'This is a very large task, 2 - 3 days of work',
+        tooltip:
+            'This is a very large task, typically this would need to be broken down',
     },
     {
         value: 21,
         label: '21',
-        tooltip: 'This is a very large task, 5 days of work',
+        tooltip: "I don't know how to estimate this task",
     },
 ];

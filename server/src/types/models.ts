@@ -17,6 +17,14 @@ export interface Room {
     friendly_name: string;
     ticket_base_url: string;
     created_at: string;
+    hidden?: boolean;
+}
+
+/** A room as it appears in one user's lists */
+export interface UserRoom extends Room {
+    is_admin: boolean;
+    favourite: boolean;
+    last_joined_at: string | null;
 }
 
 export interface Ticket {

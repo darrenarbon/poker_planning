@@ -16,6 +16,24 @@ import {
     PokerSessionContextValue,
 } from './PokerSessionContext';
 
+const refinementModeKey = (roomName: string) => `refinementMode:${roomName}`;
+
+const readRefinementMode = (roomName: string) => {
+    try {
+        return sessionStorage.getItem(refinementModeKey(roomName)) === 'true';
+    } catch {
+        return false;
+    }
+};
+
+const saveRefinementMode = (roomName: string, enabled: boolean) => {
+    try {
+        sessionStorage.setItem(refinementModeKey(roomName), String(enabled));
+    } catch {
+        // storage unavailable, the mode just won't survive a refresh
+    }
+};
+
 type PokerSessionProviderProps = {
     roomName: string;
     children: ReactNode;
@@ -28,7 +46,7 @@ export const PokerSessionProvider = ({
     const { user } = useAuth0();
     const api = useApi();
     const [searchParams] = useSearchParams();
-    const { room, tickets, setTickets, users, setUsers, loadError } =
+    const { room, setRoom, tickets, setTickets, users, setUsers, loadError } =
         useRoomDetails(roomName);
     const [currentTicketId, setCurrentTicketId] = useState<string>();
     const [error, setError] = useState<string | null>(null);
@@ -43,6 +61,9 @@ export const PokerSessionProvider = ({
 
     const currentTicket = tickets.find((t) => t.ticket_id === currentTicketId);
     const showVotes = !!currentTicket?.votes_revealed;
+    const [refinementModeEnabled, setRefinementModeEnabled] = useState(() =>
+        readRefinementMode(roomName)
+    );
     const jira = useJiraTicket(currentTicket?.ticket_number);
 
     useRoomSocket({
@@ -58,6 +79,17 @@ export const PokerSessionProvider = ({
     const isAdmin =
         (!!room && user?.sub === room.adminSub) ||
         searchParams.get('admin') === 'true';
+
+    // only the facilitator can be in refinement mode
+    const refinementMode = isAdmin && refinementModeEnabled;
+    const hideOwnVote = refinementMode && !showVotes;
+
+    const toggleRefinementMode = useCallback(() => {
+        setRefinementModeEnabled((enabled) => {
+            saveRefinementMode(roomName, !enabled);
+            return !enabled;
+        });
+    }, [roomName]);
 
     const selectTicket = useCallback((ticket: TicketForVoting) => {
         setCurrentTicketId(ticket.ticket_id);
@@ -129,6 +161,37 @@ export const PokerSessionProvider = ({
         }
     }, [api, currentTicket, setTickets]);
 
+    const toggleFavourite = useCallback(async () => {
+        if (!room) return;
+        const favourite = !room.favourite;
+        setRoom({ ...room, favourite });
+        try {
+            await api.setFavourite(roomName, favourite);
+        } catch (e) {
+            console.error('Failed to update favourite', e);
+            setRoom({ ...room, favourite: !favourite });
+            setError('Could not update your favourites.');
+        }
+    }, [api, room, roomName, setRoom]);
+
+    const setRoomHidden = useCallback(
+        async (hidden: boolean) => {
+            if (!room) return;
+            try {
+                await api.setHidden(roomName, hidden);
+                setRoom({ ...room, hidden });
+            } catch (e) {
+                console.error('Failed to update room visibility', e);
+                setError(
+                    hidden
+                        ? 'Could not hide the room.'
+                        : 'Could not unhide the room.'
+                );
+            }
+        },
+        [api, room, roomName, setRoom]
+    );
+
     const value = useMemo<PokerSessionContextValue>(
         () => ({
             roomName,
@@ -139,6 +202,8 @@ export const PokerSessionProvider = ({
             currentTicket,
             jira,
             showVotes,
+            refinementMode,
+            hideOwnVote,
             isAdmin,
             loadError,
             error,
@@ -146,6 +211,9 @@ export const PokerSessionProvider = ({
             selectTicket,
             submitVote,
             revealVotes,
+            toggleRefinementMode,
+            toggleFavourite,
+            setRoomHidden,
             setEstimate,
             addTicket,
             deleteCurrentTicket,
@@ -159,6 +227,8 @@ export const PokerSessionProvider = ({
             currentTicket,
             jira,
             showVotes,
+            refinementMode,
+            hideOwnVote,
             isAdmin,
             loadError,
             error,
@@ -166,6 +236,9 @@ export const PokerSessionProvider = ({
             selectTicket,
             submitVote,
             revealVotes,
+            toggleRefinementMode,
+            toggleFavourite,
+            setRoomHidden,
             setEstimate,
             addTicket,
             deleteCurrentTicket,

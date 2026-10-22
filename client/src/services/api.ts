@@ -75,6 +75,24 @@ export const createApi = (getToken: GetToken) => ({
             body: { ticketsToSave },
         }),
 
+    setFavourite: (roomName: string, favourite: boolean) =>
+        request(getToken, `/room/${roomName}/favourite`, {
+            method: 'PUT',
+            body: { favourite },
+        }),
+
+    setHidden: (roomName: string, hidden: boolean) =>
+        request(getToken, `/room/${roomName}/hidden`, {
+            method: 'PUT',
+            body: { hidden },
+        }),
+
+    updateBaseUrl: (roomName: string, baseUrl: string) =>
+        request(getToken, `/room/${roomName}/baseUrl`, {
+            method: 'PUT',
+            body: { baseUrl },
+        }),
+
     addTicket: async (
         roomName: string,
         ticketNumber: string
