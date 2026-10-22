@@ -91,4 +91,22 @@ describe('SessionControls', () => {
         );
         expect(session.archiveSprint).toHaveBeenCalled();
     });
+
+    it('offers to reopen the sprint stats once they are closed', async () => {
+        const { session } = renderWithSession(<SessionControls />, {
+            isAdmin: true,
+            canShowStats: true,
+        });
+        await userEvent.click(
+            screen.getByRole('button', { name: 'View sprint stats' })
+        );
+        expect(session.openStats).toHaveBeenCalled();
+    });
+
+    it('hides the stats link until the sprint is complete or while open', () => {
+        renderWithSession(<SessionControls />, { isAdmin: true });
+        expect(
+            screen.queryByRole('button', { name: 'View sprint stats' })
+        ).not.toBeInTheDocument();
+    });
 });

@@ -3,16 +3,20 @@ import { useConsensusConfetti } from '../../../hooks';
 import AdminPanel from './AdminPanel';
 import DiscussionTimer from './DiscussionTimer';
 import PlayersPanel from './PlayersPanel';
+import SessionStats from './SessionStats';
 import Tumbleweed from './Tumbleweed';
 import VoteSummary from './VoteSummary';
 import VotingComplete from './VotingComplete';
 import VotingPanel from './VotingPanel';
 
 const CurrentTicketPanel = () => {
-    const { currentTicket, isAdmin, showVotes } = usePokerSession();
+    const { currentTicket, isAdmin, showVotes, statsOpen } = usePokerSession();
     const quip = useConsensusConfetti(currentTicket, showVotes);
 
+    const sessionStats = statsOpen && <SessionStats />;
+
     if (!currentTicket) {
+        if (sessionStats) return sessionStats;
         return (
             <div className="card dashboard-card text-center p-5">
                 <h2 className="h5 fw-bold">Select a ticket to start voting</h2>
@@ -36,6 +40,7 @@ const CurrentTicketPanel = () => {
                         <Tumbleweed key={quip} />
                     </>
                 )}
+                {sessionStats}
                 {isAdmin && <AdminPanel />}
                 <DiscussionTimer />
                 {isComplete ? (

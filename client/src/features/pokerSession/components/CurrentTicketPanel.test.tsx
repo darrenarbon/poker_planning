@@ -11,6 +11,7 @@ vi.mock('./VotingComplete', () => ({
 }));
 vi.mock('./VoteSummary', () => ({ default: () => <div>vote-summary</div> }));
 vi.mock('./PlayersPanel', () => ({ default: () => <div>players-panel</div> }));
+vi.mock('./SessionStats', () => ({ default: () => <div>session-stats</div> }));
 vi.mock('./AdminPanel', () => ({ default: () => <div>admin-panel</div> }));
 
 describe('CurrentTicketPanel', () => {
@@ -53,5 +54,20 @@ describe('CurrentTicketPanel', () => {
             showVotes: true,
         });
         expect(screen.getByText('vote-summary')).toBeInTheDocument();
+    });
+
+    it('shows sprint stats while they are open', () => {
+        renderWithSession(<CurrentTicketPanel />, {
+            currentTicket: makeTicket(),
+            statsOpen: true,
+        });
+        expect(screen.getByText('session-stats')).toBeInTheDocument();
+    });
+
+    it('hides sprint stats once closed', () => {
+        renderWithSession(<CurrentTicketPanel />, {
+            currentTicket: makeTicket(),
+        });
+        expect(screen.queryByText('session-stats')).not.toBeInTheDocument();
     });
 });

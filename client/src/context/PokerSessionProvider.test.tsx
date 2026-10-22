@@ -191,6 +191,24 @@ describe('PokerSessionProvider', () => {
         });
     });
 
+    describe('sprint stats', () => {
+        it('opens once every ticket is revealed, and can be closed and reopened', async () => {
+            const { result } = await renderSession();
+            expect(result.current.canShowStats).toBe(false);
+
+            act(() => fakeSocket.serverEmit('showVotes', { ticketId: 'a' }));
+            expect(result.current.statsOpen).toBe(false);
+            act(() => fakeSocket.serverEmit('showVotes', { ticketId: 'b' }));
+            expect(result.current.canShowStats).toBe(true);
+            expect(result.current.statsOpen).toBe(true);
+
+            act(() => result.current.closeStats());
+            expect(result.current.statsOpen).toBe(false);
+            act(() => result.current.openStats());
+            expect(result.current.statsOpen).toBe(true);
+        });
+    });
+
     describe('favourites and hiding', () => {
         it('stars the room for the current user', async () => {
             api.setFavourite.mockResolvedValue(undefined);

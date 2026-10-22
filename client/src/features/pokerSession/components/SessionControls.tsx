@@ -13,6 +13,9 @@ const SessionControls = () => {
         tickets,
         setRoomHidden,
         archiveSprint,
+        canShowStats,
+        statsOpen,
+        openStats,
     } = usePokerSession();
     const [confirm, confirmModal] = useConfirm();
 
@@ -43,6 +46,11 @@ const SessionControls = () => {
                 Session controls
             </span>
             <div className="d-flex flex-wrap gap-2">
+                {canShowStats && !statsOpen && (
+                    <button className="btn btn-link btn-sm" onClick={openStats}>
+                        View sprint stats
+                    </button>
+                )}
                 <Tooltip text="For screen sharing. Hides your own vote until votes are shown, hides the delete and facilitator controls, and moves everyone to each ticket you select.">
                     <button
                         className={classNames('btn btn-sm', {

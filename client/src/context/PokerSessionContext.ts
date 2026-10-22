@@ -53,6 +53,12 @@ export interface PokerSessionContextValue {
     submitVote: (vote: number) => void;
     revealVotes: () => void;
     toggleRefinementMode: () => void;
+    /** every ticket has been revealed, so the sprint stats can be shown */
+    canShowStats: boolean;
+    /** the sprint stats card is on screen */
+    statsOpen: boolean;
+    openStats: () => void;
+    closeStats: () => void;
     toggleFavourite: () => Promise<void>;
     /** facilitator only: hide a finished room from everyone's lists, or bring it back */
     setRoomHidden: (hidden: boolean) => Promise<void>;
