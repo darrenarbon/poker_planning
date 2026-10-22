@@ -30,6 +30,25 @@ describe('useRoomDetails', () => {
         expect(result.current.loadError).toBeNull();
     });
 
+    it('restores a saved reveal with its vote stats', async () => {
+        const revealed = makeTicket({
+            votes_revealed: true,
+            votes: [
+                { usersub: 'a', vote: 3 },
+                { usersub: 'b', vote: 5 },
+            ],
+        });
+        api.getRoom.mockResolvedValue({ ...details, tickets: [revealed] });
+        const { result } = renderHook(() => useRoomDetails('room-abc'));
+
+        await waitFor(() => expect(result.current.tickets).toHaveLength(1));
+        expect(result.current.tickets[0]).toMatchObject({
+            votes_revealed: true,
+            average_vote: 4,
+            standard_deviation: 1,
+        });
+    });
+
     it('reports a load error', async () => {
         api.getRoom.mockRejectedValue(new Error('404'));
         const { result } = renderHook(() => useRoomDetails('room-abc'));

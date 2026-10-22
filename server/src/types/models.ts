@@ -34,6 +34,7 @@ export interface Ticket {
     chosen_estimate: number | null;
     average_vote: number | null;
     standard_deviation: number | null;
+    votes_revealed: boolean;
 }
 
 export type TicketEstimate = Pick<
@@ -45,5 +46,5 @@ export interface Vote {
     vote_id: number;
     ticket_id: number;
     user_id: number;
-    vote: string;
+    vote: number;
 }

@@ -14,8 +14,9 @@ export const registerVoteHandler = (socket: Socket, _io: Server) => {
             async ({ roomName, ticketId, vote }: VotePayload) => {
                 const userSub = getUserSub(socket);
                 console.log('vote', roomName, ticketId, vote, userSub);
-                if (!vote) {
-                    throw new AppError(400, 'No vote was submitted');
+                // 0 is a real vote ("No Idea"), so check the type, not truthiness
+                if (!Number.isInteger(vote) || vote < 0) {
+                    throw new AppError(400, 'No valid vote was submitted');
                 }
                 assertInRoom(socket, roomName);
                 await ticketService.getTicketInRoom(roomName, ticketId);

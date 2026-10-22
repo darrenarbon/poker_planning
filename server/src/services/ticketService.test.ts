@@ -3,13 +3,13 @@ import { describe, expect, it, vi } from 'vitest';
 import * as roomRepository from '../repositories/roomRepository.js';
 import * as ticketRepository from '../repositories/ticketRepository.js';
 import * as userRepository from '../repositories/userRepository.js';
-import * as voteRepository from '../repositories/voteRepository.js';
 import { makeRoom, makeTicket, makeUser } from '../test/factories.js';
 import {
     addTicketsToRoom,
     deleteTicket,
     getTicketById,
     getTicketInRoom,
+    revealVotes,
     setEstimate,
 } from './ticketService.js';
 
@@ -75,19 +75,13 @@ describe('addTicketsToRoom', () => {
 });
 
 describe('deleteTicket', () => {
-    it('deletes an existing ticket and its votes first', async () => {
+    it('deletes an existing ticket in one statement (votes cascade)', async () => {
         vi.mocked(ticketRepository.findTicketById).mockResolvedValue(ticket);
         vi.mocked(roomRepository.findRoomById).mockResolvedValue(room);
         actAs();
         await deleteTicket('100', admin.auth0_sub);
-        expect(voteRepository.deleteVotesForTicket).toHaveBeenCalledWith('100');
+        expect(ticketRepository.deleteTicket).toHaveBeenCalledTimes(1);
         expect(ticketRepository.deleteTicket).toHaveBeenCalledWith('100');
-        expect(
-            vi.mocked(voteRepository.deleteVotesForTicket).mock
-                .invocationCallOrder[0]
-        ).toBeLessThan(
-            vi.mocked(ticketRepository.deleteTicket).mock.invocationCallOrder[0]
-        );
     });
 
     it('throws 404 and deletes nothing when missing', async () => {
@@ -96,7 +90,6 @@ describe('deleteTicket', () => {
             deleteTicket('100', admin.auth0_sub)
         ).rejects.toMatchObject({ status: 404 });
         expect(ticketRepository.deleteTicket).not.toHaveBeenCalled();
-        expect(voteRepository.deleteVotesForTicket).not.toHaveBeenCalled();
     });
 
     it('throws 403 and deletes nothing for someone other than the room admin', async () => {
@@ -107,7 +100,6 @@ describe('deleteTicket', () => {
             deleteTicket('100', other.auth0_sub)
         ).rejects.toMatchObject({ status: 403 });
         expect(ticketRepository.deleteTicket).not.toHaveBeenCalled();
-        expect(voteRepository.deleteVotesForTicket).not.toHaveBeenCalled();
     });
 });
 
@@ -166,5 +158,28 @@ describe('setEstimate', () => {
             setEstimate(room.room_name, 1, estimate)
         ).rejects.toMatchObject({ message: 'Ticket not found' });
         expect(ticketRepository.updateTicketEstimate).not.toHaveBeenCalled();
+    });
+});
+
+describe('revealVotes', () => {
+    it('saves the reveal for a ticket in the room', async () => {
+        vi.mocked(ticketRepository.findTicketById).mockResolvedValue(ticket);
+        vi.mocked(roomRepository.findRoomByName).mockResolvedValue(room);
+        await revealVotes(room.room_name, ticket.ticket_id);
+        expect(ticketRepository.updateVotesRevealed).toHaveBeenCalledWith(
+            ticket.ticket_id,
+            true
+        );
+    });
+
+    it('throws 404 and saves nothing for a ticket in another room', async () => {
+        vi.mocked(ticketRepository.findTicketById).mockResolvedValue(
+            makeTicket({ room_id: room.room_id + 1 })
+        );
+        vi.mocked(roomRepository.findRoomByName).mockResolvedValue(room);
+        await expect(
+            revealVotes(room.room_name, ticket.ticket_id)
+        ).rejects.toMatchObject({ status: 404 });
+        expect(ticketRepository.updateVotesRevealed).not.toHaveBeenCalled();
     });
 });

@@ -78,27 +78,35 @@ describe('vote', () => {
             makeTicket()
         );
     });
-    const payload = { roomName: 'abc', ticketId: 1, vote: '5' };
+    const payload = { roomName: 'abc', ticketId: 1, vote: 5 };
 
     it('records the vote as the authenticated user and tells the room', async () => {
         await fake.trigger('vote', { ...payload, userSub: 'auth0|victim' });
         expect(ticketService.getTicketInRoom).toHaveBeenCalledWith('abc', 1);
-        expect(voteService.castVote).toHaveBeenCalledWith(1, 'auth0|u', '5');
+        expect(voteService.castVote).toHaveBeenCalledWith(1, 'auth0|u', 5);
         expect(fake.roomEmit).toHaveBeenCalledWith('voteReceived', {
             ticketId: 1,
-            vote: '5',
+            vote: 5,
             userSub: 'auth0|u',
         });
     });
 
-    it('rejects an empty vote', async () => {
-        await fake.trigger('vote', { ...payload, vote: '' });
-        expect(fake.socket.emit).toHaveBeenCalledWith(
-            'error',
-            'No vote was submitted'
-        );
-        expect(voteService.castVote).not.toHaveBeenCalled();
+    it('accepts a "No Idea" vote of 0', async () => {
+        await fake.trigger('vote', { ...payload, vote: 0 });
+        expect(voteService.castVote).toHaveBeenCalledWith(1, 'auth0|u', 0);
     });
+
+    it.each(['', '5', null, 2.5, -1])(
+        'rejects an invalid vote (%s)',
+        async (vote) => {
+            await fake.trigger('vote', { ...payload, vote });
+            expect(fake.socket.emit).toHaveBeenCalledWith(
+                'error',
+                'No valid vote was submitted'
+            );
+            expect(voteService.castVote).not.toHaveBeenCalled();
+        }
+    );
 
     it('rejects a vote in a room the socket has not joined', async () => {
         await fake.trigger('vote', { ...payload, roomName: 'other' });
@@ -138,16 +146,13 @@ describe('showVotes', () => {
         vi.mocked(roomService.getRoomAsAdmin).mockResolvedValue(makeRoom());
     });
 
-    it('reveals votes to everyone in the room, including the sender', async () => {
-        vi.mocked(ticketService.getTicketInRoom).mockResolvedValue(
-            makeTicket()
-        );
+    it('saves the reveal and tells everyone in the room, including the sender', async () => {
         await fake.trigger('showVotes', { roomName: 'abc', ticketId: 1 });
         expect(roomService.getRoomAsAdmin).toHaveBeenCalledWith(
             'abc',
             'auth0|u'
         );
-        expect(ticketService.getTicketInRoom).toHaveBeenCalledWith('abc', 1);
+        expect(ticketService.revealVotes).toHaveBeenCalledWith('abc', 1);
         expect(fake.io.in).toHaveBeenCalledWith('abc');
         expect(fake.ioEmit).toHaveBeenCalledWith('showVotes', { ticketId: 1 });
     });
@@ -163,7 +168,7 @@ describe('showVotes', () => {
     });
 
     it('emits an error for a ticket outside the room', async () => {
-        vi.mocked(ticketService.getTicketInRoom).mockRejectedValue(
+        vi.mocked(ticketService.revealVotes).mockRejectedValue(
             notFound('Ticket not found')
         );
         await fake.trigger('showVotes', { roomName: 'abc', ticketId: 1 });

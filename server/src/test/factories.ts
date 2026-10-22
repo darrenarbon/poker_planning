@@ -28,6 +28,7 @@ export const makeTicket = (overrides: Partial<Ticket> = {}): Ticket => ({
     chosen_estimate: null,
     average_vote: null,
     standard_deviation: null,
+    votes_revealed: false,
     ...overrides,
 });
 
@@ -35,7 +36,7 @@ export const makeVote = (overrides: Partial<Vote> = {}): Vote => ({
     vote_id: 1000,
     ticket_id: 100,
     user_id: 1,
-    vote: '5',
+    vote: 5,
     ...overrides,
 });
 

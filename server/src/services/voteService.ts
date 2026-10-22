@@ -5,7 +5,7 @@ import { getUserBySub } from './userService.js';
 export const castVote = async (
     ticketId: number,
     userSub: string,
-    vote: string
+    vote: number
 ) => {
     const user = await getUserBySub(userSub);
     const existing = await voteRepository.findVote(ticketId, user.user_id);

@@ -33,16 +33,20 @@ export const getIssue = (ticketId: string) =>
         `/issue/${encodeURIComponent(ticketId)}?fields=description,summary,creator,parent,priority&expand=renderedFields`
     );
 
-export const setStoryPoints = (ticketId: string, storyPoints: number) =>
-    jiraRequest(
+export const setStoryPoints = (ticketId: string, storyPoints: number) => {
+    if (!env.jiraStoryPointsField) {
+        throw new AppError(500, 'JIRA_STORY_POINTS_FIELD is not configured');
+    }
+    return jiraRequest(
         `/issue/${encodeURIComponent(ticketId)}?overrideScreenSecurity=true`,
         {
             method: 'PUT',
             body: JSON.stringify({
-                fields: { [env.storyPointsField]: storyPoints },
+                fields: { [env.jiraStoryPointsField]: storyPoints },
             }),
         }
     );
+};
 
 export const getIssuesNeedingEstimates = () =>
     jiraRequest('/search?jql=labels=Needs-estimating');

@@ -16,7 +16,7 @@ export const registerShowVotesHandler = (socket: Socket, io: Server) => {
                 console.log('showVotes', roomName, ticketId);
                 assertInRoom(socket, roomName);
                 await roomService.getRoomAsAdmin(roomName, userSub);
-                await ticketService.getTicketInRoom(roomName, ticketId);
+                await ticketService.revealVotes(roomName, ticketId);
                 io.in(roomName).emit('showVotes', { ticketId });
             }
         )

@@ -7,7 +7,7 @@ export interface JoinPayload {
 export interface VotePayload {
     roomName: string;
     ticketId: number;
-    vote: string;
+    vote: number;
 }
 
 export interface ShowVotesPayload {

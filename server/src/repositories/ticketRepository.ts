@@ -58,3 +58,14 @@ export const updateTicketEstimate = async (
         .eq('ticket_id', ticketId);
     assertNoDbError(error, 'Error updating ticket');
 };
+
+export const updateVotesRevealed = async (
+    ticketId: number,
+    votesRevealed: boolean
+) => {
+    const { error } = await supabase
+        .from('ticket')
+        .update({ votes_revealed: votesRevealed })
+        .eq('ticket_id', ticketId);
+    assertNoDbError(error, 'Error revealing votes');
+};

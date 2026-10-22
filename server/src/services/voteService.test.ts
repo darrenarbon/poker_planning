@@ -15,12 +15,12 @@ describe('castVote', () => {
         vi.mocked(userRepository.findUserBySub).mockResolvedValue(user);
         vi.mocked(voteRepository.findVote).mockResolvedValue(undefined);
 
-        await castVote(100, user.auth0_sub, '5');
+        await castVote(100, user.auth0_sub, 5);
 
         expect(voteRepository.createVote).toHaveBeenCalledWith(
             100,
             user.user_id,
-            '5'
+            5
         );
         expect(voteRepository.updateVote).not.toHaveBeenCalled();
     });
@@ -31,15 +31,15 @@ describe('castVote', () => {
             makeVote({ vote_id: 42 })
         );
 
-        await castVote(100, user.auth0_sub, '8');
+        await castVote(100, user.auth0_sub, 8);
 
-        expect(voteRepository.updateVote).toHaveBeenCalledWith(42, '8');
+        expect(voteRepository.updateVote).toHaveBeenCalledWith(42, 8);
         expect(voteRepository.createVote).not.toHaveBeenCalled();
     });
 
     it('throws 404 for an unknown user', async () => {
         vi.mocked(userRepository.findUserBySub).mockResolvedValue(undefined);
-        await expect(castVote(100, 'nobody', '5')).rejects.toMatchObject({
+        await expect(castVote(100, 'nobody', 5)).rejects.toMatchObject({
             status: 404,
         });
     });
