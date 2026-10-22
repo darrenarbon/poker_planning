@@ -1,6 +1,7 @@
 import classNames from 'classnames';
 import Tooltip from '../../../components/Tooltip';
 import { usePokerSession } from '../../../context';
+import { useConfirm } from '../../../hooks';
 
 /** Facilitator-only settings that apply to the whole session, whichever ticket is selected */
 const SessionControls = () => {
@@ -13,28 +14,28 @@ const SessionControls = () => {
         setRoomHidden,
         archiveSprint,
     } = usePokerSession();
+    const [confirm, confirmModal] = useConfirm();
 
     if (!isAdmin || !room) return null;
 
-    const finishAndHide = () => {
-        if (
-            confirm(
-                "End this whole session? The room and all its tickets will be hidden from everyone's room lists, including favourites. Anyone with the link can still open it, and you can unhide it later."
-            )
-        ) {
-            setRoomHidden(true);
-        }
-    };
+    const finishAndHide = () =>
+        confirm({
+            title: 'End this session?',
+            message:
+                "The room and all its tickets will be hidden from everyone's room lists, including favourites. Anyone with the link can still open it, and you can unhide it later.",
+            confirmLabel: 'End session',
+            variant: 'danger',
+            onConfirm: () => setRoomHidden(true),
+        });
 
-    const startNewSprint = () => {
-        if (
-            confirm(
-                'Start a new sprint? All current tickets will move to Past sprints. The room link stays the same.'
-            )
-        ) {
-            archiveSprint();
-        }
-    };
+    const startNewSprint = () =>
+        confirm({
+            title: 'Start a new sprint?',
+            message:
+                'All current tickets will move to Past sprints. The room link stays the same.',
+            confirmLabel: 'Start new sprint',
+            onConfirm: archiveSprint,
+        });
 
     return (
         <section className="session-controls d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
@@ -45,8 +46,8 @@ const SessionControls = () => {
                 <Tooltip text="For screen sharing. Hides your own vote until votes are shown, hides the delete and facilitator controls, and moves everyone to each ticket you select.">
                     <button
                         className={classNames('btn btn-sm', {
-                            'btn-dark': refinementMode,
-                            'btn-outline-dark': !refinementMode,
+                            'btn-secondary': refinementMode,
+                            'btn-outline-secondary': !refinementMode,
                         })}
                         onClick={toggleRefinementMode}
                         aria-pressed={refinementMode}
@@ -81,6 +82,7 @@ const SessionControls = () => {
                     </Tooltip>
                 )}
             </div>
+            {confirmModal}
         </section>
     );
 };

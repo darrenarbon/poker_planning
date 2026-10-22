@@ -1,6 +1,6 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { makeRoom, makeTicket } from '../../../test/factories';
 import { renderWithSession } from '../../../test/renderWithSession';
 import SessionControls from './SessionControls';
@@ -41,24 +41,27 @@ describe('SessionControls', () => {
     });
 
     it('finishes and hides the room after confirming', async () => {
-        vi.spyOn(window, 'confirm').mockReturnValue(true);
         const { session } = renderWithSession(<SessionControls />, {
             isAdmin: true,
         });
         await userEvent.click(
             screen.getByRole('button', { name: 'End session and hide room' })
+        );
+        await userEvent.click(
+            screen.getByRole('button', { name: 'End session' })
         );
         expect(session.setRoomHidden).toHaveBeenCalledWith(true);
     });
 
     it('does not hide the room if cancelled', async () => {
-        vi.spyOn(window, 'confirm').mockReturnValue(false);
         const { session } = renderWithSession(<SessionControls />, {
             isAdmin: true,
         });
         await userEvent.click(
             screen.getByRole('button', { name: 'End session and hide room' })
         );
+        await userEvent.keyboard('{Escape}');
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         expect(session.setRoomHidden).not.toHaveBeenCalled();
     });
 
@@ -74,13 +77,17 @@ describe('SessionControls', () => {
     });
 
     it('starts a new sprint after confirming', async () => {
-        vi.spyOn(window, 'confirm').mockReturnValue(true);
         const { session } = renderWithSession(<SessionControls />, {
             isAdmin: true,
             tickets: [makeTicket()],
         });
         await userEvent.click(
             screen.getByRole('button', { name: 'Start new sprint' })
+        );
+        await userEvent.click(
+            within(screen.getByRole('dialog')).getByRole('button', {
+                name: 'Start new sprint',
+            })
         );
         expect(session.archiveSprint).toHaveBeenCalled();
     });

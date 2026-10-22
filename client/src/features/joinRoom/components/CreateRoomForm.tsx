@@ -33,48 +33,43 @@ const CreateRoomForm = () => {
     };
 
     return (
-        <form className="card h-100 dashboard-card" onSubmit={createRoom}>
-            <div className="card-body p-4">
-                <h2 className="h5 fw-bold">Create a new room</h2>
-                <p className="text-secondary small">
-                    Set up a room, add tickets, then share it with your team.
-                </p>
-                <ErrorAlert message={error} onDismiss={() => setError(null)} />
-                <div className="row g-3">
-                    <div className="col-md-6">
-                        <label htmlFor="roomName" className="form-label">
-                            Room Name
-                        </label>
-                        <input
-                            type="text"
-                            className="form-control"
-                            id="roomName"
-                            value={roomName}
-                            onChange={(e) => setRoomName(e.target.value)}
-                            placeholder="e.g. Sprint 42 refinement"
-                        />
-                    </div>
-                    <div className="col-md-6">
-                        <label htmlFor="baseUrl" className="form-label">
-                            Base URL for tickets
-                        </label>
-                        <input
-                            type="text"
-                            className="form-control"
-                            id="baseUrl"
-                            value={baseUrl}
-                            onChange={(e) => setBaseUrl(e.target.value)}
-                            placeholder="Enter the base URL for your tickets"
-                        />
-                        <div className="form-text">
-                            Ticket links are built from this URL.
-                        </div>
+        <form onSubmit={createRoom}>
+            <ErrorAlert message={error} onDismiss={() => setError(null)} />
+            <div className="row g-3">
+                <div className="col-md-6">
+                    <label htmlFor="roomName" className="form-label">
+                        Room Name
+                    </label>
+                    <input
+                        type="text"
+                        className="form-control"
+                        id="roomName"
+                        value={roomName}
+                        onChange={(e) => setRoomName(e.target.value)}
+                        placeholder="e.g. Sprint 42 refinement"
+                        autoFocus
+                    />
+                </div>
+                <div className="col-md-6">
+                    <label htmlFor="baseUrl" className="form-label">
+                        Base URL for tickets
+                    </label>
+                    <input
+                        type="text"
+                        className="form-control"
+                        id="baseUrl"
+                        value={baseUrl}
+                        onChange={(e) => setBaseUrl(e.target.value)}
+                        placeholder="Enter the base URL for your tickets"
+                    />
+                    <div className="form-text">
+                        Ticket links are built from this URL.
                     </div>
                 </div>
-                <button type="submit" className="btn btn-primary mt-3">
-                    Create room
-                </button>
             </div>
+            <button type="submit" className="btn btn-primary mt-3">
+                Create room
+            </button>
         </form>
     );
 };

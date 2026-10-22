@@ -34,7 +34,7 @@ const getStatus = (
             badge: 'text-bg-primary',
         };
     }
-    return { text: 'Not voted yet', badge: 'text-bg-light text-secondary' };
+    return { text: 'Not voted yet', badge: 'bg-body-secondary text-secondary' };
 };
 
 const TicketCard = ({
@@ -54,7 +54,16 @@ const TicketCard = ({
             })}
             role="button"
             aria-current={isSelected || undefined}
+            tabIndex={0}
             onClick={() => onSelect(ticket)}
+            onKeyDown={(e) => {
+                // the inner link handles its own keys
+                if (e.target !== e.currentTarget) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelect(ticket);
+                }
+            }}
         >
             <div className="card-body py-2 px-3">
                 <div className="d-flex justify-content-between align-items-center gap-2">

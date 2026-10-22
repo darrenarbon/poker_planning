@@ -15,15 +15,11 @@ const JoinExistingRoom = () => {
     };
 
     return (
-        <form className="card h-100 dashboard-card" onSubmit={join}>
-            <div className="card-body p-4 d-flex flex-column">
-                <h2 className="h5 fw-bold">Join a room</h2>
-                <p className="text-secondary small">
-                    Got a room ID from a teammate? Enter it to jump straight in.
-                </p>
-                <label htmlFor="roomId" className="form-label">
-                    Room ID
-                </label>
+        <form onSubmit={join}>
+            <label htmlFor="roomId" className="form-label">
+                Room ID
+            </label>
+            <div className="d-flex gap-2">
                 <input
                     type="text"
                     className="form-control form-control-lg"
@@ -31,10 +27,11 @@ const JoinExistingRoom = () => {
                     value={roomId}
                     onChange={(e) => setRoomId(e.target.value)}
                     placeholder="e.g. abc123"
+                    autoFocus
                 />
                 <button
                     type="submit"
-                    className="btn btn-primary btn-lg mt-3"
+                    className="btn btn-primary btn-lg text-nowrap"
                     disabled={!trimmedRoomId}
                 >
                     Join room

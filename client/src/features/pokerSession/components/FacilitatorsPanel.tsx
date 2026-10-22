@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Tooltip from '../../../components/Tooltip';
 import { usePokerSession } from '../../../context';
+import { useConfirm } from '../../../hooks';
 import { UserModel } from '../../../types';
 import { getDisplayName } from '../../../utils';
 
@@ -16,6 +17,7 @@ const FacilitatorsPanel = () => {
         refinementMode,
     } = usePokerSession();
     const [selectedSub, setSelectedSub] = useState('');
+    const [confirm, confirmModal] = useConfirm();
 
     // hidden while screen sharing
     if (!isOwner || !room || refinementMode) return null;
@@ -30,16 +32,16 @@ const FacilitatorsPanel = () => {
     );
     const selectedIsCo = coFacilitatorSubs.includes(selectedSub);
 
-    const confirmHandOver = () => {
-        if (
-            confirm(
-                `Make ${nameOf(selectedSub)} the owner of this room? You will stay on as a co-facilitator.`
-            )
-        ) {
-            handOver(selectedSub);
-            setSelectedSub('');
-        }
-    };
+    const confirmHandOver = () =>
+        confirm({
+            title: 'Hand over room?',
+            message: `Make ${nameOf(selectedSub)} the owner of this room? You will stay on as a co-facilitator.`,
+            confirmLabel: 'Hand over',
+            onConfirm: () => {
+                handOver(selectedSub);
+                setSelectedSub('');
+            },
+        });
 
     return (
         <section className="facilitators-panel mb-4">
@@ -53,7 +55,7 @@ const FacilitatorsPanel = () => {
                 {coFacilitatorSubs.map((sub) => (
                     <li
                         key={sub}
-                        className="badge text-bg-light border d-flex align-items-center gap-1"
+                        className="badge bg-body-secondary text-body border d-flex align-items-center gap-1"
                     >
                         {nameOf(sub)}
                         <button
@@ -103,6 +105,7 @@ const FacilitatorsPanel = () => {
                     </Tooltip>
                 </div>
             )}
+            {confirmModal}
         </section>
     );
 };

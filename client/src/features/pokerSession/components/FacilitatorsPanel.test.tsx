@@ -1,5 +1,5 @@
 import { fireEvent, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { makeRoom, makeUserModel } from '../../../test/factories';
 import { renderWithSession } from '../../../test/renderWithSession';
 import FacilitatorsPanel from './FacilitatorsPanel';
@@ -51,12 +51,13 @@ describe('FacilitatorsPanel', () => {
     });
 
     it('hands the room over after confirming', () => {
-        vi.spyOn(window, 'confirm').mockReturnValue(true);
         const { session } = renderPanel();
         fireEvent.change(screen.getByLabelText('Player'), {
             target: { value: 'bob' },
         });
         fireEvent.click(screen.getByRole('button', { name: 'Hand over room' }));
+        expect(session.handOver).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: 'Hand over' }));
         expect(session.handOver).toHaveBeenCalledWith('bob');
     });
 

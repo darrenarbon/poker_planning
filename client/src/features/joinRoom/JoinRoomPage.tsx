@@ -1,60 +1,29 @@
-import { useAuth0 } from '@auth0/auth0-react';
-import ErrorAlert from '../../components/ErrorAlert';
-import Loading from '../../components/Loading';
 import NavBar from '../../components/NavBar';
-import { useUserRooms } from '../../hooks';
-import CreateRoomForm from './components/CreateRoomForm';
+import { paths } from '../../routes';
 import JoinExistingRoom from './components/JoinExistingRoom';
-import LoggedOutWelcome from './components/LoggedOutWelcome';
-import RoomLists from './components/RoomLists';
 
-const JoinRoomPage = () => {
-    const { user, isAuthenticated, isLoading } = useAuth0();
-    const { rooms, loaded, error, toggleFavourite } = useUserRooms();
-
-    const renderContent = () => {
-        if (isLoading) {
-            return <Loading />;
-        }
-        if (!isAuthenticated) {
-            return <LoggedOutWelcome />;
-        }
-        if (!loaded || !user) {
-            return <Loading />;
-        }
-        return (
+/** Join a room by the ID a teammate shared */
+const JoinRoomPage = () => (
+    <>
+        <NavBar />
+        <div className="container mt-4 pb-5">
             <div className="dashboard">
-                <header className="mb-4">
-                    <h1 className="h3 fw-bold mb-1">
-                        Welcome back
-                        {user.given_name ? `, ${user.given_name}` : ''}
-                    </h1>
+                <a className="small" href={paths.home}>
+                    &larr; Back to rooms
+                </a>
+                <header className="mt-2 mb-4">
+                    <h1 className="h3 fw-bold mb-1">Join a room</h1>
                     <p className="text-secondary mb-0">
-                        Join your team&apos;s session or start a new one.
+                        Got an invite link? Just open it. Otherwise, enter the
+                        room ID.
                     </p>
                 </header>
-                <div className="row g-4">
-                    <div className="col-lg-5">
-                        <JoinExistingRoom />
-                    </div>
-                    <div className="col-lg-7">
-                        <CreateRoomForm />
-                    </div>
+                <div className="col-md-8 col-lg-5">
+                    <JoinExistingRoom />
                 </div>
-                <RoomLists rooms={rooms} onToggleFavourite={toggleFavourite} />
             </div>
-        );
-    };
-
-    return (
-        <>
-            <NavBar />
-            <div className="container mt-4 pb-5">
-                <ErrorAlert message={error} />
-                {renderContent()}
-            </div>
-        </>
-    );
-};
+        </div>
+    </>
+);
 
 export default JoinRoomPage;
