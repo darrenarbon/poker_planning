@@ -149,10 +149,11 @@ export const getRoomDetails = async (roomName: string, userSub?: string) => {
     const userIds = await roomRepository.findRoomUserIds(room.room_id);
     const users = await userRepository.findUsersByIds(userIds);
 
-    const [tickets, archived, coFacilitatorIds] = await Promise.all([
+    const [tickets, archived, coFacilitatorIds, exemplars] = await Promise.all([
         ticketRepository.findTicketsByRoom(room.room_id),
         ticketRepository.findArchivedTicketsByRoom(room.room_id),
         roomRepository.findCoFacilitatorIds(room.room_id),
+        userRepository.findExemplars(room.admin_id),
     ]);
     const viewer = userSub
         ? users.find((u) => u.auth0_sub === userSub)
@@ -186,6 +187,7 @@ export const getRoomDetails = async (roomName: string, userSub?: string) => {
             ticketBaseUrl: room.ticket_base_url,
             hidden: !!room.hidden,
             favourite: !!membership?.favourite,
+            exemplars,
         },
     };
 };

@@ -1,3 +1,4 @@
+import { useAuth0 } from '@auth0/auth0-react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import './App.css';
 import AuthProvider from './components/AuthProvider';
@@ -7,11 +8,25 @@ import NewRoomPage from './features/joinRoom/NewRoomPage';
 import RoomsPage from './features/joinRoom/RoomsPage';
 import PokerSessionPage from './features/pokerSession/PokerSessionPage';
 import SetTicketsPage from './features/setTickets/SetTicketsPage';
+import SettingsPage from './features/settings/SettingsPage';
+import { useUserSettings } from './hooks';
 import { paths } from './routes';
+
+/** Applies the logged-in user's saved default theme on any page */
+const ThemeDefault = () => {
+    const { isAuthenticated } = useAuth0();
+    return isAuthenticated ? <LoadSettings /> : null;
+};
+
+const LoadSettings = () => {
+    useUserSettings();
+    return null;
+};
 
 const App = () => (
     <BrowserRouter>
         <AuthProvider>
+            <ThemeDefault />
             <Routes>
                 <Route path={paths.home} element={<RoomsPage />} />
                 <Route
@@ -27,6 +42,14 @@ const App = () => (
                     element={
                         <RequireLogin>
                             <NewRoomPage />
+                        </RequireLogin>
+                    }
+                />
+                <Route
+                    path={paths.settings}
+                    element={
+                        <RequireLogin>
+                            <SettingsPage />
                         </RequireLogin>
                     }
                 />

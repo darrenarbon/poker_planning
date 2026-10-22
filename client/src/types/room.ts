@@ -1,3 +1,4 @@
+import { Exemplar } from './settings';
 import { TicketForVoting } from './ticket';
 import { UserModel } from './user';
 
@@ -16,6 +17,8 @@ export interface Room {
     hidden?: boolean;
     /** starred by the current user */
     favourite?: boolean;
+    /** the owner's example tickets for each estimate */
+    exemplars?: Exemplar[];
 }
 
 /** A room as returned by GET /me/rooms */

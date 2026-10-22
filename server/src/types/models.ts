@@ -8,6 +8,36 @@ export interface User {
     picture: string;
 }
 
+/** An example ticket showing the team what an estimate looks like */
+export interface Exemplar {
+    estimate: number;
+    ticketNumber: string;
+}
+
+export interface UserSettings {
+    /** prefilled when creating a room */
+    defaultBaseUrl?: string;
+    /** the theme the app opens in */
+    theme?: 'light' | 'dark';
+    /** shown on the voting page of rooms this user owns */
+    exemplars?: Exemplar[];
+}
+
+/** A row of user_settings */
+export interface UserSettingsRow {
+    user_id: number;
+    default_base_url: string | null;
+    default_theme: 'light' | 'dark' | null;
+}
+
+/** A row of user_exemplar */
+export interface UserExemplarRow {
+    exemplar_id: number;
+    user_id: number;
+    estimate: number;
+    ticket_number: string;
+}
+
 export type NewUser = Omit<User, 'user_id'>;
 
 export interface Room {

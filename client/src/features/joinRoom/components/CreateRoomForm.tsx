@@ -1,16 +1,25 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ErrorAlert from '../../../components/ErrorAlert';
 import { DEFAULT_TICKET_BASE_URL } from '../../../constants';
-import { useApi } from '../../../hooks';
-import { roomTicketsPath } from '../../../routes';
+import { useApi, useUserSettings } from '../../../hooks';
+import { paths, roomTicketsPath } from '../../../routes';
 import { normaliseBaseUrl } from '../../../utils';
 
 const CreateRoomForm = () => {
     const [roomName, setRoomName] = useState('');
     const [baseUrl, setBaseUrl] = useState(DEFAULT_TICKET_BASE_URL);
+    const [baseUrlEdited, setBaseUrlEdited] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const api = useApi();
+    const { settings } = useUserSettings();
+
+    // start from the user's saved default unless they've already typed one
+    useEffect(() => {
+        if (settings.defaultBaseUrl && !baseUrlEdited) {
+            setBaseUrl(settings.defaultBaseUrl);
+        }
+    }, [settings.defaultBaseUrl, baseUrlEdited]);
     const navigate = useNavigate();
 
     const createRoom = async (e: FormEvent) => {
@@ -59,11 +68,15 @@ const CreateRoomForm = () => {
                         className="form-control"
                         id="baseUrl"
                         value={baseUrl}
-                        onChange={(e) => setBaseUrl(e.target.value)}
+                        onChange={(e) => {
+                            setBaseUrl(e.target.value);
+                            setBaseUrlEdited(true);
+                        }}
                         placeholder="Enter the base URL for your tickets"
                     />
                     <div className="form-text">
-                        Ticket links are built from this URL.
+                        Ticket links are built from this URL. Set your own
+                        default in <a href={paths.settings}>Settings</a>.
                     </div>
                 </div>
             </div>

@@ -82,6 +82,8 @@ describe('authenticated routes', () => {
         ['put', '/room/abc/favourite'],
         ['put', '/room/abc/hidden'],
         ['get', '/me/rooms'],
+        ['get', '/me/settings'],
+        ['put', '/me/settings'],
         ['delete', '/ticket/1'],
         ['get', '/jiraticket/PP-1'],
         ['post', '/jiraticket/PP-1'],
@@ -223,6 +225,47 @@ describe('room routes', () => {
         const res = await request(app).get('/me/rooms').set(AUTH);
         expect(res.body).toEqual({ rooms: [room] });
         expect(roomService.getRoomsForUser).toHaveBeenCalledWith(TEST_SUB);
+    });
+});
+
+describe('settings routes', () => {
+    it("GET /me/settings returns the caller's settings", async () => {
+        vi.mocked(userService.getSettings).mockResolvedValue({ theme: 'dark' });
+        const res = await request(app).get('/me/settings').set(AUTH);
+        expect(res.body).toEqual({ theme: 'dark' });
+        expect(userService.getSettings).toHaveBeenCalledWith(TEST_SUB);
+    });
+
+    it('PUT /me/settings saves only the known fields, trimmed', async () => {
+        const res = await request(app)
+            .put('/me/settings')
+            .set(AUTH)
+            .send({
+                defaultBaseUrl: ' https://jira.example.com/browse ',
+                theme: 'light',
+                exemplars: [{ estimate: 3, ticketNumber: ' PP-7 ' }],
+                extra: 'ignored',
+            });
+        const saved = {
+            defaultBaseUrl: 'https://jira.example.com/browse',
+            theme: 'light',
+            exemplars: [{ estimate: 3, ticketNumber: 'PP-7' }],
+        };
+        expect(res.status).toBe(200);
+        expect(res.body).toEqual(saved);
+        expect(userService.saveSettings).toHaveBeenCalledWith(TEST_SUB, saved);
+    });
+
+    it.each([
+        [{ theme: 'purple' }],
+        [{ defaultBaseUrl: 5 }],
+        [{ exemplars: 'PP-1' }],
+        [{ exemplars: [{ estimate: 3 }] }],
+        [{ exemplars: [{ estimate: 2.5, ticketNumber: 'PP-1' }] }],
+    ])('PUT /me/settings rejects %j', async (body) => {
+        const res = await request(app).put('/me/settings').set(AUTH).send(body);
+        expect(res.status).toBe(400);
+        expect(userService.saveSettings).not.toHaveBeenCalled();
     });
 });
 

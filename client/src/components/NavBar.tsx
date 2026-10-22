@@ -198,6 +198,14 @@ const NavBar = () => {
                                             <hr className="dropdown-divider" />
                                         </li>
                                         <li>
+                                            <a
+                                                className="dropdown-item"
+                                                href={paths.settings}
+                                            >
+                                                Settings
+                                            </a>
+                                        </li>
+                                        <li>
                                             <button
                                                 className="dropdown-item"
                                                 type="button"
