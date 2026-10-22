@@ -45,30 +45,12 @@ const celebrate = () => {
     frame();
 };
 
-/** Rains shrugs, clowns and dice down the screen */
-const shrug = () => {
-    const scalar = 2.5;
-    const shapes = ['🤷', '🤡', '🎲', '🙈'].map((text) =>
-        confetti.shapeFromText({ text, scalar })
-    );
-    confetti({
-        particleCount: 40,
-        spread: 180,
-        startVelocity: 15,
-        gravity: 0.6,
-        ticks: 300,
-        origin: { y: -0.1 },
-        shapes,
-        scalar,
-        flat: true,
-    });
-};
-
-const QUIP_DURATION_MS = 4000;
+/** how long the quip and tumbleweed stay, matching the CSS animation */
+const QUIP_DURATION_MS = 5000;
 
 /**
  * Reacts once to each revealed round of votes: confetti when everyone agrees,
- * falling shrugs and a quip when every vote is different. Returns the quip
+ * a quip (and a tumbleweed) when every vote is different. Returns the quip
  * while it should be on screen.
  */
 export const useConsensusConfetti = (
@@ -106,11 +88,7 @@ export const useConsensusConfetti = (
         if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
             return;
         }
-        if (consensus) {
-            celebrate();
-        } else {
-            shrug();
-        }
+        if (consensus) celebrate();
     }, [ticket, showVotes]);
 
     useEffect(() => {

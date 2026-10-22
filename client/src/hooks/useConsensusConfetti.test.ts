@@ -9,9 +9,7 @@ import {
     useConsensusConfetti,
 } from './useConsensusConfetti';
 
-vi.mock('canvas-confetti', () => ({
-    default: Object.assign(vi.fn(), { shapeFromText: vi.fn(() => ({})) }),
-}));
+vi.mock('canvas-confetti', () => ({ default: vi.fn() }));
 
 const agreed = makeTicket({
     votes: [
@@ -113,14 +111,14 @@ describe('when every vote is different', () => {
     });
     afterEach(() => vi.useRealTimers());
 
-    it('rains emoji and shows a quip for a few seconds', () => {
+    it('shows a quip for a few seconds, without confetti', () => {
         const { result } = renderHook(() =>
             useConsensusConfetti(chaotic, true)
         );
-        expect(confetti.shapeFromText).toHaveBeenCalled();
+        expect(confetti).not.toHaveBeenCalled();
         expect(DISAGREEMENT_QUIPS).toContain(result.current);
 
-        act(() => vi.advanceTimersByTime(4000));
+        act(() => vi.advanceTimersByTime(5000));
         expect(result.current).toBeNull();
     });
 

@@ -586,8 +586,60 @@
     }
 }
 
+/* ...and a tumbleweed bounces across the screen */
+.tumbleweed {
+    position: fixed;
+    left: 0;
+    bottom: 12vh;
+    width: 6rem;
+    height: 6rem;
+    pointer-events: none;
+    z-index: 1080;
+    animation: tumbleweed-across 5s linear forwards;
+}
+
+.tumbleweed-bounce {
+    width: 100%;
+    height: 100%;
+    animation: tumbleweed-bounce 0.9s ease-in infinite alternate;
+}
+
+.tumbleweed svg {
+    width: 100%;
+    height: 100%;
+    animation: tumbleweed-spin 1.1s linear infinite;
+}
+
+@keyframes tumbleweed-across {
+    from {
+        transform: translateX(-8rem);
+    }
+    to {
+        transform: translateX(calc(100vw + 2rem));
+    }
+}
+
+@keyframes tumbleweed-bounce {
+    from {
+        transform: translateY(-4rem);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes tumbleweed-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .disagreement-quip {
         animation: none;
+    }
+
+    .tumbleweed {
+        display: none;
     }
 }

@@ -3,6 +3,7 @@ import { useConsensusConfetti } from '../../../hooks';
 import AdminPanel from './AdminPanel';
 import DiscussionTimer from './DiscussionTimer';
 import PlayersPanel from './PlayersPanel';
+import Tumbleweed from './Tumbleweed';
 import VoteSummary from './VoteSummary';
 import VotingComplete from './VotingComplete';
 import VotingPanel from './VotingPanel';
@@ -28,10 +29,12 @@ const CurrentTicketPanel = () => {
         <div className="row g-4">
             <div className="col-lg-8 d-flex flex-column gap-3">
                 {quip && (
-                    <div className="disagreement-quip" role="status">
-                        <span aria-hidden="true">🤷 </span>
-                        {quip}
-                    </div>
+                    <>
+                        <div className="disagreement-quip" role="status">
+                            {quip}
+                        </div>
+                        <Tumbleweed key={quip} />
+                    </>
                 )}
                 {isAdmin && <AdminPanel />}
                 <DiscussionTimer />
