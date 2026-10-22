@@ -1,5 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react';
-import { ReactNode, useCallback, useMemo, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import {
     CONNECTION_LOST_MESSAGE,
     useApi,
@@ -11,6 +11,7 @@ import { socket } from '../services/socket';
 import { TicketForVoting } from '../types';
 import {
     findNextTicket,
+    isSessionComplete,
     moveTicket as moveTicketInList,
     replaceTicket,
     withVote,
@@ -79,6 +80,16 @@ export const PokerSessionProvider = ({
         readRefinementMode(roomName)
     );
     const jira = useJiraTicket(currentTicket?.ticket_number);
+
+    const canShowStats = isSessionComplete(tickets);
+    const [statsDismissed, setStatsDismissed] = useState(false);
+    // pop the stats open each time the sprint becomes complete
+    useEffect(() => {
+        if (canShowStats) setStatsDismissed(false);
+    }, [canShowStats]);
+    const statsOpen = canShowStats && !statsDismissed;
+    const openStats = useCallback(() => setStatsDismissed(false), []);
+    const closeStats = useCallback(() => setStatsDismissed(true), []);
 
     useRoomSocket({
         roomName,
@@ -312,6 +323,10 @@ export const PokerSessionProvider = ({
             submitVote,
             revealVotes,
             toggleRefinementMode,
+            canShowStats,
+            statsOpen,
+            openStats,
+            closeStats,
             toggleFavourite,
             setRoomHidden,
             setEstimate,
@@ -350,6 +365,10 @@ export const PokerSessionProvider = ({
             submitVote,
             revealVotes,
             toggleRefinementMode,
+            canShowStats,
+            statsOpen,
+            openStats,
+            closeStats,
             toggleFavourite,
             setRoomHidden,
             setEstimate,
