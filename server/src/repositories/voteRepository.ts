@@ -3,7 +3,7 @@ import type { Vote } from '../types/models.js';
 import { assertNoDbError } from '../utils/errors.js';
 
 export interface VoteWithUser {
-    vote: string;
+    vote: number;
     ticket_id: number;
     usersub: string;
 }
@@ -33,7 +33,7 @@ export const findVote = async (
     return data?.[0];
 };
 
-export const updateVote = async (voteId: number, vote: string) => {
+export const updateVote = async (voteId: number, vote: number) => {
     const { error } = await supabase
         .from('vote')
         .update({ vote })
@@ -44,18 +44,10 @@ export const updateVote = async (voteId: number, vote: string) => {
 export const createVote = async (
     ticketId: number,
     userId: number,
-    vote: string
+    vote: number
 ) => {
     const { error } = await supabase
         .from('vote')
         .insert({ ticket_id: ticketId, user_id: userId, vote });
     assertNoDbError(error, 'Error inserting vote');
-};
-
-export const deleteVotesForTicket = async (ticketId: number | string) => {
-    const { error } = await supabase
-        .from('vote')
-        .delete()
-        .eq('ticket_id', ticketId);
-    assertNoDbError(error, 'Error deleting votes');
 };

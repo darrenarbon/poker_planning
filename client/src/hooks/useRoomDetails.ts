@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Room, TicketForVoting, UserModel } from '../types';
+import { withVoteStats } from '../utils';
 import { useApi } from './useApi';
 
 /** Loads a room plus its tickets and users, exposing setters for live updates */
@@ -15,7 +16,12 @@ export const useRoomDetails = (roomName: string) => {
         api.getRoom(roomName)
             .then(({ room, tickets, users }) => {
                 setRoom(room);
-                setTickets(tickets);
+                // revealed tickets need their stats, as after a live reveal
+                setTickets(
+                    tickets.map((t) =>
+                        t.votes_revealed ? withVoteStats(t) : t
+                    )
+                );
                 setUsers(users);
             })
             .catch((error) => {

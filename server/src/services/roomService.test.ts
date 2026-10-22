@@ -174,8 +174,8 @@ describe('getRoomDetails', () => {
             t2,
         ]);
         vi.mocked(voteRepository.findVotesForTickets).mockResolvedValue([
-            { vote: '3', ticket_id: 1, usersub: 'a' },
-            { vote: '5', ticket_id: 1, usersub: 'b' },
+            { vote: 3, ticket_id: 1, usersub: 'a' },
+            { vote: 5, ticket_id: 1, usersub: 'b' },
         ]);
 
         const details = await getRoomDetails(room.room_name);
@@ -186,8 +186,8 @@ describe('getRoomDetails', () => {
                 {
                     ...t1,
                     votes: [
-                        { vote: '3', usersub: 'a' },
-                        { vote: '5', usersub: 'b' },
+                        { vote: 3, usersub: 'a' },
+                        { vote: 5, usersub: 'b' },
                     ],
                 },
                 { ...t2, votes: [] },

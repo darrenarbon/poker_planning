@@ -13,9 +13,9 @@ export const env = {
     supabaseUrl: required('SUPABASE_URL'),
     supabaseKey: required('SUPABASE_KEY'),
     auth0Audience: required('LOCAL_URL'),
-    auth0IssuerBaseUrl: 'https://dev-1jevct6pshmx18pw.uk.auth0.com/',
+    auth0IssuerBaseUrl: required('AUTH0_ISSUER_BASE_URL'),
     atlassianDomain: process.env.ATLASSIAN_DOMAIN,
     atlassianEmail: process.env.ATLASSIAN_EMAIL,
     atlassianApiKey: process.env.ATLASSIAN_API_KEY,
-    storyPointsField: 'customfield_10024',
+    jiraStoryPointsField: process.env.JIRA_STORY_POINTS_FIELD,
 };

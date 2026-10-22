@@ -1,5 +1,4 @@
 import * as ticketRepository from '../repositories/ticketRepository.js';
-import * as voteRepository from '../repositories/voteRepository.js';
 import type { Ticket, TicketEstimate } from '../types/models.js';
 import { notFound } from '../utils/errors.js';
 import {
@@ -30,8 +29,7 @@ export const addTicketsToRoom = async (
 export const deleteTicket = async (ticketId: string, userSub: string) => {
     const ticket = await getTicketById(ticketId);
     await getRoomByIdAsAdmin(ticket.room_id, userSub);
-    // votes reference the ticket, so they must go first
-    await voteRepository.deleteVotesForTicket(ticketId);
+    // the vote foreign key cascades, so its votes go in the same statement
     await ticketRepository.deleteTicket(ticketId);
 };
 
@@ -52,4 +50,10 @@ export const setEstimate = async (
 ) => {
     await getTicketInRoom(roomName, ticketId);
     await ticketRepository.updateTicketEstimate(ticketId, estimate);
+};
+
+/** Marks the ticket's votes as revealed, so late joiners and refreshes see them. */
+export const revealVotes = async (roomName: string, ticketId: number) => {
+    await getTicketInRoom(roomName, ticketId);
+    await ticketRepository.updateVotesRevealed(ticketId, true);
 };

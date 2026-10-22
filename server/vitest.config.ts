@@ -8,6 +8,8 @@ export default defineConfig({
             SUPABASE_URL: 'http://supabase.test',
             SUPABASE_KEY: 'test-key',
             LOCAL_URL: 'http://audience.test',
+            AUTH0_ISSUER_BASE_URL: 'https://issuer.test/',
+            JIRA_STORY_POINTS_FIELD: 'customfield_10024',
             ATLASSIAN_DOMAIN: 'example',
             ATLASSIAN_EMAIL: 'jira@example.com',
             ATLASSIAN_API_KEY: 'jira-key',
