@@ -1,11 +1,13 @@
 import VoteValueButtons from '../../../components/VoteValueButtons';
 import { usePokerSession } from '../../../context';
+import { useVoteShortcuts } from '../../../hooks';
 import { findVote } from '../../../utils';
 import JiraTicketModal, { JIRA_MODAL_ID } from './JiraTicketModal';
 
 const VotingPanel = () => {
     const { currentTicket, user, jira, submitVote, refinementMode } =
         usePokerSession();
+    useVoteShortcuts(submitVote, !!currentTicket && !refinementMode);
 
     if (!currentTicket) return null;
 
@@ -39,8 +41,8 @@ const VotingPanel = () => {
                     ) : (
                         <>
                             <p className="text-secondary small mb-3">
-                                Pick a card. Hover over a card to see what it
-                                means.
+                                Pick a card, or type its number (0 for No Idea).
+                                Hover over a card to see what it means.
                             </p>
                             <div className="vote-cards">
                                 <VoteValueButtons
