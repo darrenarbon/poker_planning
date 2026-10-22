@@ -7,11 +7,16 @@ import CreateRoomForm from './CreateRoomForm';
 const navigate = vi.fn();
 const createRoom = vi.fn();
 vi.mock('react-router-dom', () => ({ useNavigate: () => navigate }));
-vi.mock('../../../hooks', () => ({ useApi: () => ({ createRoom }) }));
+let settings: { defaultBaseUrl?: string } = {};
+vi.mock('../../../hooks', () => ({
+    useApi: () => ({ createRoom }),
+    useUserSettings: () => ({ settings }),
+}));
 
 describe('CreateRoomForm', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        settings = {};
         vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
@@ -19,6 +24,14 @@ describe('CreateRoomForm', () => {
         render(<CreateRoomForm />);
         expect(screen.getByLabelText(/Base URL/)).toHaveValue(
             DEFAULT_TICKET_BASE_URL
+        );
+    });
+
+    it("pre-fills the user's saved default base URL", () => {
+        settings = { defaultBaseUrl: 'https://mine.example.com/browse' };
+        render(<CreateRoomForm />);
+        expect(screen.getByLabelText(/Base URL/)).toHaveValue(
+            'https://mine.example.com/browse'
         );
     });
 

@@ -1,5 +1,11 @@
 import { supabase } from '../db/supabase.js';
-import type { Room, User } from '../types/models.js';
+import type { Room, User, UserSettings } from '../types/models.js';
+
+/** A room with its owner's sub and settings */
+export type RoomWithAdmin = Room & {
+    auth0_sub: string;
+    settings?: UserSettings | null;
+};
 
 export interface RoomMembership {
     favourite: boolean;
@@ -32,13 +38,13 @@ export const findRoomById = async (
 
 export const findRoomWithAdminSub = async (
     roomName: string
-): Promise<(Room & { auth0_sub: string }) | undefined> => {
+): Promise<RoomWithAdmin | undefined> => {
     const { data, error } = await supabase
         .from('room')
-        .select('*, ...user!room_admin_id_fkey(auth0_sub)')
+        .select('*, ...user!room_admin_id_fkey(auth0_sub, settings)')
         .eq('room_name', roomName);
     assertNoDbError(error, 'Error fetching room');
-    return data?.[0] as (Room & { auth0_sub: string }) | undefined;
+    return data?.[0] as RoomWithAdmin | undefined;
 };
 
 export const findRoomsByAdmin = async (adminId: number): Promise<Room[]> => {

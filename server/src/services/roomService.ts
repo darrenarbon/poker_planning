@@ -186,6 +186,7 @@ export const getRoomDetails = async (roomName: string, userSub?: string) => {
             ticketBaseUrl: room.ticket_base_url,
             hidden: !!room.hidden,
             favourite: !!membership?.favourite,
+            exemplars: room.settings?.exemplars ?? [],
         },
     };
 };

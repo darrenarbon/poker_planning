@@ -4,6 +4,7 @@ import {
     RoomDetails,
     RoomSummary,
     TicketForVoting,
+    UserSettings,
 } from '../types';
 import { User } from '@auth0/auth0-react';
 import { mapJiraTicket } from '../utils';
@@ -53,6 +54,14 @@ export const createApi = (getToken: GetToken) => ({
     getUserRooms: async () =>
         (await requestJson<{ rooms: RoomSummary[] }>(getToken, '/me/rooms'))
             .rooms,
+
+    getSettings: () => requestJson<UserSettings>(getToken, '/me/settings'),
+
+    saveSettings: (settings: UserSettings) =>
+        requestJson<UserSettings>(getToken, '/me/settings', {
+            method: 'PUT',
+            body: settings,
+        }),
 
     createRoom: async (roomName: string, baseUrl: string) =>
         (

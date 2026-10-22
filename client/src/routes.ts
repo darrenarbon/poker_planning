@@ -4,6 +4,7 @@ export const paths = {
     home: '/',
     newRoom: '/rooms/new',
     joinRoom: '/rooms/join',
+    settings: '/settings',
     roomTickets: '/room/:roomName/tickets',
     roomVoting: '/room/:roomName/voting',
 };

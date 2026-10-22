@@ -1,5 +1,5 @@
 import * as userRepository from '../repositories/userRepository.js';
-import type { NewUser, User } from '../types/models.js';
+import type { NewUser, User, UserSettings } from '../types/models.js';
 import { notFound } from '../utils/errors.js';
 
 export const getUserBySub = async (sub: string): Promise<User> => {
@@ -16,4 +16,12 @@ export const ensureUser = async (user: NewUser) => {
     if (!existing) {
         await userRepository.createUser(user);
     }
+};
+
+export const getSettings = async (sub: string): Promise<UserSettings> =>
+    (await getUserBySub(sub)).settings ?? {};
+
+export const saveSettings = async (sub: string, settings: UserSettings) => {
+    const user = await getUserBySub(sub);
+    await userRepository.updateUserSettings(user.user_id, settings);
 };

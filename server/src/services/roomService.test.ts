@@ -214,8 +214,26 @@ describe('getRoomDetails', () => {
                 ticketBaseUrl: room.ticket_base_url,
                 hidden: false,
                 favourite: false,
+                exemplars: [],
             },
         });
+    });
+
+    it("shares the owner's exemplar tickets with the room", async () => {
+        const exemplars = [{ estimate: 3, ticketNumber: 'PP-7' }];
+        vi.mocked(roomRepository.findRoomWithAdminSub).mockResolvedValue({
+            ...room,
+            auth0_sub: 'auth0|admin',
+            settings: { exemplars },
+        });
+        vi.mocked(roomRepository.findRoomUserIds).mockResolvedValue([1]);
+        vi.mocked(userRepository.findUsersByIds).mockResolvedValue([user]);
+        vi.mocked(ticketRepository.findTicketsByRoom).mockResolvedValue([]);
+        vi.mocked(voteRepository.findVotesForTickets).mockResolvedValue([]);
+
+        const details = await getRoomDetails(room.room_name);
+
+        expect(details.room.exemplars).toEqual(exemplars);
     });
 
     it('lists co-facilitators and archived tickets with their votes', async () => {

@@ -1,5 +1,5 @@
 import { supabase } from '../db/supabase.js';
-import type { NewUser, User } from '../types/models.js';
+import type { NewUser, User, UserSettings } from '../types/models.js';
 import { assertNoDbError } from '../utils/errors.js';
 
 export const findUserBySub = async (sub: string): Promise<User | undefined> => {
@@ -23,4 +23,15 @@ export const findUsersByIds = async (userIds: number[]): Promise<User[]> => {
 export const createUser = async (user: NewUser) => {
     const { error } = await supabase.from('user').insert(user);
     assertNoDbError(error, 'Error creating user');
+};
+
+export const updateUserSettings = async (
+    userId: number,
+    settings: UserSettings
+) => {
+    const { error } = await supabase
+        .from('user')
+        .update({ settings })
+        .eq('user_id', userId);
+    assertNoDbError(error, 'Error saving settings');
 };

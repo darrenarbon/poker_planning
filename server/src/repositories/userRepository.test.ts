@@ -3,7 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { supabase } from '../db/supabase.js';
 import { makeNewUser, makeUser } from '../test/factories.js';
 import { fail, ok, queueResults } from '../test/supabaseMock.js';
-import { createUser, findUserBySub, findUsersByIds } from './userRepository.js';
+import {
+    createUser,
+    findUserBySub,
+    findUsersByIds,
+    updateUserSettings,
+} from './userRepository.js';
 
 vi.mock('../db/supabase.js', () => ({ supabase: { from: vi.fn() } }));
 const from = vi.mocked(supabase.from) as unknown as ReturnType<typeof vi.fn>;
@@ -50,5 +55,14 @@ describe('userRepository', () => {
         await expect(createUser(newUser)).rejects.toMatchObject({
             message: 'Error creating user',
         });
+    });
+
+    it('updateUserSettings saves the settings on the user', async () => {
+        const [query] = queueResults(from, ok(null));
+        await updateUserSettings(3, { theme: 'light' });
+        expect(query.update).toHaveBeenCalledWith({
+            settings: { theme: 'light' },
+        });
+        expect(query.eq).toHaveBeenCalledWith('user_id', 3);
     });
 });

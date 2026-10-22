@@ -8,3 +8,4 @@ export * from './useLogin';
 export * from './useVoteShortcuts';
 export * from './useTheme';
 export * from './useConfirm';
+export * from './useUserSettings';

@@ -2,10 +2,11 @@ import VoteValueButtons from '../../../components/VoteValueButtons';
 import { usePokerSession } from '../../../context';
 import { useVoteShortcuts } from '../../../hooks';
 import { findVote } from '../../../utils';
+import ExemplarTickets from './ExemplarTickets';
 import JiraTicketModal, { JIRA_MODAL_ID } from './JiraTicketModal';
 
 const VotingPanel = () => {
-    const { currentTicket, user, jira, submitVote, refinementMode } =
+    const { currentTicket, room, user, jira, submitVote, refinementMode } =
         usePokerSession();
     useVoteShortcuts(submitVote, !!currentTicket && !refinementMode);
 
@@ -56,6 +57,12 @@ const VotingPanel = () => {
                                 />
                             </div>
                         </>
+                    )}
+                    {room && (
+                        <ExemplarTickets
+                            exemplars={room.exemplars ?? []}
+                            baseUrl={room.ticketBaseUrl}
+                        />
                     )}
                 </div>
             </section>

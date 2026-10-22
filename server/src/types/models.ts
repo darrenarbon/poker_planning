@@ -6,9 +6,25 @@ export interface User {
     family_name: string;
     nickname: string;
     picture: string;
+    settings?: UserSettings;
 }
 
-export type NewUser = Omit<User, 'user_id'>;
+/** An example ticket showing the team what an estimate looks like */
+export interface Exemplar {
+    estimate: number;
+    ticketNumber: string;
+}
+
+export interface UserSettings {
+    /** prefilled when creating a room */
+    defaultBaseUrl?: string;
+    /** the theme the app opens in */
+    theme?: 'light' | 'dark';
+    /** shown on the voting page of rooms this user owns */
+    exemplars?: Exemplar[];
+}
+
+export type NewUser = Omit<User, 'user_id' | 'settings'>;
 
 export interface Room {
     room_id: number;
