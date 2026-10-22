@@ -5,3 +5,6 @@ export * from './useRoomSocket';
 export * from './useUserRooms';
 export * from './useConsensusConfetti';
 export * from './useLogin';
+export * from './useVoteShortcuts';
+export * from './useTheme';
+export * from './useConfirm';

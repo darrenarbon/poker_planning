@@ -22,7 +22,7 @@ const describeVote = (vote: number | null, isVisible: boolean): string => {
 
 const voteBadgeClass = (vote: number | null, isVisible: boolean) =>
     classNames('badge rounded-pill vote-badge', {
-        'text-bg-light text-secondary': vote === null,
+        'bg-body-secondary text-secondary': vote === null,
         'text-bg-success': vote !== null && !isVisible,
         'text-bg-primary': vote !== null && isVisible,
     });
