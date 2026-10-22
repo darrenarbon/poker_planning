@@ -1,0 +1,299 @@
+import { useAuth0 } from '@auth0/auth0-react';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { ReactNode } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CONNECTION_LOST_MESSAGE } from '../hooks/useRoomSocket';
+import { makeAuthUser, makeRoom, makeTicket } from '../test/factories';
+import { PokerSessionProvider } from './PokerSessionProvider';
+import { usePokerSession } from './usePokerSession';
+
+const { fakeSocket } = await vi.hoisted(async () => {
+    const { createFakeSocket } = await import('../test/fakeSocket');
+    return { fakeSocket: createFakeSocket() };
+});
+const searchParams = vi.hoisted(() => ({ value: new URLSearchParams() }));
+const api = vi.hoisted(() => ({
+    getRoom: vi.fn(),
+    getJiraTicket: vi.fn(),
+    addTicket: vi.fn(),
+    deleteTicket: vi.fn(),
+}));
+
+vi.mock('../services/socket', () => ({ socket: fakeSocket }));
+vi.mock('../hooks/useApi', () => ({ useApi: () => api }));
+vi.mock('@auth0/auth0-react', () => ({ useAuth0: vi.fn() }));
+vi.mock('react-router-dom', () => ({
+    useSearchParams: () => [searchParams.value],
+}));
+
+const ticketA = makeTicket({ ticket_id: 'a', ticket_number: 'ABC-1' });
+const ticketB = makeTicket({
+    ticket_id: 'b',
+    ticket_number: 'ABC-2',
+    votes: [
+        { usersub: 'u1', vote: 3 },
+        { usersub: 'u2', vote: 3 },
+    ],
+});
+
+const wrapper = ({ children }: { children: ReactNode }) => (
+    <PokerSessionProvider roomName="room-abc">{children}</PokerSessionProvider>
+);
+
+const renderSession = async ({ adminSub = 'admin-1' } = {}) => {
+    api.getRoom.mockResolvedValue({
+        room: makeRoom({ adminSub }),
+        tickets: [ticketA, ticketB],
+        users: [],
+    });
+    const hook = renderHook(() => usePokerSession(), { wrapper });
+    await waitFor(() => expect(hook.result.current.room).toBeDefined());
+    return hook;
+};
+
+describe('usePokerSession', () => {
+    it('throws outside a PokerSessionProvider', () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        expect(() => renderHook(() => usePokerSession())).toThrow(
+            'usePokerSession must be used within a PokerSessionProvider'
+        );
+    });
+});
+
+describe('PokerSessionProvider', () => {
+    beforeEach(() => {
+        fakeSocket.reset();
+        vi.clearAllMocks();
+        searchParams.value = new URLSearchParams();
+        vi.mocked(useAuth0).mockReturnValue({
+            user: makeAuthUser(),
+        } as unknown as ReturnType<typeof useAuth0>);
+        api.getJiraTicket.mockResolvedValue({
+            summary: 'Jira summary',
+            description: '',
+            creator: '',
+            parent: '',
+            priority: '',
+        });
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => vi.restoreAllMocks());
+
+    describe('loading', () => {
+        it('loads the room and joins it over the socket', async () => {
+            const { result } = await renderSession();
+            expect(api.getRoom).toHaveBeenCalledWith('room-abc');
+            expect(result.current.tickets).toEqual([ticketA, ticketB]);
+            expect(result.current.currentTicket).toBeUndefined();
+            expect(fakeSocket.emit).toHaveBeenCalledWith('join', {
+                roomName: 'room-abc',
+                userSub: 'user-1',
+            });
+        });
+
+        it('exposes a load error', async () => {
+            api.getRoom.mockRejectedValue(new Error('404'));
+            const { result } = renderHook(() => usePokerSession(), {
+                wrapper,
+            });
+            await waitFor(() =>
+                expect(result.current.loadError).toMatch(/Could not load room/)
+            );
+        });
+    });
+
+    describe('isAdmin', () => {
+        it('is false for other users', async () => {
+            const { result } = await renderSession();
+            expect(result.current.isAdmin).toBe(false);
+        });
+
+        it('is true for the room admin', async () => {
+            const { result } = await renderSession({ adminSub: 'user-1' });
+            expect(result.current.isAdmin).toBe(true);
+        });
+
+        it('is true with ?admin=true', async () => {
+            searchParams.value = new URLSearchParams('admin=true');
+            const { result } = await renderSession();
+            expect(result.current.isAdmin).toBe(true);
+        });
+    });
+
+    describe('selecting a ticket', () => {
+        it('sets the current ticket and loads its Jira details', async () => {
+            const { result } = await renderSession();
+            act(() => result.current.selectTicket(ticketB));
+
+            expect(result.current.currentTicket).toEqual(ticketB);
+            expect(result.current.showVotes).toBe(false);
+            await waitFor(() =>
+                expect(result.current.jira.jiraTicket?.summary).toBe(
+                    'Jira summary'
+                )
+            );
+            expect(api.getJiraTicket).toHaveBeenCalledWith('ABC-2');
+        });
+    });
+
+    describe('voting', () => {
+        it('emits the vote and records it locally', async () => {
+            const { result } = await renderSession();
+            act(() => result.current.selectTicket(ticketA));
+            act(() => result.current.submitVote(5));
+
+            expect(fakeSocket.emit).toHaveBeenCalledWith('vote', {
+                roomName: 'room-abc',
+                ticketId: 'a',
+                vote: 5,
+                userSub: 'user-1',
+            });
+            expect(result.current.currentTicket?.votes).toEqual([
+                { usersub: 'user-1', vote: 5 },
+            ]);
+        });
+
+        it('does nothing without a current ticket', async () => {
+            const { result } = await renderSession();
+            fakeSocket.emit.mockClear();
+            act(() => result.current.submitVote(5));
+            act(() => result.current.revealVotes());
+            act(() => result.current.setEstimate(5));
+            expect(fakeSocket.emit).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('revealing votes', () => {
+        it('asks the server to reveal the current ticket', async () => {
+            const { result } = await renderSession();
+            act(() => result.current.selectTicket(ticketB));
+            act(() => result.current.revealVotes());
+            expect(fakeSocket.emit).toHaveBeenCalledWith('showVotes', {
+                roomName: 'room-abc',
+                ticketId: 'b',
+            });
+        });
+
+        it('shows votes once the server reveals them, and remembers it per ticket', async () => {
+            const { result } = await renderSession();
+            act(() => result.current.selectTicket(ticketB));
+            act(() => fakeSocket.serverEmit('showVotes', { ticketId: 'b' }));
+
+            expect(result.current.showVotes).toBe(true);
+            expect(result.current.currentTicket?.average_vote).toBe(3);
+
+            act(() => result.current.selectTicket(ticketA));
+            expect(result.current.showVotes).toBe(false);
+
+            act(() => result.current.selectTicket(ticketB));
+            expect(result.current.showVotes).toBe(true);
+        });
+    });
+
+    describe('setting an estimate', () => {
+        it('updates the ticket and broadcasts it', async () => {
+            const { result } = await renderSession();
+            act(() => result.current.selectTicket(ticketA));
+            act(() => result.current.setEstimate(8));
+
+            expect(result.current.currentTicket?.chosen_estimate).toBe(8);
+            expect(fakeSocket.emit).toHaveBeenCalledWith('setEstimate', {
+                roomName: 'room-abc',
+                currentTicket: expect.objectContaining({
+                    ticket_id: 'a',
+                    chosen_estimate: 8,
+                }),
+            });
+        });
+    });
+
+    describe('adding a ticket', () => {
+        it('adds the new ticket to the top of the list', async () => {
+            const newTicket = makeTicket({ ticket_id: 'c' });
+            api.addTicket.mockResolvedValue(newTicket);
+            const { result } = await renderSession();
+
+            await act(() => result.current.addTicket('ABC-3'));
+
+            expect(api.addTicket).toHaveBeenCalledWith('room-abc', 'ABC-3');
+            expect(result.current.tickets[0]).toEqual(newTicket);
+        });
+
+        it('ignores an empty ticket number', async () => {
+            const { result } = await renderSession();
+            await act(() => result.current.addTicket(''));
+            expect(api.addTicket).not.toHaveBeenCalled();
+        });
+
+        it('shows a dismissible error when adding fails', async () => {
+            api.addTicket.mockRejectedValue(new Error('boom'));
+            const { result } = await renderSession();
+
+            await act(() => result.current.addTicket('ABC-3'));
+            expect(result.current.error).toBe('Could not add ticket ABC-3.');
+
+            act(() => result.current.dismissError());
+            expect(result.current.error).toBeNull();
+        });
+    });
+
+    describe('deleting a ticket', () => {
+        it('does nothing if the user cancels', async () => {
+            vi.spyOn(window, 'confirm').mockReturnValue(false);
+            const { result } = await renderSession();
+            act(() => result.current.selectTicket(ticketA));
+
+            await act(() => result.current.deleteCurrentTicket());
+            expect(api.deleteTicket).not.toHaveBeenCalled();
+            expect(result.current.tickets).toHaveLength(2);
+        });
+
+        it('removes the ticket and clears the selection', async () => {
+            vi.spyOn(window, 'confirm').mockReturnValue(true);
+            api.deleteTicket.mockResolvedValue(undefined);
+            const { result } = await renderSession();
+            act(() => result.current.selectTicket(ticketA));
+
+            await act(() => result.current.deleteCurrentTicket());
+            expect(api.deleteTicket).toHaveBeenCalledWith('a');
+            expect(result.current.tickets).toEqual([ticketB]);
+            expect(result.current.currentTicket).toBeUndefined();
+        });
+
+        it('keeps the ticket and shows an error when deleting fails', async () => {
+            vi.spyOn(window, 'confirm').mockReturnValue(true);
+            api.deleteTicket.mockRejectedValue(new Error('boom'));
+            const { result } = await renderSession();
+            act(() => result.current.selectTicket(ticketA));
+
+            await act(() => result.current.deleteCurrentTicket());
+            expect(result.current.tickets).toHaveLength(2);
+            expect(result.current.error).toBe('Could not delete ticket ABC-1.');
+        });
+    });
+
+    describe('socket errors', () => {
+        it('shows server errors', async () => {
+            const { result } = await renderSession();
+            act(() => fakeSocket.serverEmit('error', 'Ticket not found'));
+            expect(result.current.error).toBe('Ticket not found');
+        });
+
+        it('clears the connection-lost error on reconnect', async () => {
+            const { result } = await renderSession();
+            act(() => fakeSocket.serverEmit('connect_error', new Error('x')));
+            expect(result.current.error).toBe(CONNECTION_LOST_MESSAGE);
+
+            act(() => fakeSocket.serverEmit('connect'));
+            expect(result.current.error).toBeNull();
+        });
+
+        it('keeps other errors on reconnect', async () => {
+            const { result } = await renderSession();
+            act(() => fakeSocket.serverEmit('error', 'Ticket not found'));
+            act(() => fakeSocket.serverEmit('connect'));
+            expect(result.current.error).toBe('Ticket not found');
+        });
+    });
+});
