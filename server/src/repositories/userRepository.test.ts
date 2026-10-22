@@ -7,7 +7,10 @@ import {
     createUser,
     findUserBySub,
     findUsersByIds,
-    updateUserSettings,
+    findExemplars,
+    findUserSettings,
+    replaceExemplars,
+    upsertUserSettings,
 } from './userRepository.js';
 
 vi.mock('../db/supabase.js', () => ({ supabase: { from: vi.fn() } }));
@@ -57,12 +60,60 @@ describe('userRepository', () => {
         });
     });
 
-    it('updateUserSettings saves the settings on the user', async () => {
-        const [query] = queueResults(from, ok(null));
-        await updateUserSettings(3, { theme: 'light' });
-        expect(query.update).toHaveBeenCalledWith({
-            settings: { theme: 'light' },
-        });
+    it('findUserSettings reads the user_settings row', async () => {
+        const row = {
+            user_id: 3,
+            default_base_url: 'u',
+            default_theme: 'dark',
+        };
+        const [query] = queueResults(from, ok([row]));
+        await expect(findUserSettings(3)).resolves.toEqual(row);
+        expect(from).toHaveBeenCalledWith('user_settings');
         expect(query.eq).toHaveBeenCalledWith('user_id', 3);
+    });
+
+    it('upsertUserSettings saves one row per user', async () => {
+        const row = {
+            user_id: 3,
+            default_base_url: null,
+            default_theme: 'light' as const,
+        };
+        const [query] = queueResults(from, ok(null));
+        await upsertUserSettings(row);
+        expect(query.upsert).toHaveBeenCalledWith(row);
+    });
+
+    it('findExemplars maps rows to exemplars', async () => {
+        queueResults(
+            from,
+            ok([
+                {
+                    exemplar_id: 1,
+                    user_id: 3,
+                    estimate: 2,
+                    ticket_number: 'PP-2',
+                },
+            ])
+        );
+        await expect(findExemplars(3)).resolves.toEqual([
+            { estimate: 2, ticketNumber: 'PP-2' },
+        ]);
+        expect(from).toHaveBeenCalledWith('user_exemplar');
+    });
+
+    it('replaceExemplars deletes the old rows then inserts the new', async () => {
+        const [del, ins] = queueResults(from, ok(null), ok(null));
+        await replaceExemplars(3, [{ estimate: 8, ticketNumber: 'PP-8' }]);
+        expect(del.delete).toHaveBeenCalled();
+        expect(del.eq).toHaveBeenCalledWith('user_id', 3);
+        expect(ins.insert).toHaveBeenCalledWith([
+            { user_id: 3, estimate: 8, ticket_number: 'PP-8' },
+        ]);
+    });
+
+    it('replaceExemplars skips the insert when clearing them', async () => {
+        queueResults(from, ok(null));
+        await replaceExemplars(3, []);
+        expect(from).toHaveBeenCalledTimes(1);
     });
 });

@@ -187,6 +187,7 @@ describe('getRoomDetails', () => {
             { vote: 3, ticket_id: 1, usersub: 'a' },
             { vote: 5, ticket_id: 1, usersub: 'b' },
         ]);
+        vi.mocked(userRepository.findExemplars).mockResolvedValue([]);
 
         const details = await getRoomDetails(room.room_name);
 
@@ -224,8 +225,8 @@ describe('getRoomDetails', () => {
         vi.mocked(roomRepository.findRoomWithAdminSub).mockResolvedValue({
             ...room,
             auth0_sub: 'auth0|admin',
-            settings: { exemplars },
         });
+        vi.mocked(userRepository.findExemplars).mockResolvedValue(exemplars);
         vi.mocked(roomRepository.findRoomUserIds).mockResolvedValue([1]);
         vi.mocked(userRepository.findUsersByIds).mockResolvedValue([user]);
         vi.mocked(ticketRepository.findTicketsByRoom).mockResolvedValue([]);
@@ -233,6 +234,9 @@ describe('getRoomDetails', () => {
 
         const details = await getRoomDetails(room.room_name);
 
+        expect(userRepository.findExemplars).toHaveBeenCalledWith(
+            room.admin_id
+        );
         expect(details.room.exemplars).toEqual(exemplars);
     });
 

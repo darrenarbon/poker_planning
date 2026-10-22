@@ -18,10 +18,28 @@ export const ensureUser = async (user: NewUser) => {
     }
 };
 
-export const getSettings = async (sub: string): Promise<UserSettings> =>
-    (await getUserBySub(sub)).settings ?? {};
+export const getSettings = async (sub: string): Promise<UserSettings> => {
+    const user = await getUserBySub(sub);
+    const [row, exemplars] = await Promise.all([
+        userRepository.findUserSettings(user.user_id),
+        userRepository.findExemplars(user.user_id),
+    ]);
+    return {
+        ...(row?.default_base_url && { defaultBaseUrl: row.default_base_url }),
+        ...(row?.default_theme && { theme: row.default_theme }),
+        exemplars,
+    };
+};
 
 export const saveSettings = async (sub: string, settings: UserSettings) => {
     const user = await getUserBySub(sub);
-    await userRepository.updateUserSettings(user.user_id, settings);
+    await userRepository.upsertUserSettings({
+        user_id: user.user_id,
+        default_base_url: settings.defaultBaseUrl ?? null,
+        default_theme: settings.theme ?? null,
+    });
+    await userRepository.replaceExemplars(
+        user.user_id,
+        settings.exemplars ?? []
+    );
 };
