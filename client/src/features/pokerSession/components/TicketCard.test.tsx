@@ -44,6 +44,13 @@ describe('TicketCard', () => {
         expect(screen.getByText(status)).toBeInTheDocument();
     });
 
+    it('hides my vote value in refinement mode', () => {
+        renderCard(makeTicket({ votes: [{ usersub: 'me', vote: 5 }] }), {
+            hideMyVote: true,
+        });
+        expect(screen.getByText('Voted')).toBeInTheDocument();
+    });
+
     it('selects the ticket when clicked', async () => {
         const ticket = makeTicket();
         const { onSelect } = renderCard(ticket);
@@ -53,7 +60,7 @@ describe('TicketCard', () => {
 
     it('highlights the selected ticket', () => {
         const { container } = renderCard(makeTicket(), { isSelected: true });
-        expect(container.firstChild).toHaveClass('bg-success-subtle');
+        expect(container.firstChild).toHaveClass('selected');
     });
 
     it('links to the ticket in a new tab without selecting it', async () => {

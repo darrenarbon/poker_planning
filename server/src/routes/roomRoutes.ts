@@ -13,6 +13,21 @@ router.post(
     checkJwt,
     asyncHandler(roomController.addTickets)
 );
+router.put(
+    '/room/:roomName/favourite',
+    checkJwt,
+    asyncHandler(roomController.setFavourite)
+);
+router.put(
+    '/room/:roomName/hidden',
+    checkJwt,
+    asyncHandler(roomController.setHidden)
+);
+router.put(
+    '/room/:roomName/baseUrl',
+    checkJwt,
+    asyncHandler(roomController.updateBaseUrl)
+);
 router.post(
     '/room/:roomName/newTicket',
     checkJwt,

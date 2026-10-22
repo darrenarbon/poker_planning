@@ -1,5 +1,11 @@
 import { supabase } from '../db/supabase.js';
 import type { Room, User } from '../types/models.js';
+
+export interface RoomMembership {
+    favourite: boolean;
+    last_joined_at: string | null;
+    room: Room;
+}
 import { assertNoDbError } from '../utils/errors.js';
 
 export const findRoomByName = async (
@@ -81,4 +87,54 @@ export const findUsersInRoom = async (roomId: number): Promise<User[]> => {
         ...(row.user as unknown as User),
         user_id: row.user_id,
     }));
+};
+
+export const updateRoomBaseUrl = async (roomId: number, baseUrl: string) => {
+    const { error } = await supabase
+        .from('room')
+        .update({ ticket_base_url: baseUrl })
+        .eq('room_id', roomId);
+    assertNoDbError(error, 'Error updating room');
+};
+
+export const findMemberships = async (
+    userId: number
+): Promise<RoomMembership[]> => {
+    const { data, error } = await supabase
+        .from('room_users')
+        .select('favourite, last_joined_at, room:room_id(*)')
+        .eq('user_id', userId);
+    assertNoDbError(error, 'Error fetching rooms for user');
+    return (data ?? []) as unknown as RoomMembership[];
+};
+
+export const findMembership = async (roomId: number, userId: number) => {
+    const { data, error } = await supabase
+        .from('room_users')
+        .select('favourite, last_joined_at')
+        .eq('room_id', roomId)
+        .eq('user_id', userId);
+    assertNoDbError(error, 'Error getting user in room');
+    return data?.[0] as Omit<RoomMembership, 'room'> | undefined;
+};
+
+export const updateMembership = async (
+    roomId: number,
+    userId: number,
+    changes: Partial<Pick<RoomMembership, 'favourite' | 'last_joined_at'>>
+) => {
+    const { error } = await supabase
+        .from('room_users')
+        .update(changes)
+        .eq('room_id', roomId)
+        .eq('user_id', userId);
+    assertNoDbError(error, 'Error updating room membership');
+};
+
+export const updateRoomHidden = async (roomId: number, hidden: boolean) => {
+    const { error } = await supabase
+        .from('room')
+        .update({ hidden })
+        .eq('room_id', roomId);
+    assertNoDbError(error, 'Error updating room');
 };

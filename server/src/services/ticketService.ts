@@ -1,4 +1,5 @@
 import * as ticketRepository from '../repositories/ticketRepository.js';
+import * as voteRepository from '../repositories/voteRepository.js';
 import type { Ticket, TicketEstimate } from '../types/models.js';
 import { notFound } from '../utils/errors.js';
 import { getRoomByName } from './roomService.js';
@@ -23,6 +24,8 @@ export const addTicketsToRoom = async (
 
 export const deleteTicket = async (ticketId: string) => {
     await getTicketById(ticketId);
+    // votes reference the ticket, so they must go first
+    await voteRepository.deleteVotesForTicket(ticketId);
     await ticketRepository.deleteTicket(ticketId);
 };
 

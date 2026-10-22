@@ -139,6 +139,27 @@ describe('createApi', () => {
             });
         });
 
+        it.each([
+            ['setFavourite', 'favourite'],
+            ['setHidden', 'hidden'],
+        ] as const)('%s puts the flag', async (method, flag) => {
+            await api[method]('room-abc', true);
+            expect(lastRequest()).toMatchObject({
+                url: `${config.apiUrl}/room/room-abc/${flag}`,
+                method: 'PUT',
+                body: { [flag]: true },
+            });
+        });
+
+        it('updateBaseUrl puts the new url', async () => {
+            await api.updateBaseUrl('room-abc', 'https://x.com/browse');
+            expect(lastRequest()).toMatchObject({
+                url: `${config.apiUrl}/room/room-abc/baseUrl`,
+                method: 'PUT',
+                body: { baseUrl: 'https://x.com/browse' },
+            });
+        });
+
         it('addTicket posts the number and returns the ticket with no votes', async () => {
             fetchMock.mockResolvedValue(
                 jsonResponse({ ticket_id: 't9', ticket_number: 'ABC-9' })

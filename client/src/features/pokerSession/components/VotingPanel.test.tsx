@@ -11,16 +11,16 @@ describe('VotingPanel', () => {
         expect(container).toBeEmptyDOMElement();
     });
 
-    it('shows the ticket, Jira preview button and players', () => {
+    it('shows the ticket and Jira preview button', () => {
         renderWithSession(<VotingPanel />, {
             currentTicket: makeTicket(),
             users: [makeUserModel()],
         });
-        expect(screen.getByText(/Voting on ticket: ABC-1/)).toBeInTheDocument();
+        expect(screen.getByText('Voting on ticket')).toBeInTheDocument();
+        expect(screen.getByText('ABC-1')).toBeInTheDocument();
         expect(
             screen.getByRole('button', { name: 'Open Jira Ticket Preview' })
         ).toHaveAttribute('data-bs-target', '#jiraTicketModal');
-        expect(screen.getByText('Ada Lovelace')).toBeInTheDocument();
     });
 
     it("highlights the user's current vote", () => {
@@ -32,6 +32,19 @@ describe('VotingPanel', () => {
         expect(screen.getByRole('button', { name: '8' })).toHaveClass(
             'btn-primary'
         );
+    });
+
+    it('removes the vote buttons in refinement mode', () => {
+        renderWithSession(<VotingPanel />, {
+            currentTicket: makeTicket(),
+            refinementMode: true,
+        });
+        expect(
+            screen.queryByRole('button', { name: '8' })
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByText(/voting is turned off for you/)
+        ).toBeInTheDocument();
     });
 
     it('submits the chosen vote', async () => {

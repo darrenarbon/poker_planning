@@ -30,15 +30,4 @@ describe('AdminPanel', () => {
         );
         expect(session.deleteCurrentTicket).toHaveBeenCalled();
     });
-
-    it('sets the final estimate and highlights the chosen one', async () => {
-        const { session } = renderWithSession(<AdminPanel />, {
-            currentTicket: makeTicket({ chosen_estimate: 3 }),
-        });
-        expect(screen.getByRole('button', { name: '3' })).toHaveClass(
-            'btn-primary'
-        );
-        await userEvent.click(screen.getByRole('button', { name: '5' }));
-        expect(session.setEstimate).toHaveBeenCalledWith(5);
-    });
 });

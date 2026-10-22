@@ -19,11 +19,30 @@ describe('TicketList', () => {
             currentTicket: tickets[1],
         });
         expect(screen.getByText('ABC-1').closest('.card')).not.toHaveClass(
-            'bg-success-subtle'
+            'selected'
         );
         expect(screen.getByText('ABC-2').closest('.card')).toHaveClass(
-            'bg-success-subtle'
+            'selected'
         );
+    });
+
+    it('counts the tickets I have voted on', () => {
+        renderWithSession(<TicketList />, {
+            tickets: [
+                makeTicket({
+                    ticket_id: 'a',
+                    ticket_number: 'ABC-1',
+                    votes: [{ usersub: 'user-1', vote: 5 }],
+                }),
+                makeTicket({
+                    ticket_id: 'b',
+                    ticket_number: 'ABC-2',
+                    chosen_estimate: 8,
+                }),
+                makeTicket({ ticket_id: 'c', ticket_number: 'ABC-3' }),
+            ],
+        });
+        expect(screen.getByText('1/3 voted')).toBeInTheDocument();
     });
 
     it('selects a ticket when its card is clicked', async () => {

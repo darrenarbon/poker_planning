@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import * as roomRepository from '../repositories/roomRepository.js';
 import * as ticketRepository from '../repositories/ticketRepository.js';
+import * as voteRepository from '../repositories/voteRepository.js';
 import { makeRoom, makeTicket } from '../test/factories.js';
 import {
     addTicketsToRoom,
@@ -13,6 +14,7 @@ import {
 
 vi.mock('../repositories/roomRepository.js');
 vi.mock('../repositories/ticketRepository.js');
+vi.mock('../repositories/voteRepository.js');
 
 const room = makeRoom();
 const ticket = makeTicket({ room_id: room.room_id });
@@ -56,10 +58,17 @@ describe('addTicketsToRoom', () => {
 });
 
 describe('deleteTicket', () => {
-    it('deletes an existing ticket', async () => {
+    it('deletes an existing ticket and its votes first', async () => {
         vi.mocked(ticketRepository.findTicketById).mockResolvedValue(ticket);
         await deleteTicket('100');
+        expect(voteRepository.deleteVotesForTicket).toHaveBeenCalledWith('100');
         expect(ticketRepository.deleteTicket).toHaveBeenCalledWith('100');
+        expect(
+            vi.mocked(voteRepository.deleteVotesForTicket).mock
+                .invocationCallOrder[0]
+        ).toBeLessThan(
+            vi.mocked(ticketRepository.deleteTicket).mock.invocationCallOrder[0]
+        );
     });
 
     it('throws 404 and deletes nothing when missing', async () => {
@@ -68,6 +77,7 @@ describe('deleteTicket', () => {
             status: 404,
         });
         expect(ticketRepository.deleteTicket).not.toHaveBeenCalled();
+        expect(voteRepository.deleteVotesForTicket).not.toHaveBeenCalled();
     });
 });
 

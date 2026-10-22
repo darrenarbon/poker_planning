@@ -11,6 +11,9 @@ import {
     getRoomDetails,
     getRoomsForUser,
     joinRoom,
+    setFavourite,
+    setHidden,
+    updateBaseUrl,
 } from './roomService.js';
 
 vi.mock('../repositories/roomRepository.js');
@@ -66,13 +69,93 @@ describe('createRoom', () => {
 });
 
 describe('getRoomsForUser', () => {
-    it('returns the rooms the user administers', async () => {
+    it('merges created and joined rooms, newest first', async () => {
+        const created = makeRoom({
+            room_id: 1,
+            admin_id: user.user_id,
+            created_at: '2026-01-01T00:00:00Z',
+        });
+        const joined = makeRoom({
+            room_id: 2,
+            admin_id: 99,
+            hidden: true,
+            created_at: '2026-02-01T00:00:00Z',
+        });
+        vi.mocked(userRepository.findUserBySub).mockResolvedValue(user);
+        vi.mocked(roomRepository.findRoomsByAdmin).mockResolvedValue([created]);
+        vi.mocked(roomRepository.findMemberships).mockResolvedValue([
+            { room: created, favourite: false, last_joined_at: null },
+            { room: joined, favourite: true, last_joined_at: '2026-02-02' },
+        ]);
+
+        await expect(getRoomsForUser(user.auth0_sub)).resolves.toEqual([
+            {
+                ...joined,
+                hidden: true,
+                is_admin: false,
+                favourite: true,
+                last_joined_at: '2026-02-02',
+            },
+            {
+                ...created,
+                hidden: false,
+                is_admin: true,
+                favourite: false,
+                last_joined_at: null,
+            },
+        ]);
+    });
+
+    it('includes created rooms the admin was never added to', async () => {
         vi.mocked(userRepository.findUserBySub).mockResolvedValue(user);
         vi.mocked(roomRepository.findRoomsByAdmin).mockResolvedValue([room]);
-        await expect(getRoomsForUser(user.auth0_sub)).resolves.toEqual([room]);
-        expect(roomRepository.findRoomsByAdmin).toHaveBeenCalledWith(
+        vi.mocked(roomRepository.findMemberships).mockResolvedValue([]);
+        const [result] = await getRoomsForUser(user.auth0_sub);
+        expect(result).toMatchObject({ room_id: room.room_id, is_admin: true });
+    });
+});
+
+describe('setFavourite', () => {
+    it('joins the user if needed and saves the flag', async () => {
+        vi.mocked(roomRepository.findRoomByName).mockResolvedValue(room);
+        vi.mocked(userRepository.findUserBySub).mockResolvedValue(user);
+        vi.mocked(roomRepository.isUserInRoom).mockResolvedValue(false);
+        await setFavourite(room.room_name, user.auth0_sub, true);
+        expect(roomRepository.addUserToRoom).toHaveBeenCalledWith(
+            room.room_id,
             user.user_id
         );
+        expect(roomRepository.updateMembership).toHaveBeenCalledWith(
+            room.room_id,
+            user.user_id,
+            { favourite: true }
+        );
+    });
+});
+
+describe('setHidden', () => {
+    it('lets the admin hide the room', async () => {
+        vi.mocked(roomRepository.findRoomByName).mockResolvedValue(
+            makeRoom({ admin_id: 1 })
+        );
+        vi.mocked(userRepository.findUserBySub).mockResolvedValue(
+            makeUser({ user_id: 1 })
+        );
+        await setHidden('abc', 'auth0|user-1', true);
+        expect(roomRepository.updateRoomHidden).toHaveBeenCalledWith(10, true);
+    });
+
+    it('refuses anyone else with 403', async () => {
+        vi.mocked(roomRepository.findRoomByName).mockResolvedValue(
+            makeRoom({ admin_id: 1 })
+        );
+        vi.mocked(userRepository.findUserBySub).mockResolvedValue(
+            makeUser({ user_id: 2 })
+        );
+        await expect(
+            setHidden('abc', 'auth0|other', true)
+        ).rejects.toMatchObject({ status: 403 });
+        expect(roomRepository.updateRoomHidden).not.toHaveBeenCalled();
     });
 });
 
@@ -117,8 +200,27 @@ describe('getRoomDetails', () => {
                 roomId: room.room_id,
                 roomName: room.room_name,
                 ticketBaseUrl: room.ticket_base_url,
+                hidden: false,
+                favourite: false,
             },
         });
+    });
+
+    it("includes the viewer's favourite flag", async () => {
+        vi.mocked(roomRepository.findRoomWithAdminSub).mockResolvedValue({
+            ...room,
+            auth0_sub: 'auth0|admin',
+        });
+        vi.mocked(roomRepository.findRoomUserIds).mockResolvedValue([1]);
+        vi.mocked(userRepository.findUsersByIds).mockResolvedValue([user]);
+        vi.mocked(ticketRepository.findTicketsByRoom).mockResolvedValue([]);
+        vi.mocked(voteRepository.findVotesForTickets).mockResolvedValue([]);
+        vi.mocked(roomRepository.findMembership).mockResolvedValue({
+            favourite: true,
+            last_joined_at: null,
+        });
+        const details = await getRoomDetails(room.room_name, user.auth0_sub);
+        expect(details.room.favourite).toBe(true);
     });
 
     it('throws 404 when the room does not exist', async () => {
@@ -157,6 +259,11 @@ describe('joinRoom', () => {
 
         await joinRoom(room.room_name, user.auth0_sub);
         expect(roomRepository.addUserToRoom).not.toHaveBeenCalled();
+        expect(roomRepository.updateMembership).toHaveBeenCalledWith(
+            room.room_id,
+            user.user_id,
+            { last_joined_at: expect.any(String) }
+        );
     });
 
     it('throws 404 for an unknown room', async () => {
@@ -164,5 +271,33 @@ describe('joinRoom', () => {
         await expect(joinRoom('nope', user.auth0_sub)).rejects.toMatchObject({
             message: 'Room not found',
         });
+    });
+});
+
+describe('updateBaseUrl', () => {
+    it('lets the admin update the base url', async () => {
+        vi.mocked(roomRepository.findRoomByName).mockResolvedValue(
+            makeRoom({ admin_id: 1 })
+        );
+        vi.mocked(userRepository.findUserBySub).mockResolvedValue(
+            makeUser({ user_id: 1 })
+        );
+        await updateBaseUrl('abc', 'auth0|user-1', 'https://new');
+        expect(roomRepository.updateRoomBaseUrl).toHaveBeenCalledWith(
+            10,
+            'https://new'
+        );
+    });
+
+    it('refuses anyone else with 403', async () => {
+        vi.mocked(roomRepository.findRoomByName).mockResolvedValue(
+            makeRoom({ admin_id: 1 })
+        );
+        vi.mocked(userRepository.findUserBySub).mockResolvedValue(
+            makeUser({ user_id: 2 })
+        );
+        await expect(
+            updateBaseUrl('abc', 'auth0|other', 'https://new')
+        ).rejects.toMatchObject({ status: 403 });
     });
 });

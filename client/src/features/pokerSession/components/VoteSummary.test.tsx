@@ -11,6 +11,12 @@ const statsTicket = makeTicket({
     suggested_vote: { vote: 5, rule: SuggestedVoteRule.rule1 },
 });
 
+const statValue = (label: string) =>
+    screen
+        .getByText(label)
+        .closest('.vote-stat')
+        ?.querySelector('.vote-stat-value')?.textContent;
+
 describe('VoteSummary', () => {
     it('renders nothing before stats are calculated', () => {
         const { container } = render(<VoteSummary ticket={makeTicket()} />);
@@ -19,21 +25,19 @@ describe('VoteSummary', () => {
 
     it('shows the suggestion, its reason and the stats', () => {
         render(<VoteSummary ticket={statsTicket} />);
-        expect(screen.getByText('Suggested Vote: 5')).toBeInTheDocument();
-        expect(screen.getByRole('alert')).toHaveTextContent(
-            SuggestedVoteRule.rule1
-        );
-        expect(screen.getByText(/Most Common Vote: 5/)).toBeInTheDocument();
-        expect(screen.getByText(/Average Vote: 6 ± 1.41/)).toBeInTheDocument();
+        expect(statValue('Suggested vote')).toBe('5');
+        expect(screen.getByText(SuggestedVoteRule.rule1)).toBeInTheDocument();
+        expect(statValue('Most common vote')).toBe('5');
+        expect(statValue('Average vote')).toBe('6 ± 1.41');
     });
 
     it('lists every tied mode', () => {
         render(<VoteSummary ticket={{ ...statsTicket, mode: [3, 5] }} />);
-        expect(screen.getByText(/Most Common Vote: 3, 5/)).toBeInTheDocument();
+        expect(statValue('Most common vote')).toBe('3, 5');
     });
 
     it('still renders when the average is 0', () => {
         render(<VoteSummary ticket={{ ...statsTicket, average_vote: 0 }} />);
-        expect(screen.getByText(/Average Vote: 0/)).toBeInTheDocument();
+        expect(statValue('Average vote')).toMatch(/^0 ±/);
     });
 });

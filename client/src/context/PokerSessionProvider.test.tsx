@@ -17,6 +17,8 @@ const api = vi.hoisted(() => ({
     getJiraTicket: vi.fn(),
     addTicket: vi.fn(),
     deleteTicket: vi.fn(),
+    setFavourite: vi.fn(),
+    setHidden: vi.fn(),
 }));
 
 vi.mock('../services/socket', () => ({ socket: fakeSocket }));
@@ -188,6 +190,67 @@ describe('PokerSessionProvider', () => {
 
             act(() => result.current.selectTicket(ticketB));
             expect(result.current.showVotes).toBe(true);
+        });
+    });
+
+    describe('favourites and hiding', () => {
+        it('stars the room for the current user', async () => {
+            api.setFavourite.mockResolvedValue(undefined);
+            const { result } = await renderSession();
+            await act(() => result.current.toggleFavourite());
+            expect(api.setFavourite).toHaveBeenCalledWith('room-abc', true);
+            expect(result.current.room?.favourite).toBe(true);
+        });
+
+        it('hides the room', async () => {
+            api.setHidden.mockResolvedValue(undefined);
+            const { result } = await renderSession({ adminSub: 'user-1' });
+            await act(() => result.current.setRoomHidden(true));
+            expect(api.setHidden).toHaveBeenCalledWith('room-abc', true);
+            expect(result.current.room?.hidden).toBe(true);
+        });
+
+        it('shows an error if hiding fails', async () => {
+            api.setHidden.mockRejectedValue(new Error('403'));
+            const { result } = await renderSession();
+            await act(() => result.current.setRoomHidden(true));
+            expect(result.current.room?.hidden).toBeFalsy();
+            expect(result.current.error).toBe('Could not hide the room.');
+        });
+    });
+
+    describe('refinement mode', () => {
+        afterEach(() => sessionStorage.clear());
+
+        it("hides the admin's own vote until votes are revealed, for every ticket", async () => {
+            const { result } = await renderSession({ adminSub: 'user-1' });
+            expect(result.current.refinementMode).toBe(false);
+
+            act(() => result.current.toggleRefinementMode());
+            act(() => result.current.selectTicket(ticketA));
+            expect(result.current.refinementMode).toBe(true);
+            expect(result.current.hideOwnVote).toBe(true);
+
+            act(() => result.current.selectTicket(ticketB));
+            expect(result.current.hideOwnVote).toBe(true);
+            act(() => fakeSocket.serverEmit('showVotes', { ticketId: 'b' }));
+            expect(result.current.hideOwnVote).toBe(false);
+        });
+
+        it('is remembered for the room across a refresh', async () => {
+            const first = await renderSession({ adminSub: 'user-1' });
+            act(() => first.result.current.toggleRefinementMode());
+            first.unmount();
+
+            const { result } = await renderSession({ adminSub: 'user-1' });
+            expect(result.current.refinementMode).toBe(true);
+        });
+
+        it('never applies to non-admins', async () => {
+            const { result } = await renderSession();
+            act(() => result.current.toggleRefinementMode());
+            expect(result.current.refinementMode).toBe(false);
+            expect(result.current.hideOwnVote).toBe(false);
         });
     });
 

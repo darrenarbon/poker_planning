@@ -11,10 +11,13 @@ vi.mock('../../components/NavBar', () => ({ default: () => <nav /> }));
 vi.mock('./components/JoinExistingRoom', () => ({
     default: () => <div>join-existing</div>,
 }));
+vi.mock('./components/LoggedOutWelcome', () => ({
+    default: () => <div>logged-out-welcome</div>,
+}));
 vi.mock('./components/CreateRoomForm', () => ({
     default: () => <div>create-room</div>,
 }));
-vi.mock('./components/MyRoomsList', () => ({
+vi.mock('./components/RoomLists', () => ({
     default: ({ rooms }: { rooms: unknown[] }) => (
         <div>my-rooms:{rooms.length}</div>
     ),
@@ -31,6 +34,7 @@ const mockRooms = (value: Partial<ReturnType<typeof useUserRooms>>) =>
         rooms: [],
         loaded: true,
         error: null,
+        toggleFavourite: vi.fn(),
         ...value,
     });
 
@@ -41,9 +45,17 @@ describe('JoinRoomPage', () => {
         mockAuth(false);
         mockRooms({ loaded: false });
         render(<JoinRoomPage />);
-        expect(
-            screen.getByText('Please log in to create or join a room')
-        ).toBeInTheDocument();
+        expect(screen.getByText('logged-out-welcome')).toBeInTheDocument();
+    });
+
+    it('shows the loader while auth is restoring the session', () => {
+        vi.mocked(useAuth0).mockReturnValue({
+            isAuthenticated: false,
+            isLoading: true,
+        } as unknown as ReturnType<typeof useAuth0>);
+        mockRooms({ loaded: false });
+        const { container } = render(<JoinRoomPage />);
+        expect(container.querySelector('.loader')).toBeInTheDocument();
     });
 
     it('shows the loader until rooms are loaded', () => {

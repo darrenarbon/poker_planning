@@ -1,11 +1,13 @@
 import { useAuth0 } from '@auth0/auth0-react';
+import { useLogin } from '../hooks';
 import { getInitials } from '../utils';
 
 const NavBar = () => {
-    const { user, logout, loginWithRedirect } = useAuth0();
+    const { user, logout } = useAuth0();
+    const login = useLogin();
 
     return (
-        <nav className="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+        <nav className="navbar navbar-expand-md navbar-dark sticky-top bg-dark">
             <div className="container-fluid">
                 <a
                     className="navbar-brand"
@@ -48,7 +50,7 @@ const NavBar = () => {
                             <button
                                 className="btn btn-outline-light"
                                 type="button"
-                                onClick={() => loginWithRedirect()}
+                                onClick={login}
                             >
                                 Login
                             </button>

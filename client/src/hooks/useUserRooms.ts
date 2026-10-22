@@ -1,9 +1,9 @@
 import { useAuth0 } from '@auth0/auth0-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { RoomSummary } from '../types';
 import { useApi } from './useApi';
 
-/** Registers the logged-in user with the API, then loads the rooms they own */
+/** Registers the logged-in user with the API, then loads the rooms they created or joined */
 export const useUserRooms = () => {
     const { user, isAuthenticated } = useAuth0();
     const api = useApi();
@@ -30,5 +30,28 @@ export const useUserRooms = () => {
         load();
     }, [api, isAuthenticated, user]);
 
-    return { rooms, loaded, error };
+    const toggleFavourite = useCallback(
+        async (room: RoomSummary) => {
+            const favourite = !room.favourite;
+            const setFlag = (value: boolean) =>
+                setRooms((prev) =>
+                    prev.map((r) =>
+                        r.room_id === room.room_id
+                            ? { ...r, favourite: value }
+                            : r
+                    )
+                );
+            setFlag(favourite);
+            try {
+                await api.setFavourite(room.room_name, favourite);
+            } catch (error) {
+                console.error('Failed to update favourite:', error);
+                setFlag(!favourite);
+                setError('Could not update your favourites. Please try again.');
+            }
+        },
+        [api]
+    );
+
+    return { rooms, loaded, error, toggleFavourite };
 };

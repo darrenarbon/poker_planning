@@ -1,4 +1,5 @@
 :root {
+    --navbar-height: 56px;
     font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
     line-height: 1.5;
     font-weight: 400;
@@ -14,7 +15,6 @@ body {
     display: flex;
     min-width: 320px;
     min-height: 100vh;
-    padding-top: 4.5rem;
 }
 
 .btn-xl {
