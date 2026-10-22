@@ -9,7 +9,7 @@ import VotingPanel from './VotingPanel';
 
 const CurrentTicketPanel = () => {
     const { currentTicket, isAdmin, showVotes } = usePokerSession();
-    useConsensusConfetti(currentTicket, showVotes);
+    const quip = useConsensusConfetti(currentTicket, showVotes);
 
     if (!currentTicket) {
         return (
@@ -27,6 +27,12 @@ const CurrentTicketPanel = () => {
     return (
         <div className="row g-4">
             <div className="col-lg-8 d-flex flex-column gap-3">
+                {quip && (
+                    <div className="disagreement-quip" role="status">
+                        <span aria-hidden="true">🤷 </span>
+                        {quip}
+                    </div>
+                )}
                 {isAdmin && <AdminPanel />}
                 <DiscussionTimer />
                 {isComplete ? (
