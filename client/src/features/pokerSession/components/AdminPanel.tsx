@@ -10,6 +10,7 @@ const AdminPanel = () => {
         revote,
         nextTicket,
         deleteCurrentTicket,
+        refinementMode,
     } = usePokerSession();
 
     if (!currentTicket) return null;
@@ -55,12 +56,15 @@ const AdminPanel = () => {
                 >
                     Next ticket
                 </button>
-                <button
-                    className="btn btn-outline-danger btn-sm"
-                    onClick={deleteCurrentTicket}
-                >
-                    Delete Ticket
-                </button>
+                {/* hidden while screen sharing, to avoid a mis-click */}
+                {!refinementMode && (
+                    <button
+                        className="btn btn-outline-danger btn-sm"
+                        onClick={deleteCurrentTicket}
+                    >
+                        Delete Ticket
+                    </button>
+                )}
             </div>
         </section>
     );

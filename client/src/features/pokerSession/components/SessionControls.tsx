@@ -48,7 +48,7 @@ const SessionControls = () => {
                     })}
                     onClick={toggleRefinementMode}
                     aria-pressed={refinementMode}
-                    title="Hide your own vote until Show Votes is pressed, for the whole session. Use this when sharing your screen."
+                    title="Use this when sharing your screen: hides your own vote until Show Votes is pressed, hides room admin controls, and moves everyone to the ticket you select."
                 >
                     Refinement mode: {refinementMode ? 'On' : 'Off'}
                 </button>

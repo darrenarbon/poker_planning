@@ -12,10 +12,12 @@ const FacilitatorsPanel = () => {
         addCoFacilitator,
         removeCoFacilitator,
         handOver,
+        refinementMode,
     } = usePokerSession();
     const [selectedSub, setSelectedSub] = useState('');
 
-    if (!isOwner || !room) return null;
+    // hidden while screen sharing
+    if (!isOwner || !room || refinementMode) return null;
 
     const coFacilitatorSubs = room.coFacilitatorSubs ?? [];
     const nameOf = (sub: string) => {

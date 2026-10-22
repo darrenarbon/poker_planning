@@ -58,4 +58,14 @@ describe('AdminPanel', () => {
         renderWithSession(<AdminPanel />, { currentTicket: makeTicket() });
         expect(screen.getByRole('button', { name: 'Re-vote' })).toBeDisabled();
     });
+
+    it('hides Delete Ticket in refinement mode', () => {
+        renderWithSession(<AdminPanel />, {
+            currentTicket: makeTicket(),
+            refinementMode: true,
+        });
+        expect(
+            screen.queryByRole('button', { name: 'Delete Ticket' })
+        ).not.toBeInTheDocument();
+    });
 });

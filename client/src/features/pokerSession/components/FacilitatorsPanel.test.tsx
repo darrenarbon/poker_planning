@@ -59,4 +59,13 @@ describe('FacilitatorsPanel', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Hand over room' }));
         expect(session.handOver).toHaveBeenCalledWith('bob');
     });
+
+    it('is hidden in refinement mode', () => {
+        const { container } = renderWithSession(<FacilitatorsPanel />, {
+            isOwner: true,
+            isAdmin: true,
+            refinementMode: true,
+        });
+        expect(container).toBeEmptyDOMElement();
+    });
 });

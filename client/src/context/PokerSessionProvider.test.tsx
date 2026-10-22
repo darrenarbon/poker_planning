@@ -244,6 +244,28 @@ describe('PokerSessionProvider', () => {
             expect(result.current.refinementMode).toBe(true);
         });
 
+        it('only moves everyone to a selected ticket while it is on', async () => {
+            const { result } = await renderSession({ adminSub: 'user-1' });
+            act(() => result.current.selectTicket(ticketA));
+            expect(fakeSocket.emit).not.toHaveBeenCalledWith(
+                'selectTicket',
+                expect.anything()
+            );
+
+            act(() => result.current.toggleRefinementMode());
+            // switching on brings everyone to the facilitator's ticket
+            expect(fakeSocket.emit).toHaveBeenCalledWith('selectTicket', {
+                roomName: 'room-abc',
+                ticketId: 'a',
+            });
+
+            act(() => result.current.selectTicket(ticketB));
+            expect(fakeSocket.emit).toHaveBeenCalledWith('selectTicket', {
+                roomName: 'room-abc',
+                ticketId: 'b',
+            });
+        });
+
         it('never applies to non-admins', async () => {
             const { result } = await renderSession();
             act(() => result.current.toggleRefinementMode());

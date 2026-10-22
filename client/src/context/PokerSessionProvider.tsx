@@ -101,23 +101,30 @@ export const PokerSessionProvider = ({
     const hideOwnVote = refinementMode && !showVotes;
 
     const toggleRefinementMode = useCallback(() => {
-        setRefinementModeEnabled((enabled) => {
-            saveRefinementMode(roomName, !enabled);
-            return !enabled;
-        });
-    }, [roomName]);
+        const enabled = !refinementModeEnabled;
+        setRefinementModeEnabled(enabled);
+        saveRefinementMode(roomName, enabled);
+        // turning it on brings everyone to the ticket the facilitator is on
+        if (enabled && isAdmin && currentTicketId) {
+            socket.emit('selectTicket', {
+                roomName,
+                ticketId: currentTicketId,
+            });
+        }
+    }, [refinementModeEnabled, isAdmin, currentTicketId, roomName]);
 
     const selectTicket = useCallback(
         (ticket: TicketForVoting) => {
             setCurrentTicketId(ticket.ticket_id);
-            if (isAdmin) {
+            // everyone follows the facilitator only in refinement mode
+            if (refinementMode) {
                 socket.emit('selectTicket', {
                     roomName,
                     ticketId: ticket.ticket_id,
                 });
             }
         },
-        [isAdmin, roomName]
+        [refinementMode, roomName]
     );
 
     const nextTicket = useCallback(() => {
