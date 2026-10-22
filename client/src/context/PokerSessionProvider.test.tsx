@@ -322,18 +322,7 @@ describe('PokerSessionProvider', () => {
     });
 
     describe('deleting a ticket', () => {
-        it('does nothing if the user cancels', async () => {
-            vi.spyOn(window, 'confirm').mockReturnValue(false);
-            const { result } = await renderSession();
-            act(() => result.current.selectTicket(ticketA));
-
-            await act(() => result.current.deleteCurrentTicket());
-            expect(api.deleteTicket).not.toHaveBeenCalled();
-            expect(result.current.tickets).toHaveLength(2);
-        });
-
         it('removes the ticket and clears the selection', async () => {
-            vi.spyOn(window, 'confirm').mockReturnValue(true);
             api.deleteTicket.mockResolvedValue(undefined);
             const { result } = await renderSession();
             act(() => result.current.selectTicket(ticketA));
@@ -345,7 +334,6 @@ describe('PokerSessionProvider', () => {
         });
 
         it('keeps the ticket and shows an error when deleting fails', async () => {
-            vi.spyOn(window, 'confirm').mockReturnValue(true);
             api.deleteTicket.mockRejectedValue(new Error('boom'));
             const { result } = await renderSession();
             act(() => result.current.selectTicket(ticketA));

@@ -1,3 +1,4 @@
+import { FormEvent, useState } from 'react';
 import { usePokerSession } from '../../../context';
 import { findVote } from '../../../utils';
 import PastSprints from './PastSprints';
@@ -15,11 +16,20 @@ const TicketList = () => {
         refinementMode,
     } = usePokerSession();
 
-    const promptForTicket = () => {
-        const ticketNumber = prompt('Enter new ticket number:');
-        if (ticketNumber) {
-            addTicket(ticketNumber);
-        }
+    const [adding, setAdding] = useState(false);
+    const [ticketNumber, setTicketNumber] = useState('');
+
+    const closeAddForm = () => {
+        setAdding(false);
+        setTicketNumber('');
+    };
+
+    const submitTicket = (e: FormEvent) => {
+        e.preventDefault();
+        const trimmed = ticketNumber.trim();
+        if (!trimmed) return;
+        addTicket(trimmed);
+        closeAddForm();
     };
 
     const votedCount = tickets.filter(
@@ -36,14 +46,51 @@ const TicketList = () => {
                     </span>
                 )}
             </div>
-            {isAdmin && (
-                <button
-                    className="btn btn-primary btn-sm w-100 mb-3"
-                    onClick={promptForTicket}
-                >
-                    Add New Ticket
-                </button>
-            )}
+            {isAdmin &&
+                (adding ? (
+                    <form className="mb-3" onSubmit={submitTicket}>
+                        <label
+                            htmlFor="newTicketNumber"
+                            className="form-label small mb-1"
+                        >
+                            New ticket number
+                        </label>
+                        <input
+                            id="newTicketNumber"
+                            className="form-control form-control-sm mb-2"
+                            value={ticketNumber}
+                            onChange={(e) => setTicketNumber(e.target.value)}
+                            onKeyDown={(e) =>
+                                e.key === 'Escape' && closeAddForm()
+                            }
+                            placeholder="e.g. ABC-123"
+                            autoFocus
+                        />
+                        <div className="d-flex gap-2">
+                            <button
+                                type="submit"
+                                className="btn btn-primary btn-sm flex-fill"
+                                disabled={!ticketNumber.trim()}
+                            >
+                                Add
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-outline-secondary btn-sm flex-fill"
+                                onClick={closeAddForm}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                ) : (
+                    <button
+                        className="btn btn-primary btn-sm w-100 mb-3"
+                        onClick={() => setAdding(true)}
+                    >
+                        Add New Ticket
+                    </button>
+                ))}
             {tickets.length === 0 && (
                 <p className="text-secondary small">No tickets yet.</p>
             )}

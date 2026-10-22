@@ -58,25 +58,46 @@ describe('TicketList', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('lets admins add a ticket via a prompt', async () => {
-        vi.spyOn(window, 'prompt').mockReturnValue('ABC-3');
+    it('lets admins add a ticket with the inline form', async () => {
         const { session } = renderWithSession(<TicketList />, {
             isAdmin: true,
         });
         await userEvent.click(
             screen.getByRole('button', { name: 'Add New Ticket' })
+        );
+        await userEvent.type(
+            screen.getByLabelText('New ticket number'),
+            ' ABC-3 {Enter}'
         );
         expect(session.addTicket).toHaveBeenCalledWith('ABC-3');
+        expect(
+            screen.queryByLabelText('New ticket number')
+        ).not.toBeInTheDocument();
     });
 
-    it('does nothing when the prompt is cancelled', async () => {
-        vi.spyOn(window, 'prompt').mockReturnValue(null);
+    it('does nothing when adding is cancelled', async () => {
         const { session } = renderWithSession(<TicketList />, {
             isAdmin: true,
         });
         await userEvent.click(
             screen.getByRole('button', { name: 'Add New Ticket' })
         );
+        await userEvent.type(
+            screen.getByLabelText('New ticket number'),
+            'ABC-3{Escape}'
+        );
         expect(session.addTicket).not.toHaveBeenCalled();
+        expect(
+            screen.getByRole('button', { name: 'Add New Ticket' })
+        ).toBeInTheDocument();
+    });
+
+    it('selects a ticket from the keyboard', async () => {
+        const { session } = renderWithSession(<TicketList />, { tickets });
+        await userEvent.tab();
+        await userEvent.keyboard('{Enter}');
+        expect(session.selectTicket).toHaveBeenCalledWith(tickets[0]);
+        await userEvent.keyboard(' ');
+        expect(session.selectTicket).toHaveBeenCalledTimes(2);
     });
 });

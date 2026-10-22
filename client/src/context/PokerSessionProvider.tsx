@@ -218,10 +218,6 @@ export const PokerSessionProvider = ({
 
     const deleteCurrentTicket = useCallback(async () => {
         if (!currentTicket) return;
-        const confirmed = confirm(
-            `Are you sure you want to delete ticket ${currentTicket.ticket_number}? This action cannot be undone.`
-        );
-        if (!confirmed) return;
         try {
             await api.deleteTicket(currentTicket.ticket_id);
             setTickets((prev) =>

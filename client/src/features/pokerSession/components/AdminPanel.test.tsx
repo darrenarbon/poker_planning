@@ -1,6 +1,6 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { makeTicket } from '../../../test/factories';
 import { renderWithSession } from '../../../test/renderWithSession';
 import AdminPanel from './AdminPanel';
@@ -28,7 +28,23 @@ describe('AdminPanel', () => {
         await userEvent.click(
             screen.getByRole('button', { name: 'Delete Ticket' })
         );
+        expect(session.deleteCurrentTicket).not.toHaveBeenCalled();
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Delete ticket' })
+        );
         expect(session.deleteCurrentTicket).toHaveBeenCalled();
+    });
+
+    it('does not delete if the modal is cancelled', async () => {
+        const { session } = renderWithSession(<AdminPanel />, {
+            currentTicket: makeTicket(),
+        });
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Delete Ticket' })
+        );
+        await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(session.deleteCurrentTicket).not.toHaveBeenCalled();
     });
 
     it('moves everyone to the next ticket', async () => {
@@ -44,13 +60,17 @@ describe('AdminPanel', () => {
     });
 
     it('clears the votes for a re-vote after confirming', async () => {
-        vi.spyOn(window, 'confirm').mockReturnValue(true);
         const { session } = renderWithSession(<AdminPanel />, {
             currentTicket: makeTicket({
                 votes: [{ usersub: 'user-1', vote: 3 }],
             }),
         });
         await userEvent.click(screen.getByRole('button', { name: 'Re-vote' }));
+        await userEvent.click(
+            within(screen.getByRole('dialog')).getByRole('button', {
+                name: 'Re-vote',
+            })
+        );
         expect(session.revote).toHaveBeenCalled();
     });
 

@@ -1,5 +1,6 @@
 import Tooltip from '../../../components/Tooltip';
 import { usePokerSession } from '../../../context';
+import { useConfirm } from '../../../hooks';
 import { findNextTicket } from '../../../utils';
 
 /** Facilitator-only actions for the current ticket */
@@ -13,21 +14,30 @@ const AdminPanel = () => {
         deleteCurrentTicket,
         refinementMode,
     } = usePokerSession();
+    const [confirm, confirmModal] = useConfirm();
 
     if (!currentTicket) return null;
 
     const hasVotes = currentTicket.votes.length > 0;
     const hasNext = !!findNextTicket(tickets, currentTicket.ticket_id);
 
-    const confirmRevote = () => {
-        if (
-            confirm(
-                `Clear all votes on ${currentTicket.ticket_number} so everyone can vote again?`
-            )
-        ) {
-            revote();
-        }
-    };
+    const confirmRevote = () =>
+        confirm({
+            title: 'Re-vote?',
+            message: `Clear all votes on ${currentTicket.ticket_number} so everyone can vote again?`,
+            confirmLabel: 'Re-vote',
+            onConfirm: revote,
+        });
+
+    const confirmDelete = () =>
+        confirm({
+            title: `Delete ${currentTicket.ticket_number}?`,
+            message:
+                'The ticket and its votes will be permanently deleted. This cannot be undone.',
+            confirmLabel: 'Delete ticket',
+            variant: 'danger',
+            onConfirm: deleteCurrentTicket,
+        });
 
     return (
         <section className="admin-panel d-flex flex-wrap align-items-center justify-content-between gap-2">
@@ -72,13 +82,14 @@ const AdminPanel = () => {
                     <Tooltip text="Permanently deletes this ticket and its votes.">
                         <button
                             className="btn btn-outline-danger btn-sm"
-                            onClick={deleteCurrentTicket}
+                            onClick={confirmDelete}
                         >
                             Delete Ticket
                         </button>
                     </Tooltip>
                 )}
             </div>
+            {confirmModal}
         </section>
     );
 };
