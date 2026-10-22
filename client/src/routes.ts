@@ -2,6 +2,8 @@ export type RoomRouteParams = { roomName: string };
 
 export const paths = {
     home: '/',
+    newRoom: '/rooms/new',
+    joinRoom: '/rooms/join',
     roomTickets: '/room/:roomName/tickets',
     roomVoting: '/room/:roomName/voting',
 };

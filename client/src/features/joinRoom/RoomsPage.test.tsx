@@ -3,19 +3,13 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useUserRooms } from '../../hooks';
 import { makeAuthUser } from '../../test/factories';
-import JoinRoomPage from './JoinRoomPage';
+import RoomsPage from './RoomsPage';
 
 vi.mock('@auth0/auth0-react', () => ({ useAuth0: vi.fn() }));
 vi.mock('../../hooks', () => ({ useUserRooms: vi.fn() }));
 vi.mock('../../components/NavBar', () => ({ default: () => <nav /> }));
-vi.mock('./components/JoinExistingRoom', () => ({
-    default: () => <div>join-existing</div>,
-}));
 vi.mock('./components/LoggedOutWelcome', () => ({
     default: () => <div>logged-out-welcome</div>,
-}));
-vi.mock('./components/CreateRoomForm', () => ({
-    default: () => <div>create-room</div>,
 }));
 vi.mock('./components/RoomLists', () => ({
     default: ({ rooms }: { rooms: unknown[] }) => (
@@ -38,13 +32,13 @@ const mockRooms = (value: Partial<ReturnType<typeof useUserRooms>>) =>
         ...value,
     });
 
-describe('JoinRoomPage', () => {
+describe('RoomsPage', () => {
     beforeEach(() => vi.clearAllMocks());
 
     it('asks logged-out users to log in', () => {
         mockAuth(false);
         mockRooms({ loaded: false });
-        render(<JoinRoomPage />);
+        render(<RoomsPage />);
         expect(screen.getByText('logged-out-welcome')).toBeInTheDocument();
     });
 
@@ -54,30 +48,33 @@ describe('JoinRoomPage', () => {
             isLoading: true,
         } as unknown as ReturnType<typeof useAuth0>);
         mockRooms({ loaded: false });
-        const { container } = render(<JoinRoomPage />);
+        const { container } = render(<RoomsPage />);
         expect(container.querySelector('.loader')).toBeInTheDocument();
     });
 
     it('shows the loader until rooms are loaded', () => {
         mockAuth(true);
         mockRooms({ loaded: false });
-        const { container } = render(<JoinRoomPage />);
+        const { container } = render(<RoomsPage />);
         expect(container.querySelector('.loader')).toBeInTheDocument();
     });
 
-    it('shows join, create and my rooms once loaded', () => {
+    it('lists rooms with a link to create one, but no forms', () => {
         mockAuth(true);
         mockRooms({ rooms: [{} as never, {} as never] });
-        render(<JoinRoomPage />);
-        expect(screen.getByText('join-existing')).toBeInTheDocument();
-        expect(screen.getByText('create-room')).toBeInTheDocument();
+        render(<RoomsPage />);
         expect(screen.getByText('my-rooms:2')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'New room' })).toHaveAttribute(
+            'href',
+            '/rooms/new'
+        );
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     });
 
     it('shows an error when rooms fail to load', () => {
         mockAuth(true);
         mockRooms({ error: 'Could not load your rooms.' });
-        render(<JoinRoomPage />);
+        render(<RoomsPage />);
         expect(screen.getByRole('alert')).toHaveTextContent(
             'Could not load your rooms.'
         );

@@ -3,12 +3,11 @@ import ErrorAlert from '../../components/ErrorAlert';
 import Loading from '../../components/Loading';
 import NavBar from '../../components/NavBar';
 import { useUserRooms } from '../../hooks';
-import CreateRoomForm from './components/CreateRoomForm';
-import JoinExistingRoom from './components/JoinExistingRoom';
+import { paths } from '../../routes';
 import LoggedOutWelcome from './components/LoggedOutWelcome';
 import RoomLists from './components/RoomLists';
 
-const JoinRoomPage = () => {
+const RoomsPage = () => {
     const { user, isAuthenticated, isLoading } = useAuth0();
     const { rooms, loaded, error, toggleFavourite } = useUserRooms();
 
@@ -24,23 +23,20 @@ const JoinRoomPage = () => {
         }
         return (
             <div className="dashboard">
-                <header className="mb-4">
-                    <h1 className="h3 fw-bold mb-1">
-                        Welcome back
-                        {user.given_name ? `, ${user.given_name}` : ''}
-                    </h1>
-                    <p className="text-secondary mb-0">
-                        Join your team&apos;s session or start a new one.
-                    </p>
+                <header className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
+                    <div>
+                        <h1 className="h3 fw-bold mb-1">
+                            Welcome back
+                            {user.given_name ? `, ${user.given_name}` : ''}
+                        </h1>
+                        <p className="text-secondary mb-0">
+                            Pick up where you left off.
+                        </p>
+                    </div>
+                    <a className="btn btn-primary" href={paths.newRoom}>
+                        New room
+                    </a>
                 </header>
-                <div className="row g-4">
-                    <div className="col-lg-5">
-                        <JoinExistingRoom />
-                    </div>
-                    <div className="col-lg-7">
-                        <CreateRoomForm />
-                    </div>
-                </div>
                 <RoomLists rooms={rooms} onToggleFavourite={toggleFavourite} />
             </div>
         );
@@ -57,4 +53,4 @@ const JoinRoomPage = () => {
     );
 };
 
-export default JoinRoomPage;
+export default RoomsPage;
