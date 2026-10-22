@@ -1,3 +1,4 @@
+import Tooltip from '../../../components/Tooltip';
 import { usePokerSession } from '../../../context';
 import { findNextTicket } from '../../../utils';
 
@@ -34,36 +35,48 @@ const AdminPanel = () => {
                 Ticket controls
             </span>
             <div className="d-flex flex-wrap gap-2">
-                <button
-                    className="btn btn-primary btn-sm"
-                    onClick={revealVotes}
+                <Tooltip text="Reveals everyone's votes on this ticket, with the average and a suggested estimate.">
+                    <button
+                        className="btn btn-primary btn-sm"
+                        onClick={revealVotes}
+                    >
+                        Show Votes
+                    </button>
+                </Tooltip>
+                <Tooltip text="Clears all votes on this ticket and hides them again, so everyone can vote afresh after discussion.">
+                    <button
+                        className="btn btn-outline-primary btn-sm"
+                        onClick={confirmRevote}
+                        disabled={!hasVotes}
+                    >
+                        Re-vote
+                    </button>
+                </Tooltip>
+                <Tooltip
+                    text={
+                        refinementMode
+                            ? 'Moves everyone to the next ticket whose votes have not been shown.'
+                            : 'Goes to the next ticket whose votes have not been shown. Turn on refinement mode to bring everyone with you.'
+                    }
                 >
-                    Show Votes
-                </button>
-                <button
-                    className="btn btn-outline-primary btn-sm"
-                    onClick={confirmRevote}
-                    disabled={!hasVotes}
-                    title="Clear the votes on this ticket after discussion"
-                >
-                    Re-vote
-                </button>
-                <button
-                    className="btn btn-outline-primary btn-sm"
-                    onClick={nextTicket}
-                    disabled={!hasNext}
-                    title="Move everyone to the next ticket still to vote on"
-                >
-                    Next ticket
-                </button>
+                    <button
+                        className="btn btn-outline-primary btn-sm"
+                        onClick={nextTicket}
+                        disabled={!hasNext}
+                    >
+                        Next ticket
+                    </button>
+                </Tooltip>
                 {/* hidden while screen sharing, to avoid a mis-click */}
                 {!refinementMode && (
-                    <button
-                        className="btn btn-outline-danger btn-sm"
-                        onClick={deleteCurrentTicket}
-                    >
-                        Delete Ticket
-                    </button>
+                    <Tooltip text="Permanently deletes this ticket and its votes.">
+                        <button
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={deleteCurrentTicket}
+                        >
+                            Delete Ticket
+                        </button>
+                    </Tooltip>
                 )}
             </div>
         </section>

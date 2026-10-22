@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Tooltip from '../../../components/Tooltip';
 import { usePokerSession } from '../../../context';
 import { UserModel } from '../../../types';
 import { getDisplayName } from '../../../utils';
@@ -79,23 +80,27 @@ const FacilitatorsPanel = () => {
                             </option>
                         ))}
                     </select>
-                    <button
-                        className="btn btn-outline-secondary btn-sm"
-                        disabled={!selectedSub || selectedIsCo}
-                        onClick={() => {
-                            addCoFacilitator(selectedSub);
-                            setSelectedSub('');
-                        }}
-                    >
-                        Make co-facilitator
-                    </button>
-                    <button
-                        className="btn btn-outline-secondary btn-sm"
-                        disabled={!selectedSub}
-                        onClick={confirmHandOver}
-                    >
-                        Hand over room
-                    </button>
+                    <Tooltip text="Gives the chosen player the same session controls as you. Only you, as owner, can remove them.">
+                        <button
+                            className="btn btn-outline-secondary btn-sm"
+                            disabled={!selectedSub || selectedIsCo}
+                            onClick={() => {
+                                addCoFacilitator(selectedSub);
+                                setSelectedSub('');
+                            }}
+                        >
+                            Make co-facilitator
+                        </button>
+                    </Tooltip>
+                    <Tooltip text="Makes the chosen player the room's owner. You stay on as a co-facilitator.">
+                        <button
+                            className="btn btn-outline-secondary btn-sm"
+                            disabled={!selectedSub}
+                            onClick={confirmHandOver}
+                        >
+                            Hand over room
+                        </button>
+                    </Tooltip>
                 </div>
             )}
         </section>
