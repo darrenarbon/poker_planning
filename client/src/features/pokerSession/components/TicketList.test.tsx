@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { createEvent, fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeTicket } from '../../../test/factories';
@@ -99,5 +99,69 @@ describe('TicketList', () => {
         expect(session.selectTicket).toHaveBeenCalledWith(tickets[0]);
         await userEvent.keyboard(' ');
         expect(session.selectTicket).toHaveBeenCalledTimes(2);
+    });
+
+    describe('reordering', () => {
+        const three = [
+            ...tickets,
+            makeTicket({ ticket_id: 'c', ticket_number: 'ABC-3' }),
+        ];
+
+        // jsdom has no layout, so give each item a 40px tall box
+        const layOut = (items: HTMLElement[]) =>
+            items.forEach((item, i) =>
+                vi.spyOn(item, 'getBoundingClientRect').mockReturnValue({
+                    top: i * 40,
+                    height: 40,
+                } as DOMRect)
+            );
+
+        it('lets a facilitator drag a ticket below another', () => {
+            const moveTicket = vi.fn();
+            renderWithSession(<TicketList />, {
+                tickets: three,
+                isAdmin: true,
+                moveTicket,
+            });
+            const items = screen.getAllByTestId('ticket-drag-item');
+            layOut(items);
+            const dataTransfer = { setData: vi.fn() };
+
+            fireEvent.dragStart(items[0], { dataTransfer });
+            // lower half of the second ticket: the gap after it
+            // jsdom drops clientY from drag events, so set it by hand
+            const dragOver = createEvent.dragOver(items[1], { dataTransfer });
+            Object.defineProperty(dragOver, 'clientY', { value: 70 });
+            fireEvent(items[1], dragOver);
+            expect(items[2]).toHaveClass('drop-before');
+            fireEvent.drop(items[1], { dataTransfer });
+
+            expect(moveTicket).toHaveBeenCalledWith('a', 2);
+            expect(items[2]).not.toHaveClass('drop-before');
+        });
+
+        it('lets a facilitator move a ticket with Alt + arrow keys', async () => {
+            const moveTicket = vi.fn();
+            renderWithSession(<TicketList />, {
+                tickets: three,
+                isAdmin: true,
+                moveTicket,
+            });
+            const card = screen.getByText('ABC-2').closest('.card')!;
+            (card as HTMLElement).focus();
+
+            await userEvent.keyboard('{Alt>}{ArrowUp}{/Alt}');
+            expect(moveTicket).toHaveBeenLastCalledWith('b', 0);
+            await userEvent.keyboard('{Alt>}{ArrowDown}{/Alt}');
+            expect(moveTicket).toHaveBeenLastCalledWith('b', 3);
+        });
+
+        it('does not let players reorder', () => {
+            renderWithSession(<TicketList />, { tickets: three });
+            expect(screen.queryAllByTestId('ticket-drag-item')).toHaveLength(0);
+            expect(
+                screen.queryByText(/drag tickets to reorder/i)
+            ).not.toBeInTheDocument();
+        });
     });
 });

@@ -11,6 +11,7 @@ import { registerArchiveHandler } from './archiveHandler.js';
 import { registerFacilitatorsHandler } from './facilitatorsHandler.js';
 import { registerJoinHandler } from './joinHandler.js';
 import { registerPresenceHandler } from './presenceHandler.js';
+import { registerReorderTicketsHandler } from './reorderTicketsHandler.js';
 import { registerRevoteHandler } from './revoteHandler.js';
 import { registerSelectTicketHandler } from './selectTicketHandler.js';
 import { registerSetEstimateHandler } from './setEstimateHandler.js';
@@ -410,5 +411,44 @@ describe('archiveSprint', () => {
         expect(fake.ioEmit).toHaveBeenCalledWith('sprintArchived', {
             archivedAt: 'when',
         });
+    });
+});
+
+describe('reorderTickets', () => {
+    beforeEach(() => {
+        registerReorderTicketsHandler(fake.socket, fake.io);
+        fake.socket.rooms.add('abc');
+    });
+
+    it('saves the order and tells everyone else', async () => {
+        vi.mocked(ticketService.reorderTickets).mockResolvedValue();
+        await fake.trigger('reorderTickets', {
+            roomName: 'abc',
+            ticketIds: [2, 1],
+        });
+        expect(ticketService.reorderTickets).toHaveBeenCalledWith(
+            'abc',
+            'auth0|u',
+            [2, 1]
+        );
+        expect(fake.socket.to).toHaveBeenCalledWith('abc');
+        expect(fake.roomEmit).toHaveBeenCalledWith('ticketsReordered', {
+            ticketIds: [2, 1],
+        });
+    });
+
+    it('tells nobody when the order could not be saved', async () => {
+        vi.mocked(ticketService.reorderTickets).mockRejectedValue(
+            new AppError(409, 'The ticket list has changed, please refresh')
+        );
+        await fake.trigger('reorderTickets', {
+            roomName: 'abc',
+            ticketIds: [2, 1],
+        });
+        expect(fake.roomEmit).not.toHaveBeenCalled();
+        expect(fake.socket.emit).toHaveBeenCalledWith(
+            'error',
+            'The ticket list has changed, please refresh'
+        );
     });
 });

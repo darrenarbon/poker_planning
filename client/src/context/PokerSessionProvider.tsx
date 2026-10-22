@@ -9,7 +9,12 @@ import {
 } from '../hooks';
 import { socket } from '../services/socket';
 import { TicketForVoting } from '../types';
-import { findNextTicket, replaceTicket, withVote } from '../utils';
+import {
+    findNextTicket,
+    moveTicket as moveTicketInList,
+    replaceTicket,
+    withVote,
+} from '../utils';
 import {
     PokerSessionContext,
     PokerSessionContextValue,
@@ -207,13 +212,27 @@ export const PokerSessionProvider = ({
             if (!ticketNumber) return;
             try {
                 const newTicket = await api.addTicket(roomName, ticketNumber);
-                setTickets((prev) => [newTicket, ...prev]);
+                // the server adds it to the end of the list
+                setTickets((prev) => [...prev, newTicket]);
             } catch (e) {
                 console.error('Failed to add new ticket', e);
                 setError(`Could not add ticket ${ticketNumber}.`);
             }
         },
         [api, roomName, setTickets]
+    );
+
+    const moveTicket = useCallback(
+        (ticketId: string, toIndex: number) => {
+            const moved = moveTicketInList(tickets, ticketId, toIndex);
+            if (moved === tickets) return;
+            setTickets(moved);
+            socket.emit('reorderTickets', {
+                roomName,
+                ticketIds: moved.map((t) => t.ticket_id),
+            });
+        },
+        [tickets, roomName, setTickets]
     );
 
     const deleteCurrentTicket = useCallback(async () => {
@@ -297,6 +316,7 @@ export const PokerSessionProvider = ({
             setRoomHidden,
             setEstimate,
             addTicket,
+            moveTicket,
             deleteCurrentTicket,
         }),
         [
@@ -334,6 +354,7 @@ export const PokerSessionProvider = ({
             setRoomHidden,
             setEstimate,
             addTicket,
+            moveTicket,
             deleteCurrentTicket,
         ]
     );

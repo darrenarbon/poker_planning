@@ -300,7 +300,7 @@ describe('PokerSessionProvider', () => {
             await act(() => result.current.addTicket('ABC-3'));
 
             expect(api.addTicket).toHaveBeenCalledWith('room-abc', 'ABC-3');
-            expect(result.current.tickets[0]).toEqual(newTicket);
+            expect(result.current.tickets[2]).toEqual(newTicket);
         });
 
         it('ignores an empty ticket number', async () => {
@@ -318,6 +318,25 @@ describe('PokerSessionProvider', () => {
 
             act(() => result.current.dismissError());
             expect(result.current.error).toBeNull();
+        });
+    });
+
+    describe('reordering tickets', () => {
+        it('moves the ticket and sends the new order to the room', async () => {
+            const { result } = await renderSession();
+            act(() => result.current.moveTicket('b', 0));
+            expect(result.current.tickets).toEqual([ticketB, ticketA]);
+            expect(fakeSocket.emit).toHaveBeenCalledWith('reorderTickets', {
+                roomName: 'room-abc',
+                ticketIds: ['b', 'a'],
+            });
+        });
+
+        it('sends nothing when the ticket stays put', async () => {
+            const { result } = await renderSession();
+            fakeSocket.emit.mockClear();
+            act(() => result.current.moveTicket('a', 1));
+            expect(fakeSocket.emit).not.toHaveBeenCalled();
         });
     });
 

@@ -7,6 +7,7 @@ import {
     UserModel,
 } from '../types';
 import {
+    orderTickets,
     replaceTicket,
     withVote,
     withVotesCleared,
@@ -167,6 +168,10 @@ export const useRoomSocket = ({
             setTimerEndsAt(null);
         };
 
+        const onTicketsReordered: ServerToClientEvents['ticketsReordered'] = ({
+            ticketIds,
+        }) => setTickets((prev) => orderTickets(prev, ticketIds));
+
         const onConnectError = () => onError(CONNECTION_LOST_MESSAGE);
 
         socket.on('userJoined', onUserJoined);
@@ -180,6 +185,7 @@ export const useRoomSocket = ({
         socket.on('timer', onTimer);
         socket.on('facilitators', onFacilitators);
         socket.on('sprintArchived', onSprintArchived);
+        socket.on('ticketsReordered', onTicketsReordered);
         socket.on('error', onError);
         socket.on('connect_error', onConnectError);
         socket.on('connect', onReconnect);
@@ -195,6 +201,7 @@ export const useRoomSocket = ({
             socket.off('timer', onTimer);
             socket.off('facilitators', onFacilitators);
             socket.off('sprintArchived', onSprintArchived);
+            socket.off('ticketsReordered', onTicketsReordered);
             socket.off('error', onError);
             socket.off('connect_error', onConnectError);
             socket.off('connect', onReconnect);

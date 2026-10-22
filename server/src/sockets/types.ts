@@ -44,3 +44,9 @@ export interface FacilitatorPayload {
     roomName: string;
     userSub: string;
 }
+
+export interface ReorderTicketsPayload {
+    roomName: string;
+    /** every current ticket, in the new order */
+    ticketIds: number[];
+}

@@ -5,6 +5,7 @@ import { registerArchiveHandler } from './handlers/archiveHandler.js';
 import { registerFacilitatorsHandler } from './handlers/facilitatorsHandler.js';
 import { registerJoinHandler } from './handlers/joinHandler.js';
 import { registerPresenceHandler } from './handlers/presenceHandler.js';
+import { registerReorderTicketsHandler } from './handlers/reorderTicketsHandler.js';
 import { registerRevoteHandler } from './handlers/revoteHandler.js';
 import { registerSelectTicketHandler } from './handlers/selectTicketHandler.js';
 import { registerSetEstimateHandler } from './handlers/setEstimateHandler.js';
@@ -23,6 +24,7 @@ const handlers = [
     registerTimerHandler,
     registerFacilitatorsHandler,
     registerArchiveHandler,
+    registerReorderTicketsHandler,
 ];
 
 export const registerSockets = (io: Server) => {

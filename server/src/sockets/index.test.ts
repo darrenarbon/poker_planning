@@ -35,6 +35,7 @@ describe('registerSockets', () => {
             'removeCoFacilitator',
             'handOver',
             'archiveSprint',
+            'reorderTickets',
         ]);
         expect(io.use).toHaveBeenCalledTimes(1);
     });

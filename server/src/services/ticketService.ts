@@ -1,7 +1,7 @@
 import * as ticketRepository from '../repositories/ticketRepository.js';
 import * as voteRepository from '../repositories/voteRepository.js';
 import type { Ticket, TicketEstimate } from '../types/models.js';
-import { notFound } from '../utils/errors.js';
+import { AppError, notFound } from '../utils/errors.js';
 import {
     getRoomAsAdmin,
     getRoomByIdAsAdmin,
@@ -70,4 +70,28 @@ export const resetVotes = async (roomName: string, ticketId: number) => {
 export const archiveSprint = async (roomName: string, userSub: string) => {
     const room = await getRoomAsAdmin(roomName, userSub);
     return ticketRepository.archiveTickets(room.room_id);
+};
+
+/**
+ * Puts the room's current tickets in the given order. The ids must be exactly
+ * the current tickets, so a stale list can't drop or misplace any.
+ */
+export const reorderTickets = async (
+    roomName: string,
+    userSub: string,
+    ticketIds: number[]
+) => {
+    const room = await getRoomAsAdmin(roomName, userSub);
+    const tickets = await ticketRepository.findTicketsByRoom(room.room_id);
+    const current = new Set(tickets.map((t) => Number(t.ticket_id)));
+    const requested = new Set(ticketIds.map(Number));
+    if (
+        !Array.isArray(ticketIds) ||
+        requested.size !== ticketIds.length ||
+        requested.size !== current.size ||
+        [...requested].some((id) => !current.has(id))
+    ) {
+        throw new AppError(409, 'The ticket list has changed, please refresh');
+    }
+    await ticketRepository.reorderTickets(room.room_id, ticketIds.map(Number));
 };

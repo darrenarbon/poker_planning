@@ -52,3 +52,39 @@ export const groupBySprint = (tickets: TicketForVoting[]) => {
         .sort(([a], [b]) => b.localeCompare(a))
         .map(([archivedAt, tickets]) => ({ archivedAt, tickets }));
 };
+
+/**
+ * The tickets with one moved to a new position. `toIndex` is where it lands
+ * in the list as it is now, so dropping onto its own slot changes nothing.
+ */
+export const moveTicket = (
+    tickets: TicketForVoting[],
+    ticketId: string,
+    toIndex: number
+): TicketForVoting[] => {
+    const fromIndex = tickets.findIndex((t) => t.ticket_id === ticketId);
+    if (fromIndex === -1) return tickets;
+    const target = Math.max(
+        0,
+        Math.min(
+            toIndex > fromIndex ? toIndex - 1 : toIndex,
+            tickets.length - 1
+        )
+    );
+    if (target === fromIndex) return tickets;
+    const moved = [...tickets];
+    const [ticket] = moved.splice(fromIndex, 1);
+    moved.splice(target, 0, ticket);
+    return moved;
+};
+
+/** The tickets sorted by the given ids; any not listed keep their place at the end. */
+export const orderTickets = (
+    tickets: TicketForVoting[],
+    ticketIds: string[]
+): TicketForVoting[] => {
+    const position = new Map(ticketIds.map((id, i) => [String(id), i]));
+    const rank = (t: TicketForVoting) =>
+        position.get(String(t.ticket_id)) ?? ticketIds.length;
+    return [...tickets].sort((a, b) => rank(a) - rank(b));
+};

@@ -44,6 +44,7 @@ export const makeSessionValue = (
     setRoomHidden: vi.fn().mockResolvedValue(undefined),
     setEstimate: vi.fn(),
     addTicket: vi.fn().mockResolvedValue(undefined),
+    moveTicket: vi.fn(),
     deleteCurrentTicket: vi.fn().mockResolvedValue(undefined),
     ...overrides,
 });
