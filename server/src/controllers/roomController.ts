@@ -24,7 +24,7 @@ export const getRoom = async (req: Request, res: Response) => {
 };
 
 export const getRoomsForUser = async (req: Request, res: Response) => {
-    const rooms = await roomService.getRoomsForUser(req.params.userSub);
+    const rooms = await roomService.getRoomsForUser(req.auth!.payload.sub!);
     res.json({ rooms });
 };
 
@@ -33,15 +33,21 @@ export const addTickets = async (req: Request, res: Response) => {
     if (!Array.isArray(ticketsToSave)) {
         throw new AppError(400, 'ticketsToSave must be an array');
     }
-    await ticketService.addTicketsToRoom(req.params.roomName, ticketsToSave);
+    await ticketService.addTicketsToRoom(
+        req.params.roomName,
+        req.auth!.payload.sub!,
+        ticketsToSave
+    );
     res.json({ message: 'Tickets added' });
 };
 
 export const addTicket = async (req: Request, res: Response) => {
     const { ticketNumber } = req.body;
-    const [ticket] = await ticketService.addTicketsToRoom(req.params.roomName, [
-        ticketNumber,
-    ]);
+    const [ticket] = await ticketService.addTicketsToRoom(
+        req.params.roomName,
+        req.auth!.payload.sub!,
+        [ticketNumber]
+    );
     res.json(ticket);
 };
 

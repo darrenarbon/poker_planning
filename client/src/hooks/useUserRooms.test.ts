@@ -43,7 +43,7 @@ describe('useUserRooms', () => {
 
         await waitFor(() => expect(result.current.loaded).toBe(true));
         expect(api.login).toHaveBeenCalledWith(user);
-        expect(api.getUserRooms).toHaveBeenCalledWith('user-1');
+        expect(api.getUserRooms).toHaveBeenCalledWith();
         expect(result.current.rooms).toEqual(rooms);
         expect(result.current.error).toBeNull();
     });

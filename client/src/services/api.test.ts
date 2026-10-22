@@ -100,9 +100,9 @@ describe('createApi', () => {
         it("getUserRooms returns the user's rooms", async () => {
             const rooms = [makeRoomSummary()];
             fetchMock.mockResolvedValue(jsonResponse({ rooms }));
-            await expect(api.getUserRooms('user-1')).resolves.toEqual(rooms);
+            await expect(api.getUserRooms()).resolves.toEqual(rooms);
             expect(lastRequest()).toMatchObject({
-                url: `${config.apiUrl}/users/user-1/rooms`,
+                url: `${config.apiUrl}/me/rooms`,
                 method: 'GET',
                 body: undefined,
             });

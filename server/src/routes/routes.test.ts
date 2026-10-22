@@ -81,7 +81,7 @@ describe('authenticated routes', () => {
         ['put', '/room/abc/baseUrl'],
         ['put', '/room/abc/favourite'],
         ['put', '/room/abc/hidden'],
-        ['get', '/users/x/rooms'],
+        ['get', '/me/rooms'],
         ['delete', '/ticket/1'],
         ['get', '/jiraticket/PP-1'],
         ['post', '/jiraticket/PP-1'],
@@ -181,10 +181,11 @@ describe('room routes', () => {
             .set(AUTH)
             .send({ ticketsToSave: ['PP-1', 'PP-2'] });
         expect(res.body).toEqual({ message: 'Tickets added' });
-        expect(ticketService.addTicketsToRoom).toHaveBeenCalledWith('abc', [
-            'PP-1',
-            'PP-2',
-        ]);
+        expect(ticketService.addTicketsToRoom).toHaveBeenCalledWith(
+            'abc',
+            TEST_SUB,
+            ['PP-1', 'PP-2']
+        );
     });
 
     it('POST /room/:roomName/tickets rejects a non-array', async () => {
@@ -204,12 +205,14 @@ describe('room routes', () => {
             .set(AUTH)
             .send({ ticketNumber: 'PP-1' });
         expect(res.body).toEqual(ticket);
-        expect(ticketService.addTicketsToRoom).toHaveBeenCalledWith('abc', [
-            'PP-1',
-        ]);
+        expect(ticketService.addTicketsToRoom).toHaveBeenCalledWith(
+            'abc',
+            TEST_SUB,
+            ['PP-1']
+        );
     });
 
-    it('GET /users/:userSub/rooms returns their rooms', async () => {
+    it("GET /me/rooms returns the caller's rooms", async () => {
         const room = {
             ...makeRoom(),
             is_admin: true,
@@ -217,9 +220,9 @@ describe('room routes', () => {
             last_joined_at: null,
         };
         vi.mocked(roomService.getRoomsForUser).mockResolvedValue([room]);
-        const res = await request(app).get('/users/auth0%7Cx/rooms').set(AUTH);
+        const res = await request(app).get('/me/rooms').set(AUTH);
         expect(res.body).toEqual({ rooms: [room] });
-        expect(roomService.getRoomsForUser).toHaveBeenCalledWith('auth0|x');
+        expect(roomService.getRoomsForUser).toHaveBeenCalledWith(TEST_SUB);
     });
 });
 
@@ -227,7 +230,10 @@ describe('DELETE /ticket/:ticketId', () => {
     it('deletes the ticket', async () => {
         const res = await request(app).delete('/ticket/100').set(AUTH);
         expect(res.body).toEqual({ message: 'Ticket deleted' });
-        expect(ticketService.deleteTicket).toHaveBeenCalledWith('100');
+        expect(ticketService.deleteTicket).toHaveBeenCalledWith(
+            '100',
+            TEST_SUB
+        );
     });
 
     it('returns 404 for an unknown ticket', async () => {
@@ -236,6 +242,14 @@ describe('DELETE /ticket/:ticketId', () => {
         );
         const res = await request(app).delete('/ticket/100').set(AUTH);
         expect(res.status).toBe(404);
+    });
+
+    it('returns 403 for someone other than the room admin', async () => {
+        vi.mocked(ticketService.deleteTicket).mockRejectedValue(
+            new AppError(403, 'Only the room admin can do that')
+        );
+        const res = await request(app).delete('/ticket/100').set(AUTH);
+        expect(res.status).toBe(403);
     });
 });
 

@@ -15,7 +15,7 @@ export interface Room {
     favourite?: boolean;
 }
 
-/** A room as returned by GET /users/:sub/rooms */
+/** A room as returned by GET /me/rooms */
 export interface RoomSummary {
     room_id: number;
     room_name: string;

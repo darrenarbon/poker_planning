@@ -19,6 +19,17 @@ export const findRoomByName = async (
     return data?.[0];
 };
 
+export const findRoomById = async (
+    roomId: number
+): Promise<Room | undefined> => {
+    const { data, error } = await supabase
+        .from('room')
+        .select()
+        .eq('room_id', roomId);
+    assertNoDbError(error, 'Error fetching room');
+    return data?.[0];
+};
+
 export const findRoomWithAdminSub = async (
     roomName: string
 ): Promise<(Room & { auth0_sub: string }) | undefined> => {

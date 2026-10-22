@@ -1,6 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { ReactNode, useCallback, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import {
     CONNECTION_LOST_MESSAGE,
     useApi,
@@ -43,9 +42,8 @@ export const PokerSessionProvider = ({
     roomName,
     children,
 }: PokerSessionProviderProps) => {
-    const { user } = useAuth0();
+    const { user, getAccessTokenSilently } = useAuth0();
     const api = useApi();
-    const [searchParams] = useSearchParams();
     const { room, setRoom, tickets, setTickets, users, setUsers, loadError } =
         useRoomDetails(roomName);
     const [currentTicketId, setCurrentTicketId] = useState<string>();
@@ -69,6 +67,7 @@ export const PokerSessionProvider = ({
     useRoomSocket({
         roomName,
         userSub: user?.sub,
+        getToken: getAccessTokenSilently,
         setTickets,
         setUsers,
         setCurrentTicketId,
@@ -76,9 +75,8 @@ export const PokerSessionProvider = ({
         onReconnect: clearConnectionError,
     });
 
-    const isAdmin =
-        (!!room && user?.sub === room.adminSub) ||
-        searchParams.get('admin') === 'true';
+    // display only: the server enforces admin rights on every admin action
+    const isAdmin = !!room && user?.sub === room.adminSub;
 
     // only the facilitator can be in refinement mode
     const refinementMode = isAdmin && refinementModeEnabled;
@@ -102,7 +100,6 @@ export const PokerSessionProvider = ({
                 roomName,
                 ticketId: currentTicket.ticket_id,
                 vote,
-                userSub: user?.sub,
             });
             setTickets((prev) =>
                 replaceTicket(prev, withVote(currentTicket, vote, user?.sub))

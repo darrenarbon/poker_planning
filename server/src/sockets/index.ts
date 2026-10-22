@@ -1,5 +1,6 @@
 import type { Server } from 'socket.io';
 
+import { socketAuth } from '../middleware/socketAuth.js';
 import { registerJoinHandler } from './handlers/joinHandler.js';
 import { registerSetEstimateHandler } from './handlers/setEstimateHandler.js';
 import { registerShowVotesHandler } from './handlers/showVotesHandler.js';
@@ -13,6 +14,7 @@ const handlers = [
 ];
 
 export const registerSockets = (io: Server) => {
+    io.use(socketAuth);
     io.on('connection', (socket) => {
         console.log('a user connected');
         handlers.forEach((register) => register(socket, io));
