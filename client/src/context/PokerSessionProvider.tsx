@@ -9,7 +9,7 @@ import {
 } from '../hooks';
 import { socket } from '../services/socket';
 import { TicketForVoting } from '../types';
-import { replaceTicket, withVote } from '../utils';
+import { findNextTicket, replaceTicket, withVote } from '../utils';
 import {
     PokerSessionContext,
     PokerSessionContextValue,
@@ -44,9 +44,20 @@ export const PokerSessionProvider = ({
 }: PokerSessionProviderProps) => {
     const { user, getAccessTokenSilently } = useAuth0();
     const api = useApi();
-    const { room, setRoom, tickets, setTickets, users, setUsers, loadError } =
-        useRoomDetails(roomName);
+    const {
+        room,
+        setRoom,
+        tickets,
+        setTickets,
+        archivedTickets,
+        setArchivedTickets,
+        users,
+        setUsers,
+        loadError,
+    } = useRoomDetails(roomName);
     const [currentTicketId, setCurrentTicketId] = useState<string>();
+    const [onlineSubs, setOnlineSubs] = useState<string[]>([]);
+    const [timerEndsAt, setTimerEndsAt] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
     const dismissError = useCallback(() => setError(null), []);
     const clearConnectionError = useCallback(
@@ -68,30 +79,95 @@ export const PokerSessionProvider = ({
         roomName,
         userSub: user?.sub,
         getToken: getAccessTokenSilently,
+        setRoom,
         setTickets,
+        setArchivedTickets,
         setUsers,
+        setOnlineSubs,
         setCurrentTicketId,
+        setTimerEndsAt,
         onError: setError,
         onReconnect: clearConnectionError,
     });
 
     // display only: the server enforces admin rights on every admin action
-    const isAdmin = !!room && user?.sub === room.adminSub;
+    const isOwner = !!room && user?.sub === room.adminSub;
+    const isAdmin =
+        isOwner ||
+        (!!user?.sub && !!room?.coFacilitatorSubs?.includes(user.sub));
 
     // only the facilitator can be in refinement mode
     const refinementMode = isAdmin && refinementModeEnabled;
     const hideOwnVote = refinementMode && !showVotes;
 
     const toggleRefinementMode = useCallback(() => {
-        setRefinementModeEnabled((enabled) => {
-            saveRefinementMode(roomName, !enabled);
-            return !enabled;
-        });
-    }, [roomName]);
+        const enabled = !refinementModeEnabled;
+        setRefinementModeEnabled(enabled);
+        saveRefinementMode(roomName, enabled);
+        // turning it on brings everyone to the ticket the facilitator is on
+        if (enabled && isAdmin && currentTicketId) {
+            socket.emit('selectTicket', {
+                roomName,
+                ticketId: currentTicketId,
+            });
+        }
+    }, [refinementModeEnabled, isAdmin, currentTicketId, roomName]);
 
-    const selectTicket = useCallback((ticket: TicketForVoting) => {
-        setCurrentTicketId(ticket.ticket_id);
-    }, []);
+    const selectTicket = useCallback(
+        (ticket: TicketForVoting) => {
+            setCurrentTicketId(ticket.ticket_id);
+            // everyone follows the facilitator only in refinement mode
+            if (refinementMode) {
+                socket.emit('selectTicket', {
+                    roomName,
+                    ticketId: ticket.ticket_id,
+                });
+            }
+        },
+        [refinementMode, roomName]
+    );
+
+    const nextTicket = useCallback(() => {
+        const next = findNextTicket(tickets, currentTicketId);
+        if (next) selectTicket(next);
+    }, [tickets, currentTicketId, selectTicket]);
+
+    const revote = useCallback(() => {
+        if (!currentTicket) return;
+        socket.emit('revote', { roomName, ticketId: currentTicket.ticket_id });
+    }, [currentTicket, roomName]);
+
+    const startTimer = useCallback(
+        (seconds: number) => socket.emit('startTimer', { roomName, seconds }),
+        [roomName]
+    );
+
+    const stopTimer = useCallback(
+        () => socket.emit('stopTimer', { roomName }),
+        [roomName]
+    );
+
+    const addCoFacilitator = useCallback(
+        (userSub: string) =>
+            socket.emit('addCoFacilitator', { roomName, userSub }),
+        [roomName]
+    );
+
+    const removeCoFacilitator = useCallback(
+        (userSub: string) =>
+            socket.emit('removeCoFacilitator', { roomName, userSub }),
+        [roomName]
+    );
+
+    const handOver = useCallback(
+        (userSub: string) => socket.emit('handOver', { roomName, userSub }),
+        [roomName]
+    );
+
+    const archiveSprint = useCallback(
+        () => socket.emit('archiveSprint', { roomName }),
+        [roomName]
+    );
 
     const submitVote = useCallback(
         (vote: number) => {
@@ -195,17 +271,29 @@ export const PokerSessionProvider = ({
             room,
             user,
             users,
+            onlineSubs,
             tickets,
+            archivedTickets,
             currentTicket,
             jira,
             showVotes,
             refinementMode,
             hideOwnVote,
             isAdmin,
+            isOwner,
+            timerEndsAt,
             loadError,
             error,
             dismissError,
             selectTicket,
+            nextTicket,
+            revote,
+            startTimer,
+            stopTimer,
+            addCoFacilitator,
+            removeCoFacilitator,
+            handOver,
+            archiveSprint,
             submitVote,
             revealVotes,
             toggleRefinementMode,
@@ -220,17 +308,29 @@ export const PokerSessionProvider = ({
             room,
             user,
             users,
+            onlineSubs,
             tickets,
+            archivedTickets,
             currentTicket,
             jira,
             showVotes,
             refinementMode,
             hideOwnVote,
             isAdmin,
+            isOwner,
+            timerEndsAt,
             loadError,
             error,
             dismissError,
             selectTicket,
+            nextTicket,
+            revote,
+            startTimer,
+            stopTimer,
+            addCoFacilitator,
+            removeCoFacilitator,
+            handOver,
+            archiveSprint,
             submitVote,
             revealVotes,
             toggleRefinementMode,

@@ -1,3 +1,5 @@
+import { TicketForVoting } from '../types';
+
 /** Trims whitespace and any trailing slash so links can be built as `${base}/${ticket}` */
 export const normaliseBaseUrl = (url: string) => url.trim().replace(/\/+$/, '');
 
@@ -10,3 +12,43 @@ export const parseTicketList = (input: string): string[] =>
 
 export const ticketUrl = (baseUrl: string, ticketNumber: string) =>
     `${normaliseBaseUrl(baseUrl)}/${ticketNumber}`;
+
+/**
+ * The ticket to move on to: the next one after the current ticket whose votes
+ * have not been revealed, wrapping round to the start, or failing that simply
+ * the next ticket in the list.
+ */
+export const findNextTicket = (
+    tickets: TicketForVoting[],
+    currentTicketId: string | undefined
+): TicketForVoting | undefined => {
+    const index = tickets.findIndex((t) => t.ticket_id === currentTicketId);
+    const after = [...tickets.slice(index + 1), ...tickets.slice(0, index + 1)];
+    return (
+        after.find(
+            (t) => !t.votes_revealed && t.ticket_id !== currentTicketId
+        ) ?? (index + 1 < tickets.length ? tickets[index + 1] : undefined)
+    );
+};
+
+/** A ticket with its votes and any estimate cleared, as after a re-vote. */
+export const withVotesCleared = (ticket: TicketForVoting): TicketForVoting => ({
+    ticket_id: ticket.ticket_id,
+    ticket_number: ticket.ticket_number,
+    archived_at: ticket.archived_at,
+    votes: [],
+    votes_revealed: false,
+});
+
+/** Groups archived tickets by the sprint they were archived with, newest first. */
+export const groupBySprint = (tickets: TicketForVoting[]) => {
+    const groups = new Map<string, TicketForVoting[]>();
+    for (const ticket of tickets) {
+        const key = ticket.archived_at ?? '';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(ticket);
+    }
+    return [...groups.entries()]
+        .sort(([a], [b]) => b.localeCompare(a))
+        .map(([archivedAt, tickets]) => ({ archivedAt, tickets }));
+};

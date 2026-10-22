@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { makeRoom } from '../../../test/factories';
+import { makeRoom, makeTicket } from '../../../test/factories';
 import { renderWithSession } from '../../../test/renderWithSession';
 import SessionControls from './SessionControls';
 
@@ -71,5 +71,17 @@ describe('SessionControls', () => {
             screen.getByRole('button', { name: 'Unhide room' })
         );
         expect(session.setRoomHidden).toHaveBeenCalledWith(false);
+    });
+
+    it('starts a new sprint after confirming', async () => {
+        vi.spyOn(window, 'confirm').mockReturnValue(true);
+        const { session } = renderWithSession(<SessionControls />, {
+            isAdmin: true,
+            tickets: [makeTicket()],
+        });
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Start new sprint' })
+        );
+        expect(session.archiveSprint).toHaveBeenCalled();
     });
 });

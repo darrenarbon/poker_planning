@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { normaliseBaseUrl, parseTicketList, ticketUrl } from './tickets';
+import { makeTicket } from '../test/factories';
+import {
+    findNextTicket,
+    normaliseBaseUrl,
+    parseTicketList,
+    ticketUrl,
+} from './tickets';
 
 describe('tickets utils', () => {
     it('normalises the base url', () => {
@@ -21,5 +27,32 @@ describe('tickets utils', () => {
         expect(ticketUrl('https://x.com/browse/', 'ABC-1')).toBe(
             'https://x.com/browse/ABC-1'
         );
+    });
+});
+
+describe('findNextTicket', () => {
+    const t = (id: string, revealed = false) =>
+        makeTicket({ ticket_id: id, votes_revealed: revealed });
+
+    it('skips tickets whose votes are already revealed', () => {
+        const tickets = [t('a'), t('b', true), t('c')];
+        expect(findNextTicket(tickets, 'a')?.ticket_id).toBe('c');
+    });
+
+    it('wraps round to unvoted tickets earlier in the list', () => {
+        const tickets = [t('a'), t('b', true), t('c', true)];
+        expect(findNextTicket(tickets, 'b')?.ticket_id).toBe('a');
+    });
+
+    it('starts from the top with nothing selected', () => {
+        expect(findNextTicket([t('a'), t('b')], undefined)?.ticket_id).toBe(
+            'a'
+        );
+    });
+
+    it('falls back to the next ticket once everything is revealed', () => {
+        const tickets = [t('a', true), t('b', true)];
+        expect(findNextTicket(tickets, 'a')?.ticket_id).toBe('b');
+        expect(findNextTicket(tickets, 'b')).toBeUndefined();
     });
 });

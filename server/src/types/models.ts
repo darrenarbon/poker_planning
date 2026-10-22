@@ -35,6 +35,8 @@ export interface Ticket {
     average_vote: number | null;
     standard_deviation: number | null;
     votes_revealed: boolean;
+    /** set when a new sprint started, null for the current sprint */
+    archived_at: string | null;
 }
 
 export type TicketEstimate = Pick<

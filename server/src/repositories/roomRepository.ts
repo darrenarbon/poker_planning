@@ -35,7 +35,7 @@ export const findRoomWithAdminSub = async (
 ): Promise<(Room & { auth0_sub: string }) | undefined> => {
     const { data, error } = await supabase
         .from('room')
-        .select('*, ...user(auth0_sub)')
+        .select('*, ...user!room_admin_id_fkey(auth0_sub)')
         .eq('room_name', roomName);
     assertNoDbError(error, 'Error fetching room');
     return data?.[0] as (Room & { auth0_sub: string }) | undefined;
@@ -148,4 +148,40 @@ export const updateRoomHidden = async (roomId: number, hidden: boolean) => {
         .update({ hidden })
         .eq('room_id', roomId);
     assertNoDbError(error, 'Error updating room');
+};
+
+/** Users who share admin rights with the room's owner. */
+export const findCoFacilitatorIds = async (
+    roomId: number
+): Promise<number[]> => {
+    const { data, error } = await supabase
+        .from('room_admin')
+        .select('user_id')
+        .eq('room_id', roomId);
+    assertNoDbError(error, 'Error fetching facilitators');
+    return (data ?? []).map((row) => row.user_id);
+};
+
+export const addCoFacilitator = async (roomId: number, userId: number) => {
+    const { error } = await supabase
+        .from('room_admin')
+        .upsert({ room_id: roomId, user_id: userId });
+    assertNoDbError(error, 'Error adding facilitator');
+};
+
+export const removeCoFacilitator = async (roomId: number, userId: number) => {
+    const { error } = await supabase
+        .from('room_admin')
+        .delete()
+        .eq('room_id', roomId)
+        .eq('user_id', userId);
+    assertNoDbError(error, 'Error removing facilitator');
+};
+
+export const updateRoomOwner = async (roomId: number, userId: number) => {
+    const { error } = await supabase
+        .from('room')
+        .update({ admin_id: userId })
+        .eq('room_id', roomId);
+    assertNoDbError(error, 'Error handing over the room');
 };

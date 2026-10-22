@@ -1,5 +1,6 @@
 import { usePokerSession } from '../../../context';
 import { findVote } from '../../../utils';
+import PastSprints from './PastSprints';
 import TicketCard from './TicketCard';
 
 const TicketList = () => {
@@ -57,6 +58,7 @@ const TicketList = () => {
                     ticketBaseUrl={room?.ticketBaseUrl ?? ''}
                 />
             ))}
+            <PastSprints />
         </>
     );
 };

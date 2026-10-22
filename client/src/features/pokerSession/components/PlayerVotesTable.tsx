@@ -10,6 +10,8 @@ type PlayerVotesTableProps = {
     showVotes: boolean;
     /** refinement mode: hide the current user's vote too */
     hideOwnVote?: boolean;
+    /** auth0 subs of players with the room open; everyone else is greyed out */
+    onlineSubs?: string[];
 };
 
 const describeVote = (vote: number | null, isVisible: boolean): string => {
@@ -40,33 +42,62 @@ const PlayerVotesTable = ({
     currentUserSub,
     showVotes,
     hideOwnVote = false,
-}: PlayerVotesTableProps) => (
-    <ul className="list-unstyled mb-0 player-votes">
-        {users.map((player) => {
-            const isMe = player.auth0_sub === currentUserSub;
-            const name = getDisplayName(player) ?? '';
-            const vote = findVote(ticket, player.auth0_sub);
-            const isVisible = showVotes || (isMe && !hideOwnVote);
-            return (
-                <li key={player.auth0_sub} className="player-row">
-                    <span className="player-avatar" aria-hidden="true">
-                        {initialsOf(name)}
-                    </span>
-                    <span
-                        className={classNames('player-name', {
-                            'fw-bold': isMe,
+    onlineSubs,
+}: PlayerVotesTableProps) => {
+    const isOnline = (player: UserModel) =>
+        !onlineSubs || onlineSubs.includes(player.auth0_sub ?? '');
+    // online players first, keeping the original order within each group
+    const players = [
+        ...users.filter(isOnline),
+        ...users.filter((player) => !isOnline(player)),
+    ];
+    return (
+        <ul className="list-unstyled mb-0 player-votes">
+            {players.map((player) => {
+                const online = isOnline(player);
+                const isMe = player.auth0_sub === currentUserSub;
+                const name = getDisplayName(player) ?? '';
+                const vote = findVote(ticket, player.auth0_sub);
+                const isVisible = showVotes || (isMe && !hideOwnVote);
+                return (
+                    <li
+                        key={player.auth0_sub}
+                        className={classNames('player-row', {
+                            'player-offline': !online,
                         })}
-                        title={name}
                     >
-                        {name}
-                    </span>
-                    <span className={voteBadgeClass(vote, isVisible)}>
-                        {describeVote(vote, isVisible)}
-                    </span>
-                </li>
-            );
-        })}
-    </ul>
-);
+                        <span className="player-avatar" aria-hidden="true">
+                            {initialsOf(name)}
+                            {onlineSubs && (
+                                <span
+                                    className={classNames('presence-dot', {
+                                        online,
+                                    })}
+                                />
+                            )}
+                        </span>
+                        <span
+                            className={classNames('player-name', {
+                                'fw-bold': isMe,
+                            })}
+                            title={name}
+                        >
+                            {name}
+                            {!online && (
+                                <span className="visually-hidden">
+                                    {' '}
+                                    (offline)
+                                </span>
+                            )}
+                        </span>
+                        <span className={voteBadgeClass(vote, isVisible)}>
+                            {describeVote(vote, isVisible)}
+                        </span>
+                    </li>
+                );
+            })}
+        </ul>
+    );
+};
 
 export default PlayerVotesTable;

@@ -51,3 +51,11 @@ export const createVote = async (
         .insert({ ticket_id: ticketId, user_id: userId, vote });
     assertNoDbError(error, 'Error inserting vote');
 };
+
+export const deleteVotesForTicket = async (ticketId: number) => {
+    const { error } = await supabase
+        .from('vote')
+        .delete()
+        .eq('ticket_id', ticketId);
+    assertNoDbError(error, 'Error clearing votes');
+};

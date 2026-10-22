@@ -7,7 +7,11 @@ export interface PokerSessionContextValue {
     room: Room | undefined;
     user: User | undefined;
     users: UserModel[];
+    /** auth0 subs of the players with the room open right now */
+    onlineSubs: string[];
     tickets: TicketForVoting[];
+    /** tickets from past sprints */
+    archivedTickets: TicketForVoting[];
     currentTicket: TicketForVoting | undefined;
     jira: {
         jiraTicket: JiraTicket | null;
@@ -19,13 +23,33 @@ export interface PokerSessionContextValue {
     refinementMode: boolean;
     /** true when the current user's own vote should be hidden on screen */
     hideOwnVote: boolean;
+    /** owner or co-facilitator: can run the session */
     isAdmin: boolean;
+    /** the room's owner: can manage co-facilitators and hand over */
+    isOwner: boolean;
+    /** epoch milliseconds the discussion timer ends at, null when off */
+    timerEndsAt: number | null;
     /** the room could not be loaded at all */
     loadError: string | null;
     /** a recoverable error from an action or the socket */
     error: string | null;
     dismissError: () => void;
+    /** facilitators move everyone; voters only move themselves */
     selectTicket: (ticket: TicketForVoting) => void;
+    /** facilitator only: move everyone to the next ticket still to vote on */
+    nextTicket: () => void;
+    /** facilitator only: clear the current ticket's votes for another round */
+    revote: () => void;
+    startTimer: (seconds: number) => void;
+    stopTimer: () => void;
+    /** owner only */
+    addCoFacilitator: (userSub: string) => void;
+    /** owner only */
+    removeCoFacilitator: (userSub: string) => void;
+    /** owner only: make someone else the owner */
+    handOver: (userSub: string) => void;
+    /** facilitator only: archive this sprint's tickets, keeping the link */
+    archiveSprint: () => void;
     submitVote: (vote: number) => void;
     revealVotes: () => void;
     toggleRefinementMode: () => void;
