@@ -1,19 +1,18 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import './App.css';
-import PokerSession from './PokerSession';
-import SetTickets from './SetTickets';
-import JoinRoom from './JoinRoom';
+import JoinRoomPage from './features/joinRoom/JoinRoomPage';
+import PokerSessionPage from './features/pokerSession/PokerSessionPage';
+import SetTicketsPage from './features/setTickets/SetTicketsPage';
+import { paths } from './routes';
 
-const App = () => {
-  return (
+const App = () => (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<JoinRoom />} />
-        <Route path="/room/:roomName/tickets" element={<SetTickets />} />
-        <Route path="/room/:roomName/voting" element={<PokerSession />} />
-      </Routes>
+        <Routes>
+            <Route path={paths.home} element={<JoinRoomPage />} />
+            <Route path={paths.roomTickets} element={<SetTicketsPage />} />
+            <Route path={paths.roomVoting} element={<PokerSessionPage />} />
+        </Routes>
     </BrowserRouter>
-  );
-};
+);
 
 export default App;
