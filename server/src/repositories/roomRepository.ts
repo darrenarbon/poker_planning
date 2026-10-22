@@ -35,7 +35,7 @@ export const findRoomWithAdminSub = async (
 ): Promise<(Room & { auth0_sub: string }) | undefined> => {
     const { data, error } = await supabase
         .from('room')
-        .select('*, ...user(auth0_sub)')
+        .select('*, ...user!room_admin_id_fkey(auth0_sub)')
         .eq('room_name', roomName);
     assertNoDbError(error, 'Error fetching room');
     return data?.[0] as (Room & { auth0_sub: string }) | undefined;
