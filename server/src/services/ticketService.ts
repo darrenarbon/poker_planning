@@ -1,4 +1,5 @@
 import * as ticketRepository from '../repositories/ticketRepository.js';
+import * as voteRepository from '../repositories/voteRepository.js';
 import type { Ticket, TicketEstimate } from '../types/models.js';
 import { notFound } from '../utils/errors.js';
 import {
@@ -56,4 +57,17 @@ export const setEstimate = async (
 export const revealVotes = async (roomName: string, ticketId: number) => {
     await getTicketInRoom(roomName, ticketId);
     await ticketRepository.updateVotesRevealed(ticketId, true);
+};
+
+/** Clears a ticket's votes and hides them again so the team can vote afresh. */
+export const resetVotes = async (roomName: string, ticketId: number) => {
+    await getTicketInRoom(roomName, ticketId);
+    await voteRepository.deleteVotesForTicket(ticketId);
+    await ticketRepository.resetTicketVoting(ticketId);
+};
+
+/** Starts a new sprint: archives the current tickets, keeping the room's link. */
+export const archiveSprint = async (roomName: string, userSub: string) => {
+    const room = await getRoomAsAdmin(roomName, userSub);
+    return ticketRepository.archiveTickets(room.room_id);
 };

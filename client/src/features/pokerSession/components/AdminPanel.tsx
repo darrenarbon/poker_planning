@@ -1,11 +1,31 @@
 import { usePokerSession } from '../../../context';
+import { findNextTicket } from '../../../utils';
 
 /** Facilitator-only actions for the current ticket */
 const AdminPanel = () => {
-    const { currentTicket, revealVotes, deleteCurrentTicket } =
-        usePokerSession();
+    const {
+        currentTicket,
+        tickets,
+        revealVotes,
+        revote,
+        nextTicket,
+        deleteCurrentTicket,
+    } = usePokerSession();
 
     if (!currentTicket) return null;
+
+    const hasVotes = currentTicket.votes.length > 0;
+    const hasNext = !!findNextTicket(tickets, currentTicket.ticket_id);
+
+    const confirmRevote = () => {
+        if (
+            confirm(
+                `Clear all votes on ${currentTicket.ticket_number} so everyone can vote again?`
+            )
+        ) {
+            revote();
+        }
+    };
 
     return (
         <section className="admin-panel d-flex flex-wrap align-items-center justify-content-between gap-2">
@@ -18,6 +38,22 @@ const AdminPanel = () => {
                     onClick={revealVotes}
                 >
                     Show Votes
+                </button>
+                <button
+                    className="btn btn-outline-primary btn-sm"
+                    onClick={confirmRevote}
+                    disabled={!hasVotes}
+                    title="Clear the votes on this ticket after discussion"
+                >
+                    Re-vote
+                </button>
+                <button
+                    className="btn btn-outline-primary btn-sm"
+                    onClick={nextTicket}
+                    disabled={!hasNext}
+                    title="Move everyone to the next ticket still to vote on"
+                >
+                    Next ticket
                 </button>
                 <button
                     className="btn btn-outline-danger btn-sm"

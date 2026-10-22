@@ -4,15 +4,19 @@ import PlayerVotesTable from './PlayerVotesTable';
 
 /** Everyone in the room and their vote, in its own scrolling panel */
 const PlayersPanel = () => {
-    const { currentTicket, user, users, showVotes, hideOwnVote } =
+    const { currentTicket, user, users, onlineSubs, showVotes, hideOwnVote } =
         usePokerSession();
 
     if (!currentTicket) return null;
 
-    const votedCount = users.filter(
+    // only the people here now count towards the progress
+    const online = users.filter((player) =>
+        onlineSubs.includes(player.auth0_sub ?? '')
+    );
+    const votedCount = online.filter(
         (player) => findVote(currentTicket, player.auth0_sub) !== null
     ).length;
-    const progress = users.length ? (votedCount / users.length) * 100 : 0;
+    const progress = online.length ? (votedCount / online.length) * 100 : 0;
 
     return (
         <section className="card dashboard-card players-panel">
@@ -20,7 +24,7 @@ const PlayersPanel = () => {
                 <div className="d-flex align-items-baseline justify-content-between mb-2">
                     <h2 className="h6 fw-bold mb-0">Players</h2>
                     <span className="text-secondary small">
-                        {votedCount} of {users.length} voted
+                        {votedCount} of {online.length} online voted
                     </span>
                 </div>
                 <div
@@ -29,7 +33,7 @@ const PlayersPanel = () => {
                     aria-label="Players voted"
                     aria-valuenow={votedCount}
                     aria-valuemin={0}
-                    aria-valuemax={users.length}
+                    aria-valuemax={online.length}
                     style={{ height: '0.375rem' }}
                 >
                     <div
@@ -44,6 +48,7 @@ const PlayersPanel = () => {
                         currentUserSub={user?.sub}
                         showVotes={showVotes}
                         hideOwnVote={hideOwnVote}
+                        onlineSubs={onlineSubs}
                     />
                 </div>
             </div>

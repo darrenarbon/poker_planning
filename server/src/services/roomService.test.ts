@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as roomRepository from '../repositories/roomRepository.js';
 import * as ticketRepository from '../repositories/ticketRepository.js';
@@ -7,7 +7,12 @@ import * as voteRepository from '../repositories/voteRepository.js';
 import { makeRoom, makeTicket, makeUser } from '../test/factories.js';
 import {
     createRoom,
+    addCoFacilitator,
+    assertRoomAdmin,
+    getFacilitators,
     getRoomByName,
+    handOverRoom,
+    removeCoFacilitator,
     getRoomDetails,
     getRoomsForUser,
     joinRoom,
@@ -20,6 +25,11 @@ vi.mock('../repositories/roomRepository.js');
 vi.mock('../repositories/ticketRepository.js');
 vi.mock('../repositories/userRepository.js');
 vi.mock('../repositories/voteRepository.js');
+
+beforeEach(() => {
+    vi.mocked(roomRepository.findCoFacilitatorIds).mockResolvedValue([]);
+    vi.mocked(ticketRepository.findArchivedTicketsByRoom).mockResolvedValue([]);
+});
 
 const user = makeUser();
 const room = makeRoom();
@@ -192,9 +202,11 @@ describe('getRoomDetails', () => {
                 },
                 { ...t2, votes: [] },
             ],
+            archivedTickets: [],
             users: [user],
             room: {
                 adminSub: 'auth0|admin',
+                coFacilitatorSubs: [],
                 createdAt: room.created_at,
                 friendlyName: room.friendly_name,
                 roomId: room.room_id,
@@ -204,6 +216,36 @@ describe('getRoomDetails', () => {
                 favourite: false,
             },
         });
+    });
+
+    it('lists co-facilitators and archived tickets with their votes', async () => {
+        const old = makeTicket({
+            ticket_id: 9,
+            archived_at: '2026-10-01T00:00:00Z',
+        });
+        vi.mocked(roomRepository.findRoomWithAdminSub).mockResolvedValue({
+            ...room,
+            auth0_sub: 'auth0|admin',
+        });
+        vi.mocked(roomRepository.findRoomUserIds).mockResolvedValue([1]);
+        vi.mocked(userRepository.findUsersByIds).mockResolvedValue([user]);
+        vi.mocked(roomRepository.findCoFacilitatorIds).mockResolvedValue([
+            user.user_id,
+        ]);
+        vi.mocked(ticketRepository.findTicketsByRoom).mockResolvedValue([]);
+        vi.mocked(ticketRepository.findArchivedTicketsByRoom).mockResolvedValue(
+            [old]
+        );
+        vi.mocked(voteRepository.findVotesForTickets).mockResolvedValue([
+            { vote: 8, ticket_id: 9, usersub: 'a' },
+        ]);
+
+        const details = await getRoomDetails(room.room_name);
+
+        expect(details.room.coFacilitatorSubs).toEqual([user.auth0_sub]);
+        expect(details.archivedTickets).toEqual([
+            { ...old, votes: [{ vote: 8, usersub: 'a' }] },
+        ]);
     });
 
     it("includes the viewer's favourite flag", async () => {
@@ -299,5 +341,125 @@ describe('updateBaseUrl', () => {
         await expect(
             updateBaseUrl('abc', 'auth0|other', 'https://new')
         ).rejects.toMatchObject({ status: 403 });
+    });
+});
+
+describe('assertRoomAdmin', () => {
+    it('lets a co-facilitator act as admin', async () => {
+        const coFacilitator = makeUser({ user_id: 2, auth0_sub: 'auth0|co' });
+        vi.mocked(userRepository.findUserBySub).mockResolvedValue(
+            coFacilitator
+        );
+        vi.mocked(roomRepository.findCoFacilitatorIds).mockResolvedValue([2]);
+        await expect(assertRoomAdmin(room, 'auth0|co')).resolves.toBe(room);
+    });
+
+    it('refuses someone who is neither owner nor co-facilitator', async () => {
+        vi.mocked(userRepository.findUserBySub).mockResolvedValue(
+            makeUser({ user_id: 3 })
+        );
+        await expect(assertRoomAdmin(room, 'x')).rejects.toMatchObject({
+            status: 403,
+        });
+    });
+});
+
+describe('facilitator changes', () => {
+    const owner = makeUser({
+        user_id: room.admin_id,
+        auth0_sub: 'auth0|owner',
+    });
+    const other = makeUser({ user_id: 2, auth0_sub: 'auth0|other' });
+
+    const asUsers = () =>
+        vi
+            .mocked(userRepository.findUserBySub)
+            .mockImplementation(async (sub) =>
+                sub === owner.auth0_sub ? owner : other
+            );
+
+    beforeEach(() => {
+        vi.mocked(roomRepository.findRoomByName).mockResolvedValue(room);
+        vi.mocked(roomRepository.isUserInRoom).mockResolvedValue(true);
+        asUsers();
+    });
+
+    it('lets the owner add a co-facilitator who has joined', async () => {
+        await addCoFacilitator(
+            room.room_name,
+            owner.auth0_sub,
+            other.auth0_sub
+        );
+        expect(roomRepository.addCoFacilitator).toHaveBeenCalledWith(
+            room.room_id,
+            other.user_id
+        );
+    });
+
+    it('refuses to add someone who has not joined the room', async () => {
+        vi.mocked(roomRepository.isUserInRoom).mockResolvedValue(false);
+        await expect(
+            addCoFacilitator(room.room_name, owner.auth0_sub, other.auth0_sub)
+        ).rejects.toMatchObject({ status: 404 });
+        expect(roomRepository.addCoFacilitator).not.toHaveBeenCalled();
+    });
+
+    it('only lets the owner remove a co-facilitator', async () => {
+        await expect(
+            removeCoFacilitator(
+                room.room_name,
+                other.auth0_sub,
+                owner.auth0_sub
+            )
+        ).rejects.toMatchObject({
+            status: 403,
+            message: 'Only the room owner can do that',
+        });
+        expect(roomRepository.removeCoFacilitator).not.toHaveBeenCalled();
+
+        await removeCoFacilitator(
+            room.room_name,
+            owner.auth0_sub,
+            other.auth0_sub
+        );
+        expect(roomRepository.removeCoFacilitator).toHaveBeenCalledWith(
+            room.room_id,
+            other.user_id
+        );
+    });
+
+    it('hands the room over and keeps the old owner as a co-facilitator', async () => {
+        await handOverRoom(room.room_name, owner.auth0_sub, other.auth0_sub);
+        expect(roomRepository.updateRoomOwner).toHaveBeenCalledWith(
+            room.room_id,
+            other.user_id
+        );
+        expect(roomRepository.removeCoFacilitator).toHaveBeenCalledWith(
+            room.room_id,
+            other.user_id
+        );
+        expect(roomRepository.addCoFacilitator).toHaveBeenCalledWith(
+            room.room_id,
+            owner.user_id
+        );
+    });
+
+    it('does not let a co-facilitator hand the room over', async () => {
+        await expect(
+            handOverRoom(room.room_name, other.auth0_sub, owner.auth0_sub)
+        ).rejects.toMatchObject({ status: 403 });
+        expect(roomRepository.updateRoomOwner).not.toHaveBeenCalled();
+    });
+
+    it('returns the owner and co-facilitators by sub', async () => {
+        vi.mocked(roomRepository.findCoFacilitatorIds).mockResolvedValue([2]);
+        vi.mocked(userRepository.findUsersByIds).mockResolvedValue([
+            owner,
+            other,
+        ]);
+        await expect(getFacilitators(room.room_name)).resolves.toEqual({
+            adminSub: owner.auth0_sub,
+            coFacilitatorSubs: [other.auth0_sub],
+        });
     });
 });

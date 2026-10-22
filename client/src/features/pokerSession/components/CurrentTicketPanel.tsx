@@ -1,6 +1,7 @@
 import { usePokerSession } from '../../../context';
 import { useConsensusConfetti } from '../../../hooks';
 import AdminPanel from './AdminPanel';
+import DiscussionTimer from './DiscussionTimer';
 import PlayersPanel from './PlayersPanel';
 import VoteSummary from './VoteSummary';
 import VotingComplete from './VotingComplete';
@@ -27,6 +28,7 @@ const CurrentTicketPanel = () => {
         <div className="row g-4">
             <div className="col-lg-8 d-flex flex-column gap-3">
                 {isAdmin && <AdminPanel />}
+                <DiscussionTimer />
                 {isComplete ? (
                     <VotingComplete ticket={currentTicket} />
                 ) : (

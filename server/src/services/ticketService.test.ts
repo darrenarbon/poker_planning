@@ -1,10 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as roomRepository from '../repositories/roomRepository.js';
 import * as ticketRepository from '../repositories/ticketRepository.js';
 import * as userRepository from '../repositories/userRepository.js';
+import * as voteRepository from '../repositories/voteRepository.js';
 import { makeRoom, makeTicket, makeUser } from '../test/factories.js';
 import {
+    archiveSprint,
+    resetVotes,
     addTicketsToRoom,
     deleteTicket,
     getTicketById,
@@ -17,6 +20,11 @@ vi.mock('../repositories/roomRepository.js');
 vi.mock('../repositories/ticketRepository.js');
 vi.mock('../repositories/userRepository.js');
 vi.mock('../repositories/voteRepository.js');
+
+beforeEach(() => {
+    vi.mocked(roomRepository.findCoFacilitatorIds).mockResolvedValue([]);
+    vi.mocked(ticketRepository.findArchivedTicketsByRoom).mockResolvedValue([]);
+});
 
 const room = makeRoom();
 const ticket = makeTicket({ room_id: room.room_id });
@@ -181,5 +189,43 @@ describe('revealVotes', () => {
             revealVotes(room.room_name, ticket.ticket_id)
         ).rejects.toMatchObject({ status: 404 });
         expect(ticketRepository.updateVotesRevealed).not.toHaveBeenCalled();
+    });
+});
+
+describe('resetVotes', () => {
+    it('deletes the votes and hides them again', async () => {
+        vi.mocked(ticketRepository.findTicketById).mockResolvedValue(
+            makeTicket({ ticket_id: 1, votes_revealed: true })
+        );
+        vi.mocked(roomRepository.findRoomByName).mockResolvedValue(makeRoom());
+        await resetVotes('abc', 1);
+        expect(voteRepository.deleteVotesForTicket).toHaveBeenCalledWith(1);
+        expect(ticketRepository.resetTicketVoting).toHaveBeenCalledWith(1);
+    });
+
+    it('touches nothing for a ticket in another room', async () => {
+        vi.mocked(ticketRepository.findTicketById).mockResolvedValue(
+            makeTicket({ room_id: 999 })
+        );
+        vi.mocked(roomRepository.findRoomByName).mockResolvedValue(makeRoom());
+        await expect(resetVotes('abc', 1)).rejects.toMatchObject({
+            status: 404,
+        });
+        expect(voteRepository.deleteVotesForTicket).not.toHaveBeenCalled();
+    });
+});
+
+describe('archiveSprint', () => {
+    it("archives the room's current tickets", async () => {
+        const room = makeRoom();
+        vi.mocked(roomRepository.findRoomByName).mockResolvedValue(room);
+        vi.mocked(userRepository.findUserBySub).mockResolvedValue(
+            makeUser({ user_id: room.admin_id })
+        );
+        vi.mocked(ticketRepository.archiveTickets).mockResolvedValue('when');
+        await expect(archiveSprint('abc', 'auth0|u')).resolves.toBe('when');
+        expect(ticketRepository.archiveTickets).toHaveBeenCalledWith(
+            room.room_id
+        );
     });
 });

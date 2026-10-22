@@ -6,9 +6,16 @@ import * as voteService from '../../services/voteService.js';
 import { makeRoom, makeTicket, makeUser } from '../../test/factories.js';
 import { createFakeSocket } from '../../test/fakeSocket.js';
 import { AppError, notFound } from '../../utils/errors.js';
+import { getCurrentTicketId, getTimer, resetRoomState } from '../roomState.js';
+import { registerArchiveHandler } from './archiveHandler.js';
+import { registerFacilitatorsHandler } from './facilitatorsHandler.js';
 import { registerJoinHandler } from './joinHandler.js';
+import { registerPresenceHandler } from './presenceHandler.js';
+import { registerRevoteHandler } from './revoteHandler.js';
+import { registerSelectTicketHandler } from './selectTicketHandler.js';
 import { registerSetEstimateHandler } from './setEstimateHandler.js';
 import { registerShowVotesHandler } from './showVotesHandler.js';
+import { registerTimerHandler } from './timerHandler.js';
 import { registerVoteHandler } from './voteHandler.js';
 
 vi.mock('../../services/roomService.js');
@@ -20,11 +27,10 @@ let fake: ReturnType<typeof createFakeSocket>;
 const notAdmin = () =>
     vi
         .mocked(roomService.getRoomAsAdmin)
-        .mockRejectedValue(
-            new AppError(403, 'Only the room admin can do that')
-        );
+        .mockRejectedValue(new AppError(403, 'Only a facilitator can do that'));
 
 beforeEach(() => {
+    resetRoomState();
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
     fake = createFakeSocket('auth0|u');
@@ -46,6 +52,18 @@ describe('join', () => {
         expect(roomService.joinRoom).toHaveBeenCalledWith('abc', 'auth0|u');
         expect(fake.socket.to).toHaveBeenCalledWith('abc');
         expect(fake.roomEmit).toHaveBeenCalledWith('userJoined', { users });
+    });
+
+    it('marks the user online and sends them the room state', async () => {
+        vi.mocked(roomService.joinRoom).mockResolvedValue([]);
+        await fake.trigger('join', { roomName: 'abc' });
+        expect(fake.ioEmit).toHaveBeenCalledWith('presence', {
+            online: ['auth0|u'],
+        });
+        expect(fake.socket.emit).toHaveBeenCalledWith('roomState', {
+            currentTicketId: null,
+            timerEndsAt: null,
+        });
     });
 
     it('rejects an unauthenticated socket', async () => {
@@ -162,7 +180,7 @@ describe('showVotes', () => {
         await fake.trigger('showVotes', { roomName: 'abc', ticketId: 1 });
         expect(fake.socket.emit).toHaveBeenCalledWith(
             'error',
-            'Only the room admin can do that'
+            'Only a facilitator can do that'
         );
         expect(fake.ioEmit).not.toHaveBeenCalled();
     });
@@ -220,5 +238,177 @@ describe('setEstimate', () => {
             'Join the room first'
         );
         expect(ticketService.setEstimate).not.toHaveBeenCalled();
+    });
+});
+
+describe('presence', () => {
+    it('drops a user once their last socket closes', async () => {
+        vi.mocked(roomService.joinRoom).mockResolvedValue([]);
+        const tab1 = createFakeSocket('auth0|u', 's1');
+        const tab2 = createFakeSocket('auth0|u', 's2');
+        for (const tab of [tab1, tab2]) {
+            registerJoinHandler(tab.socket, tab.io);
+            registerPresenceHandler(tab.socket, tab.io);
+            await tab.trigger('join', { roomName: 'abc' });
+        }
+
+        await tab1.trigger('disconnect', undefined);
+        expect(tab1.ioEmit).not.toHaveBeenCalledWith('presence', {
+            online: [],
+        });
+
+        await tab2.trigger('disconnect', undefined);
+        expect(tab2.ioEmit).toHaveBeenLastCalledWith('presence', {
+            online: [],
+        });
+    });
+});
+
+describe('selectTicket', () => {
+    beforeEach(() => {
+        registerSelectTicketHandler(fake.socket, fake.io);
+        fake.socket.rooms.add('abc');
+        vi.mocked(roomService.getRoomAsAdmin).mockResolvedValue(makeRoom());
+        vi.mocked(ticketService.getTicketInRoom).mockResolvedValue(
+            makeTicket()
+        );
+    });
+
+    it('moves everyone to the ticket and remembers it for late joiners', async () => {
+        await fake.trigger('selectTicket', { roomName: 'abc', ticketId: 1 });
+        expect(ticketService.getTicketInRoom).toHaveBeenCalledWith('abc', 1);
+        expect(fake.ioEmit).toHaveBeenCalledWith('ticketSelected', {
+            ticketId: 1,
+        });
+        expect(fake.ioEmit).toHaveBeenCalledWith('timer', { endsAt: null });
+        expect(getCurrentTicketId('abc')).toBe(1);
+    });
+
+    it('only lets a facilitator select for everyone', async () => {
+        notAdmin();
+        await fake.trigger('selectTicket', { roomName: 'abc', ticketId: 1 });
+        expect(fake.ioEmit).not.toHaveBeenCalled();
+        expect(getCurrentTicketId('abc')).toBeNull();
+    });
+});
+
+describe('revote', () => {
+    beforeEach(() => {
+        registerRevoteHandler(fake.socket, fake.io);
+        fake.socket.rooms.add('abc');
+        vi.mocked(roomService.getRoomAsAdmin).mockResolvedValue(makeRoom());
+    });
+
+    it('clears the votes and tells everyone', async () => {
+        await fake.trigger('revote', { roomName: 'abc', ticketId: 1 });
+        expect(ticketService.resetVotes).toHaveBeenCalledWith('abc', 1);
+        expect(fake.ioEmit).toHaveBeenCalledWith('votesCleared', {
+            ticketId: 1,
+        });
+    });
+
+    it('only lets a facilitator clear votes', async () => {
+        notAdmin();
+        await fake.trigger('revote', { roomName: 'abc', ticketId: 1 });
+        expect(ticketService.resetVotes).not.toHaveBeenCalled();
+    });
+});
+
+describe('timer', () => {
+    beforeEach(() => {
+        registerTimerHandler(fake.socket, fake.io);
+        fake.socket.rooms.add('abc');
+        vi.mocked(roomService.getRoomAsAdmin).mockResolvedValue(makeRoom());
+        vi.spyOn(Date, 'now').mockReturnValue(1_000_000);
+    });
+
+    it('starts a countdown everyone shares', async () => {
+        await fake.trigger('startTimer', { roomName: 'abc', seconds: 120 });
+        expect(fake.ioEmit).toHaveBeenCalledWith('timer', {
+            endsAt: 1_120_000,
+        });
+        expect(getTimer('abc')?.endsAt).toBe(1_120_000);
+    });
+
+    it.each([0, -5, 1.5, '60', 3601])(
+        'rejects an invalid length (%s)',
+        async (seconds) => {
+            await fake.trigger('startTimer', { roomName: 'abc', seconds });
+            expect(fake.ioEmit).not.toHaveBeenCalled();
+        }
+    );
+
+    it('stops the countdown', async () => {
+        await fake.trigger('startTimer', { roomName: 'abc', seconds: 60 });
+        await fake.trigger('stopTimer', { roomName: 'abc' });
+        expect(fake.ioEmit).toHaveBeenLastCalledWith('timer', {
+            endsAt: null,
+        });
+        expect(getTimer('abc')).toBeNull();
+    });
+});
+
+describe('facilitators', () => {
+    beforeEach(() => {
+        registerFacilitatorsHandler(fake.socket, fake.io);
+        fake.socket.rooms.add('abc');
+        vi.mocked(roomService.getFacilitators).mockResolvedValue({
+            adminSub: 'auth0|u',
+            coFacilitatorSubs: ['auth0|b'],
+        });
+    });
+
+    it.each([
+        ['addCoFacilitator', 'addCoFacilitator'],
+        ['removeCoFacilitator', 'removeCoFacilitator'],
+        ['handOver', 'handOverRoom'],
+    ] as const)(
+        '%s applies the change and tells the room',
+        async (event, fn) => {
+            await fake.trigger(event, { roomName: 'abc', userSub: 'auth0|b' });
+            expect(roomService[fn]).toHaveBeenCalledWith(
+                'abc',
+                'auth0|u',
+                'auth0|b'
+            );
+            expect(fake.ioEmit).toHaveBeenCalledWith('facilitators', {
+                adminSub: 'auth0|u',
+                coFacilitatorSubs: ['auth0|b'],
+            });
+        }
+    );
+
+    it('emits the error when the caller is not the owner', async () => {
+        vi.mocked(roomService.removeCoFacilitator).mockRejectedValue(
+            new AppError(403, 'Only the room owner can do that')
+        );
+        await fake.trigger('removeCoFacilitator', {
+            roomName: 'abc',
+            userSub: 'auth0|b',
+        });
+        expect(fake.socket.emit).toHaveBeenCalledWith(
+            'error',
+            'Only the room owner can do that'
+        );
+        expect(fake.ioEmit).not.toHaveBeenCalled();
+    });
+});
+
+describe('archiveSprint', () => {
+    beforeEach(() => {
+        registerArchiveHandler(fake.socket, fake.io);
+        fake.socket.rooms.add('abc');
+    });
+
+    it('archives the tickets and tells the room', async () => {
+        vi.mocked(ticketService.archiveSprint).mockResolvedValue('when');
+        await fake.trigger('archiveSprint', { roomName: 'abc' });
+        expect(ticketService.archiveSprint).toHaveBeenCalledWith(
+            'abc',
+            'auth0|u'
+        );
+        expect(fake.ioEmit).toHaveBeenCalledWith('sprintArchived', {
+            archivedAt: 'when',
+        });
     });
 });

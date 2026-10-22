@@ -3,7 +3,10 @@ import { UserModel } from './user';
 
 /** A room as returned by GET /room/:roomName */
 export interface Room {
+    /** the owner: can manage co-facilitators and hand the room over */
     adminSub: string;
+    /** share the owner's facilitator rights */
+    coFacilitatorSubs?: string[];
     createdAt: string;
     friendlyName: string;
     roomId: number;
@@ -32,6 +35,8 @@ export interface RoomSummary {
 
 export interface RoomDetails {
     tickets: TicketForVoting[];
+    /** tickets from past sprints */
+    archivedTickets?: TicketForVoting[];
     users: UserModel[];
     room: Room;
 }

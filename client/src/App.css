@@ -506,3 +506,58 @@
     border-radius: 0.75rem;
     padding: 0.5rem 0.75rem;
 }
+
+/* Online presence: a dot on each avatar, offline players greyed out */
+.player-avatar {
+    position: relative;
+}
+
+.presence-dot {
+    position: absolute;
+    right: -0.1rem;
+    bottom: -0.1rem;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: var(--bs-secondary-bg);
+    border: 2px solid var(--bs-body-bg);
+}
+
+.presence-dot.online {
+    background: var(--bs-success);
+}
+
+.player-offline {
+    opacity: 0.5;
+}
+
+.discussion-timer {
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.discussion-timer.time-up {
+    background: var(--bs-danger-bg-subtle);
+    border-color: var(--bs-danger-border-subtle);
+}
+
+.discussion-timer.time-up .timer-display {
+    color: var(--bs-danger-text-emphasis);
+}
+
+.timer-display {
+    font-size: 1.25rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.timer-input {
+    width: 4.5rem;
+}
+
+.btn-close-sm {
+    width: 0.5rem;
+    height: 0.5rem;
+    padding: 0.15rem;
+}

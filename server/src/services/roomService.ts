@@ -4,7 +4,7 @@ import * as roomRepository from '../repositories/roomRepository.js';
 import * as ticketRepository from '../repositories/ticketRepository.js';
 import * as userRepository from '../repositories/userRepository.js';
 import * as voteRepository from '../repositories/voteRepository.js';
-import type { Room, UserRoom } from '../types/models.js';
+import type { Room, Ticket, UserRoom } from '../types/models.js';
 import { AppError, notFound } from '../utils/errors.js';
 import { getUserBySub } from './userService.js';
 
@@ -70,13 +70,26 @@ export const getRoomsForUser = async (userSub: string): Promise<UserRoom[]> => {
     );
 };
 
-/** Throws a 403 unless the user is the room's admin. */
+/** Throws a 403 unless the user is the room's owner or a co-facilitator. */
 export const assertRoomAdmin = async (room: Room, userSub: string) => {
     const user = await getUserBySub(userSub);
-    if (room.admin_id !== user.user_id) {
-        throw new AppError(403, 'Only the room admin can do that');
+    if (room.admin_id === user.user_id) return room;
+    const coFacilitatorIds = await roomRepository.findCoFacilitatorIds(
+        room.room_id
+    );
+    if (!coFacilitatorIds.includes(user.user_id)) {
+        throw new AppError(403, 'Only a facilitator can do that');
     }
     return room;
+};
+
+/** Throws a 403 unless the user owns the room (co-facilitators do not). */
+const assertRoomOwner = async (room: Room, userSub: string) => {
+    const user = await getUserBySub(userSub);
+    if (room.admin_id !== user.user_id) {
+        throw new AppError(403, 'Only the room owner can do that');
+    }
+    return user;
 };
 
 export const getRoomAsAdmin = async (roomName: string, userSub: string) =>
@@ -136,7 +149,11 @@ export const getRoomDetails = async (roomName: string, userSub?: string) => {
     const userIds = await roomRepository.findRoomUserIds(room.room_id);
     const users = await userRepository.findUsersByIds(userIds);
 
-    const tickets = await ticketRepository.findTicketsByRoom(room.room_id);
+    const [tickets, archived, coFacilitatorIds] = await Promise.all([
+        ticketRepository.findTicketsByRoom(room.room_id),
+        ticketRepository.findArchivedTicketsByRoom(room.room_id),
+        roomRepository.findCoFacilitatorIds(room.room_id),
+    ]);
     const viewer = userSub
         ? users.find((u) => u.auth0_sub === userSub)
         : undefined;
@@ -144,19 +161,24 @@ export const getRoomDetails = async (roomName: string, userSub?: string) => {
         ? await roomRepository.findMembership(room.room_id, viewer.user_id)
         : undefined;
     const votes = await voteRepository.findVotesForTickets(
-        tickets.map((ticket) => ticket.ticket_id)
+        [...tickets, ...archived].map((ticket) => ticket.ticket_id)
     );
+    const withVotes = (ticket: Ticket) => ({
+        ...ticket,
+        votes: votes
+            .filter((vote) => vote.ticket_id === ticket.ticket_id)
+            .map(({ vote, usersub }) => ({ vote, usersub })),
+    });
 
     return {
-        tickets: tickets.map((ticket) => ({
-            ...ticket,
-            votes: votes
-                .filter((vote) => vote.ticket_id === ticket.ticket_id)
-                .map(({ vote, usersub }) => ({ vote, usersub })),
-        })),
+        tickets: tickets.map(withVotes),
+        archivedTickets: archived.map(withVotes),
         users,
         room: {
             adminSub: room.auth0_sub,
+            coFacilitatorSubs: users
+                .filter((u) => coFacilitatorIds.includes(u.user_id))
+                .map((u) => u.auth0_sub),
             createdAt: room.created_at,
             friendlyName: room.friendly_name,
             roomId: room.room_id,
@@ -182,4 +204,77 @@ export const joinRoom = async (roomName: string, userSub: string) => {
     }
 
     return roomRepository.findUsersInRoom(room.room_id);
+};
+
+/** Who runs the room: the owner and the co-facilitators, by auth0 sub. */
+export const getFacilitators = async (roomName: string) => {
+    const room = await getRoomByName(roomName);
+    const coFacilitatorIds = await roomRepository.findCoFacilitatorIds(
+        room.room_id
+    );
+    const users = await userRepository.findUsersByIds([
+        room.admin_id,
+        ...coFacilitatorIds,
+    ]);
+    const subOf = (userId: number) =>
+        users.find((u) => u.user_id === userId)?.auth0_sub;
+    return {
+        adminSub: subOf(room.admin_id) ?? '',
+        coFacilitatorSubs: coFacilitatorIds
+            .map(subOf)
+            .filter((sub): sub is string => !!sub),
+    };
+};
+
+/** A user who has joined the room, for facilitator changes. */
+const getRoomMember = async (room: Room, userSub: string) => {
+    const user = await getUserBySub(userSub);
+    if (!(await roomRepository.isUserInRoom(room.room_id, user.user_id))) {
+        throw notFound('That person has not joined this room');
+    }
+    return user;
+};
+
+/** The owner shares admin rights with someone in the room. */
+export const addCoFacilitator = async (
+    roomName: string,
+    ownerSub: string,
+    targetSub: string
+) => {
+    const room = await getRoomByName(roomName);
+    const owner = await assertRoomOwner(room, ownerSub);
+    const target = await getRoomMember(room, targetSub);
+    if (target.user_id === owner.user_id) {
+        throw new AppError(400, 'You already own this room');
+    }
+    await roomRepository.addCoFacilitator(room.room_id, target.user_id);
+};
+
+/** Only the owner can take admin rights away from a co-facilitator. */
+export const removeCoFacilitator = async (
+    roomName: string,
+    ownerSub: string,
+    targetSub: string
+) => {
+    const room = await getRoomByName(roomName);
+    await assertRoomOwner(room, ownerSub);
+    const target = await getUserBySub(targetSub);
+    await roomRepository.removeCoFacilitator(room.room_id, target.user_id);
+};
+
+/** Makes someone in the room its owner; the old owner stays a co-facilitator. */
+export const handOverRoom = async (
+    roomName: string,
+    ownerSub: string,
+    targetSub: string
+) => {
+    const room = await getRoomByName(roomName);
+    const owner = await assertRoomOwner(room, ownerSub);
+    const target = await getRoomMember(room, targetSub);
+    if (target.user_id === owner.user_id) {
+        throw new AppError(400, 'You already own this room');
+    }
+    await roomRepository.updateRoomOwner(room.room_id, target.user_id);
+    await roomRepository.removeCoFacilitator(room.room_id, target.user_id);
+    await roomRepository.addCoFacilitator(room.room_id, owner.user_id);
 };

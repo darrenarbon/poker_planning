@@ -25,4 +25,6 @@ export interface TicketForVoting {
     suggested_vote?: SuggestedVote;
     /** saved on the server once the admin has revealed votes for this ticket */
     votes_revealed?: boolean;
+    /** when a new sprint started and this ticket was archived */
+    archived_at?: string | null;
 }

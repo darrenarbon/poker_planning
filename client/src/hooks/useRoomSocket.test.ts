@@ -1,8 +1,8 @@
 import { act, renderHook } from '@testing-library/react';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { makeTicket, makeUserModel } from '../test/factories';
-import { TicketForVoting, UserModel } from '../types';
+import { makeRoom, makeTicket, makeUserModel } from '../test/factories';
+import { Room, TicketForVoting, UserModel } from '../types';
 import { CONNECTION_LOST_MESSAGE, useRoomSocket } from './useRoomSocket';
 
 const { fakeSocket } = await vi.hoisted(async () => {
@@ -34,19 +34,37 @@ const renderRoomSocket = ({ loggedIn = true } = {}) => {
         ({ roomName, sub }) => {
             const [tickets, setTickets] =
                 useState<TicketForVoting[]>(initialTickets);
+            const [room, setRoom] = useState<Room | undefined>(makeRoom());
+            const [archivedTickets, setArchivedTickets] = useState<
+                TicketForVoting[]
+            >([]);
             const [users, setUsers] = useState<UserModel[]>([]);
+            const [onlineSubs, setOnlineSubs] = useState<string[]>([]);
             const [currentTicketId, setCurrentTicketId] = useState<string>();
+            const [timerEndsAt, setTimerEndsAt] = useState<number | null>(null);
             useRoomSocket({
                 roomName,
                 userSub: sub,
                 getToken,
+                setRoom,
                 setTickets,
+                setArchivedTickets,
                 setUsers,
+                setOnlineSubs,
                 setCurrentTicketId,
+                setTimerEndsAt,
                 onError,
                 onReconnect,
             });
-            return { tickets, users, currentTicketId };
+            return {
+                room,
+                tickets,
+                archivedTickets,
+                users,
+                onlineSubs,
+                currentTicketId,
+                timerEndsAt,
+            };
         },
         { initialProps: { roomName: 'room-abc', sub: userSub } }
     );
@@ -130,6 +148,82 @@ describe('useRoomSocket', () => {
     });
 
     describe('server events', () => {
+        it('tracks who is online on presence', () => {
+            const { result } = renderRoomSocket();
+            act(() => fakeSocket.serverEmit('presence', { online: ['u1'] }));
+            expect(result.current.onlineSubs).toEqual(['u1']);
+        });
+
+        it("catches up with the facilitator's ticket and timer on roomState", () => {
+            const { result } = renderRoomSocket();
+            act(() =>
+                fakeSocket.serverEmit('roomState', {
+                    currentTicketId: 'b',
+                    timerEndsAt: 5000,
+                })
+            );
+            expect(result.current.currentTicketId).toBe('b');
+            expect(result.current.timerEndsAt).toBe(5000);
+        });
+
+        it('follows the facilitator on ticketSelected', () => {
+            const { result } = renderRoomSocket();
+            act(() =>
+                fakeSocket.serverEmit('ticketSelected', { ticketId: 'a' })
+            );
+            expect(result.current.currentTicketId).toBe('a');
+        });
+
+        it('clears the votes and hides them again on votesCleared', () => {
+            const { result } = renderRoomSocket();
+            act(() => fakeSocket.serverEmit('showVotes', { ticketId: 'b' }));
+            act(() => fakeSocket.serverEmit('votesCleared', { ticketId: 'b' }));
+            expect(result.current.tickets[1]).toEqual({
+                ticket_id: 'b',
+                ticket_number: 'ABC-2',
+                votes: [],
+                votes_revealed: false,
+                archived_at: undefined,
+            });
+        });
+
+        it('starts and stops the timer', () => {
+            const { result } = renderRoomSocket();
+            act(() => fakeSocket.serverEmit('timer', { endsAt: 9000 }));
+            expect(result.current.timerEndsAt).toBe(9000);
+            act(() => fakeSocket.serverEmit('timer', { endsAt: null }));
+            expect(result.current.timerEndsAt).toBeNull();
+        });
+
+        it('updates who runs the room on facilitators', () => {
+            const { result } = renderRoomSocket();
+            act(() =>
+                fakeSocket.serverEmit('facilitators', {
+                    adminSub: 'new-owner',
+                    coFacilitatorSubs: ['admin-1'],
+                })
+            );
+            expect(result.current.room).toMatchObject({
+                adminSub: 'new-owner',
+                coFacilitatorSubs: ['admin-1'],
+            });
+        });
+
+        it('moves every ticket to the archive on sprintArchived', () => {
+            const { result } = renderRoomSocket();
+            act(() =>
+                fakeSocket.serverEmit('ticketSelected', { ticketId: 'a' })
+            );
+            act(() =>
+                fakeSocket.serverEmit('sprintArchived', { archivedAt: 'when' })
+            );
+            expect(result.current.tickets).toEqual([]);
+            expect(result.current.currentTicketId).toBeUndefined();
+            expect(result.current.archivedTickets).toEqual(
+                initialTickets.map((t) => ({ ...t, archived_at: 'when' }))
+            );
+        });
+
         it('replaces the user list on userJoined', () => {
             const { result } = renderRoomSocket();
             const users = [makeUserModel()];

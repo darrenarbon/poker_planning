@@ -21,7 +21,21 @@ describe('registerSockets', () => {
         onConnection!(socket);
 
         const events = socket.on.mock.calls.map(([event]) => event);
-        expect(events).toEqual(['join', 'vote', 'showVotes', 'setEstimate']);
+        expect(events).toEqual([
+            'join',
+            'vote',
+            'showVotes',
+            'setEstimate',
+            'disconnect',
+            'selectTicket',
+            'revote',
+            'startTimer',
+            'stopTimer',
+            'addCoFacilitator',
+            'removeCoFacilitator',
+            'handOver',
+            'archiveSprint',
+        ]);
         expect(io.use).toHaveBeenCalledTimes(1);
     });
 });

@@ -16,12 +16,24 @@ export const createQueryBuilder = (result: Result) => {
         'eq',
         'in',
         'order',
+        'is',
+        'not',
+        'upsert',
     ]) {
         builder[method] = vi.fn(() => builder);
     }
     builder.then = (resolve: (r: Result) => unknown) => resolve(result);
     return builder as Record<
-        'select' | 'insert' | 'update' | 'delete' | 'eq' | 'in' | 'order',
+        | 'select'
+        | 'insert'
+        | 'update'
+        | 'delete'
+        | 'eq'
+        | 'in'
+        | 'order'
+        | 'is'
+        | 'not'
+        | 'upsert',
         ReturnType<typeof vi.fn>
     >;
 };

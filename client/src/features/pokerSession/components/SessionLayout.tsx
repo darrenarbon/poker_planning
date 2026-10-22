@@ -2,6 +2,7 @@ import ErrorAlert from '../../../components/ErrorAlert';
 import Loading from '../../../components/Loading';
 import { usePokerSession } from '../../../context';
 import CurrentTicketPanel from './CurrentTicketPanel';
+import FacilitatorsPanel from './FacilitatorsPanel';
 import RoomHeader from './RoomHeader';
 import SessionControls from './SessionControls';
 import TicketList from './TicketList';
@@ -35,6 +36,7 @@ const SessionLayout = () => {
                         onToggleFavourite={toggleFavourite}
                     />
                     <SessionControls />
+                    <FacilitatorsPanel />
                     <CurrentTicketPanel />
                 </div>
             </div>

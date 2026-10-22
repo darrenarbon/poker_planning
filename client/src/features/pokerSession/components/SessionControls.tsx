@@ -8,7 +8,9 @@ const SessionControls = () => {
         refinementMode,
         toggleRefinementMode,
         room,
+        tickets,
         setRoomHidden,
+        archiveSprint,
     } = usePokerSession();
 
     if (!isAdmin || !room) return null;
@@ -20,6 +22,16 @@ const SessionControls = () => {
             )
         ) {
             setRoomHidden(true);
+        }
+    };
+
+    const startNewSprint = () => {
+        if (
+            confirm(
+                'Start a new sprint? All current tickets will move to Past sprints. The room link stays the same.'
+            )
+        ) {
+            archiveSprint();
         }
     };
 
@@ -39,6 +51,14 @@ const SessionControls = () => {
                     title="Hide your own vote until Show Votes is pressed, for the whole session. Use this when sharing your screen."
                 >
                     Refinement mode: {refinementMode ? 'On' : 'Off'}
+                </button>
+                <button
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={startNewSprint}
+                    disabled={tickets.length === 0}
+                    title="Archive this sprint's tickets and keep the same room link"
+                >
+                    Start new sprint
                 </button>
                 {room.hidden ? (
                     <button
