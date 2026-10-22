@@ -58,6 +58,8 @@ export interface PokerSessionContextValue {
     setRoomHidden: (hidden: boolean) => Promise<void>;
     setEstimate: (estimate: number) => void;
     addTicket: (ticketNumber: string) => Promise<void>;
+    /** facilitator only: move a ticket to a position in the list, for everyone */
+    moveTicket: (ticketId: string, toIndex: number) => void;
     deleteCurrentTicket: () => Promise<void>;
 }
 

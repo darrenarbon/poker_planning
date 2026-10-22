@@ -224,6 +224,15 @@ describe('useRoomSocket', () => {
             );
         });
 
+        it('reorders the tickets on ticketsReordered', () => {
+            const { result } = renderRoomSocket();
+            const ids = initialTickets.map((t) => t.ticket_id).reverse();
+            act(() =>
+                fakeSocket.serverEmit('ticketsReordered', { ticketIds: ids })
+            );
+            expect(result.current.tickets.map((t) => t.ticket_id)).toEqual(ids);
+        });
+
         it('replaces the user list on userJoined', () => {
             const { result } = renderRoomSocket();
             const users = [makeUserModel()];

@@ -299,6 +299,39 @@
     background: var(--bs-primary-bg-subtle);
 }
 
+/* facilitators drag tickets to reorder them; a line marks where it will land */
+.ticket-drag-item {
+    position: relative;
+}
+
+.ticket-drag-item > .ticket-card {
+    cursor: grab;
+}
+
+.ticket-drag-item.dragging {
+    opacity: 0.4;
+}
+
+.ticket-drag-item.drop-before::before,
+.ticket-drag-item.drop-after::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--bs-primary);
+    pointer-events: none;
+}
+
+.ticket-drag-item.drop-before::before {
+    top: -6px;
+}
+
+.ticket-drag-item.drop-after::after {
+    bottom: -6px;
+}
+
 .vote-cards {
     display: flex;
     flex-wrap: wrap;

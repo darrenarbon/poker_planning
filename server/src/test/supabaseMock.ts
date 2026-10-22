@@ -19,6 +19,7 @@ export const createQueryBuilder = (result: Result) => {
         'is',
         'not',
         'upsert',
+        'limit',
     ]) {
         builder[method] = vi.fn(() => builder);
     }
@@ -33,7 +34,8 @@ export const createQueryBuilder = (result: Result) => {
         | 'order'
         | 'is'
         | 'not'
-        | 'upsert',
+        | 'upsert'
+        | 'limit',
         ReturnType<typeof vi.fn>
     >;
 };

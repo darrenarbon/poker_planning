@@ -12,6 +12,7 @@ import {
     deleteTicket,
     getTicketById,
     getTicketInRoom,
+    reorderTickets,
     revealVotes,
     setEstimate,
 } from './ticketService.js';
@@ -227,5 +228,49 @@ describe('archiveSprint', () => {
         expect(ticketRepository.archiveTickets).toHaveBeenCalledWith(
             room.room_id
         );
+    });
+});
+
+describe('reorderTickets', () => {
+    const tickets = [
+        makeTicket({ ticket_id: 1 }),
+        makeTicket({ ticket_id: 2 }),
+        makeTicket({ ticket_id: 3 }),
+    ];
+
+    beforeEach(() => {
+        vi.mocked(roomRepository.findRoomByName).mockResolvedValue(room);
+        vi.mocked(ticketRepository.findTicketsByRoom).mockResolvedValue(
+            tickets
+        );
+    });
+
+    it('saves the new order', async () => {
+        actAs();
+        await reorderTickets('abc', admin.auth0_sub, [3, 1, 2]);
+        expect(ticketRepository.reorderTickets).toHaveBeenCalledWith(
+            room.room_id,
+            [3, 1, 2]
+        );
+    });
+
+    it.each([
+        ['a ticket is missing', [3, 1]],
+        ['a ticket is unknown', [3, 1, 4]],
+        ['a ticket is repeated', [3, 1, 1]],
+    ])('rejects a stale list when %s', async (_, ids) => {
+        actAs();
+        await expect(
+            reorderTickets('abc', admin.auth0_sub, ids)
+        ).rejects.toMatchObject({ status: 409 });
+        expect(ticketRepository.reorderTickets).not.toHaveBeenCalled();
+    });
+
+    it('rejects anyone who is not a facilitator', async () => {
+        actAs(other);
+        await expect(
+            reorderTickets('abc', other.auth0_sub, [3, 1, 2])
+        ).rejects.toMatchObject({ status: 403 });
+        expect(ticketRepository.reorderTickets).not.toHaveBeenCalled();
     });
 });

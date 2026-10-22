@@ -28,6 +28,8 @@ export interface ServerToClientEvents {
     timer: (payload: { endsAt: number | null }) => void;
     facilitators: (payload: Facilitators) => void;
     sprintArchived: (payload: { archivedAt: string }) => void;
+    /** every current ticket id, in the facilitator's new order */
+    ticketsReordered: (payload: { ticketIds: string[] }) => void;
     error: (message: string) => void;
 }
 
@@ -57,4 +59,8 @@ export interface ClientToServerEvents {
     }) => void;
     handOver: (payload: { roomName: string; userSub: string }) => void;
     archiveSprint: (payload: { roomName: string }) => void;
+    reorderTickets: (payload: {
+        roomName: string;
+        ticketIds: string[];
+    }) => void;
 }
