@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { planningPokerRouter } from '../apps/planningPoker/index.js';
 import { errorHandler } from '../utils/errors.js';
 import authRoutes from './authRoutes.js';
+import holidayRoutes from './holidayRoutes.js';
 import jiraRoutes from './jiraRoutes.js';
 import profileRoutes from './profileRoutes.js';
 import settingsRoutes from './settingsRoutes.js';
@@ -16,6 +17,7 @@ router.use(jiraRoutes);
 router.use(settingsRoutes);
 router.use(profileRoutes);
 router.use(teamRoutes);
+router.use(holidayRoutes);
 
 // each app's own endpoints
 router.use(planningPokerRouter);

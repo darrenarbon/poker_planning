@@ -9,6 +9,7 @@ import { capacityPaths } from './apps/sprintCapacity/routes';
 import AuthProvider from './components/AuthProvider';
 import RequireLogin from './components/RequireLogin';
 import HomePage from './features/home/HomePage';
+import HolidaysPage from './features/holidays/HolidaysPage';
 import InvitePage from './features/teams/InvitePage';
 import TeamPage from './features/teams/TeamPage';
 import TeamsPage from './features/teams/TeamsPage';
@@ -38,6 +39,14 @@ const App = () => (
                     element={
                         <RequireLogin>
                             <SettingsPage />
+                        </RequireLogin>
+                    }
+                />
+                <Route
+                    path={paths.holidays}
+                    element={
+                        <RequireLogin>
+                            <HolidaysPage />
                         </RequireLogin>
                     }
                 />

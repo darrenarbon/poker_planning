@@ -108,3 +108,33 @@ join (
         ('design-crit', 'DES-12', 1)
 ) as tickets (room_name, ticket_number, position)
     on tickets.room_name = room.room_name;
+
+-- 8. annual leave, relative to the day you reset so there is always some to
+-- see. The Platform sprint room is tomorrow, so on the new room page for the
+-- Platform team: Carol (away all week) is flagged and unticked; Dave is
+-- flagged only if the session is in the afternoon. Bob's leave was entered by
+-- Alice, the team owner, on his behalf. The team page's "Who's away" shows
+-- everything inside the next four weeks.
+insert into public.holiday (user_id, start_date, end_date, day_part, reason, note, created_by)
+select "user".user_id,
+       current_date + leave.starts_in, current_date + leave.ends_in,
+       leave.day_part, leave.reason, leave.note, creator.user_id
+from (
+    values
+        ('seed|carol', -1, 4, 'full', 'annual_leave', 'Lake District', null::text),
+        ('seed|dave', 1, 1, 'pm', 'annual_leave', 'Dentist', null),
+        ('seed|bob', 14, 25, 'full', 'annual_leave', 'Family trip', 'seed|alice'),
+        ('seed|alice', 9, 9, 'full', 'birthday_leave', null, null),
+        ('seed|alice', -3, -2, 'full', 'sickness', null, null),
+        ('seed|erin', 20, 20, 'full', 'bank_holiday', 'Bank holiday', null),
+        ('seed|erin', 60, 100, 'full', 'parental_leave', null, null),
+        ('seed|facilitator', 10, 12, 'full', 'annual_leave', 'Long weekend', null)
+) as leave (sub, starts_in, ends_in, day_part, reason, note, creator_sub)
+join public."user" on "user".auth0_sub = leave.sub
+left join public."user" creator on creator.auth0_sub = leave.creator_sub;
+
+-- To see your own leave on the dashboard and annual leave page, add some for
+-- yourself, e.g.:
+--   insert into public.holiday (user_id, start_date, end_date, reason)
+--   select user_id, current_date + 7, current_date + 11, 'annual_leave'
+--   from public."user" where email = 'you@example.com';

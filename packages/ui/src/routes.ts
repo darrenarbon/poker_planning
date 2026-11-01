@@ -2,6 +2,7 @@
 export const paths = {
     home: '/',
     settings: '/settings',
+    holidays: '/annual-leave',
     teams: '/teams',
     team: '/teams/:teamId',
     invite: '/invite/:token',

@@ -3,6 +3,7 @@ import Loading from '../../components/Loading';
 import { useUserRooms } from '../../apps/planningPoker/hooks';
 import { pokerPaths } from '../../apps/planningPoker/routes';
 import { useMyTeams } from '../../hooks';
+import NextLeaveCard from './NextLeaveCard';
 import UpcomingSessions from './UpcomingSessions';
 
 type DashboardProps = { givenName?: string };
@@ -31,6 +32,7 @@ const Dashboard = ({ givenName }: DashboardProps) => {
                     New room
                 </a>
             </header>
+            <NextLeaveCard />
             <ErrorAlert message={error} />
             {loaded ? (
                 <UpcomingSessions rooms={rooms} teamNames={teamNames} />

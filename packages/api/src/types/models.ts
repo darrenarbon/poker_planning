@@ -133,3 +133,46 @@ export interface UserTeam extends Team {
     role: TeamRole | null;
     member_count: number;
 }
+
+export const HOLIDAY_REASONS = [
+    'annual_leave',
+    'sickness',
+    'birthday_leave',
+    'bank_holiday',
+    'maternity_leave',
+    'paternity_leave',
+    'parental_leave',
+    'compassionate_leave',
+    'study_leave',
+    'unpaid_leave',
+    'jury_service',
+    'other',
+] as const;
+
+export type HolidayReason = (typeof HOLIDAY_REASONS)[number];
+
+/** Whether each day of a holiday is off in full, or only the morning or afternoon */
+export const HOLIDAY_DAY_PARTS = ['full', 'am', 'pm'] as const;
+
+export type HolidayDayPart = (typeof HOLIDAY_DAY_PARTS)[number];
+
+/** A row of holiday. Dates are calendar days, YYYY-MM-DD, with no time zone. */
+export interface Holiday {
+    holiday_id: number;
+    user_id: number;
+    start_date: string;
+    end_date: string;
+    day_part: HolidayDayPart;
+    reason: HolidayReason;
+    note: string | null;
+    created_by: number | null;
+    created_at: string;
+}
+
+export type NewHoliday = Omit<Holiday, 'holiday_id' | 'created_at'>;
+
+/** What a holiday's owner (or someone acting for them) can change */
+export type HolidayInput = Pick<
+    Holiday,
+    'start_date' | 'end_date' | 'day_part' | 'reason' | 'note'
+>;

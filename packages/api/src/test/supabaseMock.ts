@@ -16,6 +16,8 @@ export const createQueryBuilder = (result: Result) => {
         'eq',
         'in',
         'order',
+        'gte',
+        'lte',
         'is',
         'not',
         'upsert',
@@ -32,6 +34,8 @@ export const createQueryBuilder = (result: Result) => {
         | 'eq'
         | 'in'
         | 'order'
+        | 'gte'
+        | 'lte'
         | 'is'
         | 'not'
         | 'upsert'

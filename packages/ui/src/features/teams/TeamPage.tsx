@@ -13,6 +13,7 @@ import {
     TeamMemberInfo,
 } from '../../types';
 import { invitePath, paths } from '../../routes';
+import WhosAway from './WhosAway';
 import { formatDate, memberName, roleLabels } from './teamLabels';
 
 const inviteUrl = (token: string) =>
@@ -218,289 +219,315 @@ const TeamPage = () => {
                         onDismiss={() => setError(null)}
                     />
 
-                    <section className="mb-5">
-                        <h2 className="h5 fw-bold mb-3">
-                            People ({details.members.length})
-                        </h2>
-                        <ul className="list-group">
-                            {details.members.map((m) => (
-                                <li
-                                    key={m.userId}
-                                    className="list-group-item d-flex flex-wrap align-items-center gap-2"
-                                >
-                                    <div className="flex-grow-1 min-w-0">
-                                        <div className="fw-semibold">
-                                            {memberName(m)}
-                                            {isMe(m) && (
-                                                <span className="text-secondary fw-normal">
-                                                    {' '}
-                                                    (you)
+                    <div className="row g-4">
+                        <div className={canManage ? 'col-lg-7' : 'col-lg-8'}>
+                            <WhosAway
+                                teamId={teamId}
+                                members={details.members}
+                            />
+
+                            <section className="mb-5">
+                                <h2 className="h5 fw-bold mb-3">
+                                    People ({details.members.length})
+                                </h2>
+                                <ul className="list-group">
+                                    {details.members.map((m) => (
+                                        <li
+                                            key={m.userId}
+                                            className="list-group-item d-flex flex-wrap align-items-center gap-2"
+                                        >
+                                            <div className="flex-grow-1 min-w-0">
+                                                <div className="fw-semibold">
+                                                    {memberName(m)}
+                                                    {isMe(m) && (
+                                                        <span className="text-secondary fw-normal">
+                                                            {' '}
+                                                            (you)
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {m.email && (
+                                                    <div className="small text-secondary">
+                                                        {m.email}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {canChangeRoles &&
+                                            m.role !== 'owner' ? (
+                                                <select
+                                                    className="form-select form-select-sm w-auto"
+                                                    aria-label={`Role for ${memberName(m)}`}
+                                                    value={m.role}
+                                                    onChange={(e) =>
+                                                        act(
+                                                            () =>
+                                                                api.changeTeamMemberRole(
+                                                                    teamId,
+                                                                    m.userId,
+                                                                    e.target
+                                                                        .value as AssignableTeamRole
+                                                                ),
+                                                            'Could not change that role.'
+                                                        )
+                                                    }
+                                                >
+                                                    <option value="admin">
+                                                        Admin
+                                                    </option>
+                                                    <option value="member">
+                                                        Member
+                                                    </option>
+                                                </select>
+                                            ) : (
+                                                <span
+                                                    className={`badge ${m.role === 'owner' ? 'text-bg-dark' : 'bg-body-secondary text-body border'}`}
+                                                >
+                                                    {roleLabels[m.role]}
                                                 </span>
                                             )}
-                                        </div>
-                                        {m.email && (
-                                            <div className="small text-secondary">
-                                                {m.email}
-                                            </div>
-                                        )}
-                                    </div>
-                                    {canChangeRoles && m.role !== 'owner' ? (
-                                        <select
-                                            className="form-select form-select-sm w-auto"
-                                            aria-label={`Role for ${memberName(m)}`}
-                                            value={m.role}
-                                            onChange={(e) =>
-                                                act(
-                                                    () =>
-                                                        api.changeTeamMemberRole(
-                                                            teamId,
-                                                            m.userId,
-                                                            e.target
-                                                                .value as AssignableTeamRole
-                                                        ),
-                                                    'Could not change that role.'
-                                                )
-                                            }
-                                        >
-                                            <option value="admin">Admin</option>
-                                            <option value="member">
-                                                Member
-                                            </option>
-                                        </select>
-                                    ) : (
-                                        <span
-                                            className={`badge ${m.role === 'owner' ? 'text-bg-dark' : 'bg-body-secondary text-body border'}`}
-                                        >
-                                            {roleLabels[m.role]}
-                                        </span>
-                                    )}
-                                    {canChangeRoles && m.role !== 'owner' && (
-                                        <button
-                                            type="button"
-                                            className="btn btn-outline-secondary btn-sm"
-                                            onClick={() => confirmTransfer(m)}
-                                        >
-                                            Make owner
-                                        </button>
-                                    )}
-                                    {canRemove(m) && (
-                                        <button
-                                            type="button"
-                                            className="btn btn-outline-danger btn-sm"
-                                            onClick={() => confirmRemove(m)}
-                                        >
-                                            {isMe(m) ? 'Leave' : 'Remove'}
-                                        </button>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                    </section>
-
-                    {canManage && (
-                        <>
-                            <section className="mb-5">
-                                <h2 className="h5 fw-bold mb-3">Add someone</h2>
-                                <form
-                                    className="d-flex flex-wrap gap-2 mb-2"
-                                    onSubmit={addByEmail}
-                                >
-                                    <input
-                                        type="email"
-                                        className="form-control w-auto flex-grow-1"
-                                        aria-label="Email address"
-                                        placeholder="Their email address"
-                                        value={email}
-                                        onChange={(e) =>
-                                            setEmail(e.target.value)
-                                        }
-                                    />
-                                    {canChangeRoles && (
-                                        <select
-                                            className="form-select w-auto"
-                                            aria-label="Role to add them as"
-                                            value={emailRole}
-                                            onChange={(e) =>
-                                                setEmailRole(
-                                                    e.target
-                                                        .value as AssignableTeamRole
-                                                )
-                                            }
-                                        >
-                                            <option value="member">
-                                                Member
-                                            </option>
-                                            <option value="admin">Admin</option>
-                                        </select>
-                                    )}
-                                    <button
-                                        type="submit"
-                                        className="btn btn-primary"
-                                        disabled={!email.trim()}
-                                    >
-                                        Add
-                                    </button>
-                                </form>
-                                <div className="form-text">
-                                    They need to have logged in to Teamdeck
-                                    before. If they have not, send an invite
-                                    link instead.
-                                </div>
+                                            {canChangeRoles &&
+                                                m.role !== 'owner' && (
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-outline-secondary btn-sm"
+                                                        onClick={() =>
+                                                            confirmTransfer(m)
+                                                        }
+                                                    >
+                                                        Make owner
+                                                    </button>
+                                                )}
+                                            {canRemove(m) && (
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-outline-danger btn-sm"
+                                                    onClick={() =>
+                                                        confirmRemove(m)
+                                                    }
+                                                >
+                                                    {isMe(m)
+                                                        ? 'Leave'
+                                                        : 'Remove'}
+                                                </button>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
                             </section>
+                        </div>
 
-                            <section className="mb-5">
-                                <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-                                    <h2 className="h5 fw-bold mb-0">
-                                        Invite links
+                        {canManage && (
+                            <div className="col-lg-5">
+                                <section className="mb-5">
+                                    <h2 className="h5 fw-bold mb-3">
+                                        Add someone
                                     </h2>
-                                    <div className="d-flex gap-2">
+                                    <form
+                                        className="d-flex flex-wrap gap-2 mb-2"
+                                        onSubmit={addByEmail}
+                                    >
+                                        <input
+                                            type="email"
+                                            className="form-control w-auto flex-grow-1"
+                                            aria-label="Email address"
+                                            placeholder="Their email address"
+                                            value={email}
+                                            onChange={(e) =>
+                                                setEmail(e.target.value)
+                                            }
+                                        />
                                         {canChangeRoles && (
                                             <select
-                                                className="form-select form-select-sm w-auto"
-                                                aria-label="Role for the invite"
-                                                value={inviteRole}
+                                                className="form-select w-auto"
+                                                aria-label="Role to add them as"
+                                                value={emailRole}
                                                 onChange={(e) =>
-                                                    setInviteRole(
+                                                    setEmailRole(
                                                         e.target
                                                             .value as AssignableTeamRole
                                                     )
                                                 }
                                             >
                                                 <option value="member">
-                                                    Join as member
+                                                    Member
                                                 </option>
                                                 <option value="admin">
-                                                    Join as admin
+                                                    Admin
                                                 </option>
                                             </select>
                                         )}
                                         <button
-                                            type="button"
-                                            className="btn btn-outline-primary btn-sm"
-                                            onClick={() =>
-                                                act(
-                                                    () =>
-                                                        api.createTeamInvite(
-                                                            teamId,
-                                                            inviteRole
-                                                        ),
-                                                    'Could not create an invite link.'
-                                                )
+                                            type="submit"
+                                            className="btn btn-primary"
+                                            disabled={!email.trim()}
+                                        >
+                                            Add
+                                        </button>
+                                    </form>
+                                    <div className="form-text">
+                                        They need to have logged in to Teamdeck
+                                        before. If they have not, send an invite
+                                        link instead.
+                                    </div>
+                                </section>
+
+                                <section className="mb-5">
+                                    <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                        <h2 className="h5 fw-bold mb-0">
+                                            Invite links
+                                        </h2>
+                                        <div className="d-flex gap-2">
+                                            {canChangeRoles && (
+                                                <select
+                                                    className="form-select form-select-sm w-auto"
+                                                    aria-label="Role for the invite"
+                                                    value={inviteRole}
+                                                    onChange={(e) =>
+                                                        setInviteRole(
+                                                            e.target
+                                                                .value as AssignableTeamRole
+                                                        )
+                                                    }
+                                                >
+                                                    <option value="member">
+                                                        Join as member
+                                                    </option>
+                                                    <option value="admin">
+                                                        Join as admin
+                                                    </option>
+                                                </select>
+                                            )}
+                                            <button
+                                                type="button"
+                                                className="btn btn-outline-primary btn-sm"
+                                                onClick={() =>
+                                                    act(
+                                                        () =>
+                                                            api.createTeamInvite(
+                                                                teamId,
+                                                                inviteRole
+                                                            ),
+                                                        'Could not create an invite link.'
+                                                    )
+                                                }
+                                            >
+                                                New invite link
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {invites.length === 0 ? (
+                                        <div className="card border-0 bg-body-tertiary text-center text-secondary p-3">
+                                            No active invite links. Create one
+                                            and share it with whoever should
+                                            join.
+                                        </div>
+                                    ) : (
+                                        <ul className="list-group">
+                                            {invites.map((invite) => (
+                                                <li
+                                                    key={invite.invite_id}
+                                                    className="list-group-item"
+                                                >
+                                                    <div className="d-flex flex-wrap gap-2 align-items-center">
+                                                        <input
+                                                            readOnly
+                                                            className="form-control form-control-sm w-auto flex-grow-1"
+                                                            aria-label="Invite link"
+                                                            value={inviteUrl(
+                                                                invite.token
+                                                            )}
+                                                            onFocus={(e) =>
+                                                                e.target.select()
+                                                            }
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-outline-secondary btn-sm"
+                                                            onClick={() =>
+                                                                copyInvite(
+                                                                    invite
+                                                                )
+                                                            }
+                                                        >
+                                                            {copied ===
+                                                            invite.invite_id
+                                                                ? 'Copied'
+                                                                : 'Copy'}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-outline-danger btn-sm"
+                                                            onClick={() =>
+                                                                act(
+                                                                    () =>
+                                                                        api.revokeTeamInvite(
+                                                                            teamId,
+                                                                            invite.invite_id
+                                                                        ),
+                                                                    'Could not revoke that invite.'
+                                                                )
+                                                            }
+                                                        >
+                                                            Revoke
+                                                        </button>
+                                                    </div>
+                                                    <div className="small text-secondary mt-1">
+                                                        Joins as{' '}
+                                                        {roleLabels[
+                                                            invite.role
+                                                        ].toLowerCase()}{' '}
+                                                        · expires{' '}
+                                                        {formatDate(
+                                                            invite.expires_at
+                                                        )}
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </section>
+
+                                <section className="mb-5">
+                                    <h2 className="h5 fw-bold mb-3">
+                                        Team settings
+                                    </h2>
+                                    <form
+                                        className="d-flex gap-2 mb-3"
+                                        onSubmit={rename}
+                                    >
+                                        <input
+                                            className="form-control w-auto flex-grow-1"
+                                            aria-label="Team name"
+                                            value={name}
+                                            maxLength={80}
+                                            onChange={(e) =>
+                                                setName(e.target.value)
+                                            }
+                                        />
+                                        <button
+                                            type="submit"
+                                            className="btn btn-outline-primary"
+                                            disabled={
+                                                !name.trim() ||
+                                                name.trim() === team.name
                                             }
                                         >
-                                            New invite link
+                                            Rename
                                         </button>
-                                    </div>
-                                </div>
-                                {invites.length === 0 ? (
-                                    <div className="card border-0 bg-body-tertiary text-center text-secondary p-3">
-                                        No active invite links. Create one and
-                                        share it with whoever should join.
-                                    </div>
-                                ) : (
-                                    <ul className="list-group">
-                                        {invites.map((invite) => (
-                                            <li
-                                                key={invite.invite_id}
-                                                className="list-group-item"
-                                            >
-                                                <div className="d-flex flex-wrap gap-2 align-items-center">
-                                                    <input
-                                                        readOnly
-                                                        className="form-control form-control-sm w-auto flex-grow-1"
-                                                        aria-label="Invite link"
-                                                        value={inviteUrl(
-                                                            invite.token
-                                                        )}
-                                                        onFocus={(e) =>
-                                                            e.target.select()
-                                                        }
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-outline-secondary btn-sm"
-                                                        onClick={() =>
-                                                            copyInvite(invite)
-                                                        }
-                                                    >
-                                                        {copied ===
-                                                        invite.invite_id
-                                                            ? 'Copied'
-                                                            : 'Copy'}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-outline-danger btn-sm"
-                                                        onClick={() =>
-                                                            act(
-                                                                () =>
-                                                                    api.revokeTeamInvite(
-                                                                        teamId,
-                                                                        invite.invite_id
-                                                                    ),
-                                                                'Could not revoke that invite.'
-                                                            )
-                                                        }
-                                                    >
-                                                        Revoke
-                                                    </button>
-                                                </div>
-                                                <div className="small text-secondary mt-1">
-                                                    Joins as{' '}
-                                                    {roleLabels[
-                                                        invite.role
-                                                    ].toLowerCase()}{' '}
-                                                    · expires{' '}
-                                                    {formatDate(
-                                                        invite.expires_at
-                                                    )}
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </section>
-
-                            <section className="mb-5">
-                                <h2 className="h5 fw-bold mb-3">
-                                    Team settings
-                                </h2>
-                                <form
-                                    className="d-flex gap-2 mb-3"
-                                    onSubmit={rename}
-                                >
-                                    <input
-                                        className="form-control w-auto flex-grow-1"
-                                        aria-label="Team name"
-                                        value={name}
-                                        maxLength={80}
-                                        onChange={(e) =>
-                                            setName(e.target.value)
-                                        }
-                                    />
-                                    <button
-                                        type="submit"
-                                        className="btn btn-outline-primary"
-                                        disabled={
-                                            !name.trim() ||
-                                            name.trim() === team.name
-                                        }
-                                    >
-                                        Rename
-                                    </button>
-                                </form>
-                                {canChangeRoles && (
-                                    <button
-                                        type="button"
-                                        className="btn btn-outline-danger"
-                                        onClick={confirmDelete}
-                                    >
-                                        Delete team
-                                    </button>
-                                )}
-                            </section>
-                        </>
-                    )}
+                                    </form>
+                                    {canChangeRoles && (
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline-danger"
+                                            onClick={confirmDelete}
+                                        >
+                                            Delete team
+                                        </button>
+                                    )}
+                                </section>
+                            </div>
+                        )}
+                    </div>
                 </div>
                 {confirmModal}
             </div>

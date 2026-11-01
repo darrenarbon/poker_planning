@@ -5,3 +5,4 @@ export * from './useConfirm';
 export * from './useUserSettings';
 export * from './useMyTeams';
 export * from './useProfile';
+export * from './useHolidays';

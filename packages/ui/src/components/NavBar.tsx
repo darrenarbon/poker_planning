@@ -127,6 +127,7 @@ const NavBar = () => {
     const { theme, toggleTheme } = useTheme();
     const otherTheme = theme === 'dark' ? 'light' : 'dark';
     const currentApp = findCurrentApp(window.location.pathname);
+    const isHolidaysPage = window.location.pathname.startsWith(paths.holidays);
     const isTeamsPage = window.location.pathname.startsWith(paths.teams);
     // the keyboard shortcuts are for voting, so only planning poker has them
     const hasShortcuts = !!user && currentApp?.id === 'planningPoker';
@@ -236,6 +237,19 @@ const NavBar = () => {
                                         href={paths.teams}
                                     >
                                         Teams
+                                    </a>
+                                </li>
+                            )}
+                            {user && (
+                                <li className="nav-item">
+                                    <a
+                                        className={`nav-link${isHolidaysPage ? ' active' : ''}`}
+                                        aria-current={
+                                            isHolidaysPage ? 'page' : undefined
+                                        }
+                                        href={paths.holidays}
+                                    >
+                                        Annual leave
                                     </a>
                                 </li>
                             )}
