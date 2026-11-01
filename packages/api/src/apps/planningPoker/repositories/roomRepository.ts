@@ -86,6 +86,15 @@ export const createRoom = async (
     return data![0];
 };
 
+/** Removes a room; its members, tickets and votes go with it. */
+export const deleteRoom = async (roomId: number) => {
+    const { error } = await supabase
+        .from('room')
+        .delete()
+        .eq('room_id', roomId);
+    assertNoDbError(error, 'Error deleting room');
+};
+
 export const findRoomUserIds = async (roomId: number): Promise<number[]> => {
     const { data, error } = await supabase
         .from('room_users')

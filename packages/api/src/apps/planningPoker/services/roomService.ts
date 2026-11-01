@@ -83,17 +83,28 @@ export const createRoom = async (
         ...(options.teamId !== undefined && { team_id: options.teamId }),
         ...(options.scheduledAt && { scheduled_at: options.scheduledAt }),
     });
-    await roomRepository.addUserToRoom(room.room_id, admin.user_id);
+    try {
+        await roomRepository.addUserToRoom(room.room_id, admin.user_id);
 
-    const others = members.filter((u) => u.user_id !== admin.user_id);
-    await roomRepository.addUsersToRoom(
-        room.room_id,
-        others.map((u) => u.user_id)
-    );
-    for (const user of coFacilitators) {
-        if (user.user_id !== admin.user_id) {
-            await roomRepository.addCoFacilitator(room.room_id, user.user_id);
+        const others = members.filter((u) => u.user_id !== admin.user_id);
+        await roomRepository.addUsersToRoom(
+            room.room_id,
+            others.map((u) => u.user_id)
+        );
+        for (const user of coFacilitators) {
+            if (user.user_id !== admin.user_id) {
+                await roomRepository.addCoFacilitator(
+                    room.room_id,
+                    user.user_id
+                );
+            }
         }
+    } catch (error) {
+        // don't leave a half-built room behind to be duplicated by a retry
+        await roomRepository.deleteRoom(room.room_id).catch((e) => {
+            console.error('Failed to clean up room after error:', e);
+        });
+        throw error;
     }
 
     return roomName;
