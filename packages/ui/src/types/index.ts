@@ -7,3 +7,4 @@ export * from './settings';
 export * from './team';
 export * from './profile';
 export * from './holiday';
+export * from './sprint';

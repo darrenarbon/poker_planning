@@ -45,23 +45,23 @@ describe('NavBar', () => {
         mockAuth(makeAuthUser());
         render(<NavBar />);
         expect(
-            screen.getByRole('link', { name: 'Planning Poker' })
+            screen.getByRole('link', { name: /Planning Poker/ })
         ).toHaveAttribute('href', '/poker');
         expect(
-            screen.queryByRole('link', { name: /Sprint Capacity Planner/ })
-        ).not.toBeInTheDocument();
+            screen.getByRole('link', { name: /Sprint Capacity Planner/ })
+        ).toHaveAttribute('href', '/capacity');
         expect(
             screen.queryByRole('link', { name: /Skills Matrix/ })
         ).not.toBeInTheDocument();
         expect(screen.queryByText(/Soon/)).not.toBeInTheDocument();
     });
 
-    it('does not need an Apps menu while there is only one app', () => {
+    it('puts the finished apps in an Apps menu', () => {
         mockAuth(makeAuthUser());
         render(<NavBar />);
         expect(
-            screen.queryByRole('button', { name: 'Apps' })
-        ).not.toBeInTheDocument();
+            screen.getByRole('button', { name: 'Apps' })
+        ).toBeInTheDocument();
     });
 
     it('marks the app being used as the current page', () => {
@@ -69,7 +69,7 @@ describe('NavBar', () => {
         mockAuth(makeAuthUser());
         render(<NavBar />);
         expect(
-            screen.getByRole('link', { name: 'Planning Poker' })
+            screen.getByRole('link', { name: /Planning Poker/ })
         ).toHaveAttribute('aria-current', 'page');
     });
 

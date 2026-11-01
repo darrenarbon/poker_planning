@@ -32,10 +32,9 @@ export const apps: AppInfo[] = [
         name: 'Sprint Capacity Planner',
         tagline: 'Plan what fits',
         description:
-            "Work out how much the team can take on, allowing for holidays, meetings and everyone's availability.",
+            'Work out how many points the next sprint can hold, from past velocity, who is away and what is carried over.',
         path: capacityPaths.home,
         icon: '📅',
-        comingSoon: true,
     },
     {
         id: 'skillsMatrix',

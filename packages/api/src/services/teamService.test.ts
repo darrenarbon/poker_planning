@@ -12,6 +12,7 @@ import {
     acceptInvite,
     addMemberByEmail,
     canManageTeam,
+    changeMemberJobTitle,
     changeMemberRole,
     createInvite,
     createTeam,
@@ -116,7 +117,7 @@ describe('getTeamsForUser', () => {
 describe('getTeamDetails', () => {
     beforeEach(() => {
         vi.mocked(teamRepository.findMembers).mockResolvedValue([
-            { role: 'owner', joined_at: 'j', user: owner },
+            { role: 'owner', joined_at: 'j', job_title: null, user: owner },
         ]);
     });
 
@@ -258,6 +259,69 @@ describe('addMemberByEmail', () => {
     });
 });
 
+describe('changeMemberJobTitle', () => {
+    it('lets people set their own', async () => {
+        await changeMemberJobTitle(
+            team.team_id,
+            member.auth0_sub,
+            member.user_id,
+            'designer'
+        );
+        expect(teamRepository.updateMemberJobTitle).toHaveBeenCalledWith(
+            team.team_id,
+            member.user_id,
+            'designer'
+        );
+    });
+
+    it("lets an admin set someone else's, or clear it", async () => {
+        await changeMemberJobTitle(
+            team.team_id,
+            admin.auth0_sub,
+            member.user_id,
+            null
+        );
+        expect(teamRepository.updateMemberJobTitle).toHaveBeenCalledWith(
+            team.team_id,
+            member.user_id,
+            null
+        );
+    });
+
+    it("stops members setting someone else's", async () => {
+        await expect(
+            changeMemberJobTitle(
+                team.team_id,
+                member.auth0_sub,
+                admin.user_id,
+                'developer'
+            )
+        ).rejects.toMatchObject({ status: 403 });
+    });
+
+    it('rejects a title that is not in the list', async () => {
+        await expect(
+            changeMemberJobTitle(
+                team.team_id,
+                owner.auth0_sub,
+                member.user_id,
+                'wizard'
+            )
+        ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('404s for someone not in the team', async () => {
+        await expect(
+            changeMemberJobTitle(
+                team.team_id,
+                owner.auth0_sub,
+                outsider.user_id,
+                'developer'
+            )
+        ).rejects.toMatchObject({ status: 404 });
+    });
+});
+
 describe('changeMemberRole', () => {
     it('lets the owner promote and demote', async () => {
         await changeMemberRole(
@@ -363,8 +427,8 @@ describe('removeMember', () => {
 describe('transferOwnership', () => {
     beforeEach(() => {
         vi.mocked(teamRepository.findMembers).mockResolvedValue([
-            { role: 'owner', joined_at: 'j', user: owner },
-            { role: 'member', joined_at: 'j', user: member },
+            { role: 'owner', joined_at: 'j', job_title: null, user: owner },
+            { role: 'member', joined_at: 'j', job_title: null, user: member },
         ]);
     });
 

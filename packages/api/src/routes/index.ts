@@ -1,6 +1,7 @@
 import { Router } from 'express';
 
 import { planningPokerRouter } from '../apps/planningPoker/index.js';
+import { sprintCapacityRouter } from '../apps/sprintCapacity/index.js';
 import { errorHandler } from '../utils/errors.js';
 import authRoutes from './authRoutes.js';
 import holidayRoutes from './holidayRoutes.js';
@@ -21,6 +22,7 @@ router.use(holidayRoutes);
 
 // each app's own endpoints
 router.use(planningPokerRouter);
+router.use(sprintCapacityRouter);
 
 router.get('*', (_req, res) => {
     res.send('Sorry, page not found... What are you doing with your life?');

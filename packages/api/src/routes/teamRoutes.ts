@@ -26,6 +26,11 @@ router.put(
     checkJwt,
     asyncHandler(teamController.changeMemberRole)
 );
+router.put(
+    '/teams/:teamId/members/:userId/job-title',
+    checkJwt,
+    asyncHandler(teamController.changeMemberJobTitle)
+);
 router.delete(
     '/teams/:teamId/members/:userId',
     checkJwt,

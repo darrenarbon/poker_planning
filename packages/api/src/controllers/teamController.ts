@@ -64,6 +64,16 @@ export const changeMemberRole = async (req: Request, res: Response) => {
     res.json({ message: 'Role changed' });
 };
 
+export const changeMemberJobTitle = async (req: Request, res: Response) => {
+    await teamService.changeMemberJobTitle(
+        idParam(req, 'teamId'),
+        sub(req),
+        idParam(req, 'userId'),
+        req.body?.jobTitle ?? null
+    );
+    res.json({ message: 'Job title saved' });
+};
+
 export const removeMember = async (req: Request, res: Response) => {
     await teamService.removeMember(
         idParam(req, 'teamId'),

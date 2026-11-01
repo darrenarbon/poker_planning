@@ -4,12 +4,18 @@ import {
     BankHolidayRegion,
     Holiday,
     HolidayInput,
+    ForecastQuery,
     InvitePreview,
+    JobTitle,
     JiraTicket,
     MyTeams,
     NewRoomOptions,
     RoomDetails,
     RoomSummary,
+    SprintDetails,
+    SprintForecast,
+    SprintInput,
+    TeamSprints,
     TeamAbsence,
     TeamLeave,
     TeamDetails,
@@ -166,6 +172,78 @@ export const createApi = (getToken: GetToken) => ({
                 `/teams/${teamId}/leave?from=${from}&to=${to}`
             )
         ).leave,
+
+    changeMemberJobTitle: (
+        teamId: number,
+        userId: number,
+        jobTitle: JobTitle | null
+    ) =>
+        request(getToken, `/teams/${teamId}/members/${userId}/job-title`, {
+            method: 'PUT',
+            body: { jobTitle },
+        }),
+
+    getTeamSprints: (teamId: number | string) =>
+        requestJson<TeamSprints>(getToken, `/teams/${teamId}/sprints`),
+
+    getSprintForecast: (teamId: number | string, query: ForecastQuery) =>
+        requestJson<SprintForecast>(
+            getToken,
+            `/teams/${teamId}/sprints/forecast?${new URLSearchParams({
+                startDate: query.startDate,
+                endDate: query.endDate,
+                memberIds: query.memberIds.join(','),
+                bufferPercent: String(query.bufferPercent),
+                carriedOverPoints: String(query.carriedOverPoints),
+            })}`
+        ),
+
+    getSprint: (teamId: number | string, sprintId: number | string) =>
+        requestJson<SprintDetails>(
+            getToken,
+            `/teams/${teamId}/sprints/${sprintId}`
+        ),
+
+    createSprint: (teamId: number | string, sprint: SprintInput) =>
+        requestJson<{ sprintId: number }>(
+            getToken,
+            `/teams/${teamId}/sprints`,
+            { method: 'POST', body: sprint }
+        ),
+
+    updateSprint: (
+        teamId: number | string,
+        sprintId: number,
+        sprint: SprintInput
+    ) =>
+        requestJson<SprintDetails>(
+            getToken,
+            `/teams/${teamId}/sprints/${sprintId}`,
+            { method: 'PUT', body: sprint }
+        ),
+
+    deleteSprint: (teamId: number | string, sprintId: number) =>
+        request(getToken, `/teams/${teamId}/sprints/${sprintId}`, {
+            method: 'DELETE',
+        }),
+
+    startSprint: (teamId: number | string, sprintId: number) =>
+        requestJson<SprintDetails>(
+            getToken,
+            `/teams/${teamId}/sprints/${sprintId}/start`,
+            { method: 'POST' }
+        ),
+
+    closeSprint: (
+        teamId: number | string,
+        sprintId: number,
+        figures: { completedPoints: number; plannedPoints?: number }
+    ) =>
+        requestJson<SprintDetails>(
+            getToken,
+            `/teams/${teamId}/sprints/${sprintId}/close`,
+            { method: 'POST', body: figures }
+        ),
 
     getMyTeams: () => requestJson<MyTeams>(getToken, '/me/teams'),
 

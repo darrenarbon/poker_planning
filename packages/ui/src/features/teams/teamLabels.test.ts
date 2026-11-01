@@ -14,7 +14,13 @@ describe('tokenFromInvite', () => {
 });
 
 describe('memberName', () => {
-    const base = { userId: 1, sub: 's', role: 'member', joinedAt: '' } as const;
+    const base = {
+        userId: 1,
+        sub: 's',
+        role: 'member',
+        joinedAt: '',
+        jobTitle: null,
+    } as const;
 
     it('prefers the full name, then nickname, then email', () => {
         expect(
