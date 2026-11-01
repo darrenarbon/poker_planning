@@ -1,7 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_TICKET_BASE_URL } from '../../../../../constants';
 import CreateRoomForm from './CreateRoomForm';
 
 const navigate = vi.fn();
@@ -21,11 +20,9 @@ describe('CreateRoomForm', () => {
         vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
-    it('pre-fills the default ticket base URL', () => {
+    it('leaves the base URL blank when no default is saved', () => {
         render(<CreateRoomForm />);
-        expect(screen.getByLabelText(/Base URL/)).toHaveValue(
-            DEFAULT_TICKET_BASE_URL
-        );
+        expect(screen.getByLabelText(/Base URL/)).toHaveValue('');
     });
 
     it("pre-fills the user's saved default base URL", () => {
@@ -97,6 +94,10 @@ describe('CreateRoomForm', () => {
         createRoom.mockRejectedValue(new Error('boom'));
         render(<CreateRoomForm />);
         await userEvent.type(screen.getByLabelText(/Room Name/), 'Planning');
+        await userEvent.type(
+            screen.getByLabelText(/Base URL/),
+            'https://jira.example.com/browse'
+        );
         await userEvent.click(
             screen.getByRole('button', { name: 'Create room' })
         );

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeAuthUser, makeUserModel } from '../test/factories';
-import { getDisplayName, getInitials } from './user';
+import { getDisplayName, getFullName, getInitials } from './user';
 
 describe('getDisplayName', () => {
     it('uses given and family name when available', () => {
@@ -11,6 +11,20 @@ describe('getDisplayName', () => {
         expect(getDisplayName(makeUserModel({ given_name: undefined }))).toBe(
             'ada.lovelace'
         );
+    });
+});
+
+describe('getFullName', () => {
+    it('joins the names that are set', () => {
+        expect(getFullName({ givenName: 'Ada', familyName: 'Lovelace' })).toBe(
+            'Ada Lovelace'
+        );
+        expect(getFullName({ givenName: 'Ada', familyName: '' })).toBe('Ada');
+    });
+
+    it('is undefined when there is no name', () => {
+        expect(getFullName()).toBeUndefined();
+        expect(getFullName({ givenName: '', familyName: '' })).toBeUndefined();
     });
 });
 

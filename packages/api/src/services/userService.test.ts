@@ -4,8 +4,11 @@ import * as userRepository from '../repositories/userRepository.js';
 import { makeNewUser, makeUser } from '../test/factories.js';
 import {
     ensureUser,
+    getProfile,
     getSettings,
     getUserBySub,
+    resolveNames,
+    saveProfile,
     saveSettings,
 } from './userService.js';
 
@@ -39,6 +42,67 @@ describe('userService', () => {
         vi.mocked(userRepository.findUserBySub).mockResolvedValue(user);
         await ensureUser(newUser);
         expect(userRepository.createUser).not.toHaveBeenCalled();
+    });
+
+    it('ensureUser splits a full name when no given or family name is sent', async () => {
+        vi.mocked(userRepository.findUserBySub).mockResolvedValue(undefined);
+        await ensureUser(
+            makeNewUser({ given_name: undefined, family_name: undefined }),
+            'Ada King Lovelace'
+        );
+        expect(userRepository.createUser).toHaveBeenCalledWith(
+            expect.objectContaining({
+                given_name: 'Ada',
+                family_name: 'King Lovelace',
+            })
+        );
+    });
+
+    it('ensureUser fills in the names of an existing user who has none', async () => {
+        vi.mocked(userRepository.findUserBySub).mockResolvedValue(
+            makeUser({
+                user_id: 7,
+                given_name: null as unknown as string,
+                family_name: null as unknown as string,
+            })
+        );
+        await ensureUser(makeNewUser({ given_name: 'Ada', family_name: 'L' }));
+        expect(userRepository.updateUserName).toHaveBeenCalledWith(
+            7,
+            'Ada',
+            'L'
+        );
+    });
+
+    it('ensureUser never overwrites a stored name', async () => {
+        vi.mocked(userRepository.findUserBySub).mockResolvedValue(
+            makeUser({ given_name: 'Chosen', family_name: '' })
+        );
+        await ensureUser(makeNewUser({ given_name: 'Ada', family_name: 'L' }));
+        expect(userRepository.updateUserName).not.toHaveBeenCalled();
+    });
+
+    it('ensureUser leaves a nameless user alone when the login has no name', async () => {
+        vi.mocked(userRepository.findUserBySub).mockResolvedValue(
+            makeUser({ given_name: '', family_name: '' })
+        );
+        await ensureUser(
+            makeNewUser({ given_name: undefined, family_name: undefined }),
+            'ada@example.com'
+        );
+        expect(userRepository.updateUserName).not.toHaveBeenCalled();
+    });
+
+    it('resolveNames handles single names and blanks', () => {
+        const none = { given_name: undefined, family_name: undefined };
+        expect(resolveNames(none, 'Ada')).toEqual({
+            given_name: 'Ada',
+            family_name: null,
+        });
+        expect(resolveNames(none, undefined)).toEqual({
+            given_name: null,
+            family_name: null,
+        });
     });
 
     it('getSettings combines the settings row and exemplars', async () => {
@@ -86,6 +150,44 @@ describe('userService', () => {
         expect(userRepository.replaceExemplars).toHaveBeenCalledWith(
             7,
             exemplars
+        );
+    });
+
+    it('getProfile returns the stored name', async () => {
+        vi.mocked(userRepository.findUserBySub).mockResolvedValue(
+            makeUser({ given_name: 'Ada', family_name: 'Lovelace' })
+        );
+        await expect(getProfile('auth0|user-1')).resolves.toEqual({
+            givenName: 'Ada',
+            familyName: 'Lovelace',
+        });
+    });
+
+    it('getProfile gives empty names rather than null', async () => {
+        vi.mocked(userRepository.findUserBySub).mockResolvedValue(
+            makeUser({
+                given_name: null as unknown as string,
+                family_name: null as unknown as string,
+            })
+        );
+        await expect(getProfile('auth0|user-1')).resolves.toEqual({
+            givenName: '',
+            familyName: '',
+        });
+    });
+
+    it('saveProfile updates the name on the user record', async () => {
+        vi.mocked(userRepository.findUserBySub).mockResolvedValue(
+            makeUser({ user_id: 7 })
+        );
+        await saveProfile('auth0|user-1', {
+            givenName: 'Grace',
+            familyName: 'Hopper',
+        });
+        expect(userRepository.updateUserName).toHaveBeenCalledWith(
+            7,
+            'Grace',
+            'Hopper'
         );
     });
 });

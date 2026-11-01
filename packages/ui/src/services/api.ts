@@ -11,6 +11,7 @@ import {
     TeamInvite,
     TeamRole,
     TicketForVoting,
+    UserProfile,
     UserSettings,
 } from '../types';
 import { User } from '@auth0/auth0-react';
@@ -68,6 +69,14 @@ export const createApi = (getToken: GetToken) => ({
         requestJson<UserSettings>(getToken, '/me/settings', {
             method: 'PUT',
             body: settings,
+        }),
+
+    getProfile: () => requestJson<UserProfile>(getToken, '/me/profile'),
+
+    saveProfile: (profile: UserProfile) =>
+        requestJson<UserProfile>(getToken, '/me/profile', {
+            method: 'PUT',
+            body: profile,
         }),
 
     createRoom: async (

@@ -43,6 +43,18 @@ export const createUser = async (user: NewUser) => {
     assertNoDbError(error, 'Error creating user');
 };
 
+export const updateUserName = async (
+    userId: number,
+    givenName: string,
+    familyName: string
+) => {
+    const { error } = await supabase
+        .from('user')
+        .update({ given_name: givenName, family_name: familyName })
+        .eq('user_id', userId);
+    assertNoDbError(error, 'Error saving profile');
+};
+
 export const findUserSettings = async (
     userId: number
 ): Promise<UserSettingsRow | undefined> => {

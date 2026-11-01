@@ -10,6 +10,12 @@ export interface User {
     is_super_admin?: boolean;
 }
 
+/** The name a user goes by in Teamdeck; kept apart from their login provider's */
+export interface UserProfile {
+    givenName: string;
+    familyName: string;
+}
+
 /** An example ticket showing the team what an estimate looks like */
 export interface Exemplar {
     estimate: number;
