@@ -18,6 +18,7 @@ const CreateRoomForm = () => {
     const [baseUrlEdited, setBaseUrlEdited] = useState(false);
     const [scheduledAt, setScheduledAt] = useState(defaultSchedule);
     const [error, setError] = useState<string | null>(null);
+    const [submitting, setSubmitting] = useState(false);
     const api = useApi();
     const { settings } = useUserSettings();
     const { teams } = useMyTeams();
@@ -33,6 +34,7 @@ const CreateRoomForm = () => {
 
     const createRoom = async (e: FormEvent) => {
         e.preventDefault();
+        if (submitting) return;
         if (!roomName || !baseUrl) {
             setError('Please enter a room name and base URL for tickets.');
             return;
@@ -43,6 +45,7 @@ const CreateRoomForm = () => {
             return;
         }
         setError(null);
+        setSubmitting(true);
         try {
             const roomId = await api.createRoom(
                 roomName,
@@ -54,6 +57,7 @@ const CreateRoomForm = () => {
         } catch (error) {
             console.error('Error creating new room:', error);
             setError('Failed to create room. Please try again.');
+            setSubmitting(false);
         }
     };
 
@@ -116,7 +120,11 @@ const CreateRoomForm = () => {
                     <TeamRoomPicker teams={teams} onChange={setTeamOptions} />
                 )}
             </div>
-            <button type="submit" className="btn btn-primary mt-3">
+            <button
+                type="submit"
+                className="btn btn-primary mt-3"
+                disabled={submitting}
+            >
                 Create room
             </button>
         </form>

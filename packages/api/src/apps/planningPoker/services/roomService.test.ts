@@ -62,6 +62,20 @@ describe('getRoomByName', () => {
 });
 
 describe('createRoom', () => {
+    it('removes the room again if adding its members fails', async () => {
+        vi.mocked(userRepository.findUserBySub).mockResolvedValue(user);
+        vi.mocked(roomRepository.createRoom).mockResolvedValue(room);
+        vi.mocked(roomRepository.addUserToRoom).mockRejectedValueOnce(
+            new Error('boom')
+        );
+        vi.mocked(roomRepository.deleteRoom).mockResolvedValue();
+
+        await expect(
+            createRoom(user.auth0_sub, 'Sprint', 'url')
+        ).rejects.toThrow('boom');
+        expect(roomRepository.deleteRoom).toHaveBeenCalledWith(room.room_id);
+    });
+
     it('creates a room with a 10 character name and adds the admin', async () => {
         vi.mocked(userRepository.findUserBySub).mockResolvedValue(user);
         vi.mocked(roomRepository.createRoom).mockResolvedValue(room);
