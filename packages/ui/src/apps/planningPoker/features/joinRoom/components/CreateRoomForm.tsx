@@ -1,7 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ErrorAlert from '../../../../../components/ErrorAlert';
-import { DEFAULT_TICKET_BASE_URL } from '../../../../../constants';
 import { useApi, useMyTeams, useUserSettings } from '../../../../../hooks';
 import { NewRoomOptions } from '../../../../../types';
 import { paths } from '../../../../../routes';
@@ -15,7 +14,7 @@ import TeamRoomPicker from './TeamRoomPicker';
 
 const CreateRoomForm = () => {
     const [roomName, setRoomName] = useState('');
-    const [baseUrl, setBaseUrl] = useState(DEFAULT_TICKET_BASE_URL);
+    const [baseUrl, setBaseUrl] = useState('');
     const [baseUrlEdited, setBaseUrlEdited] = useState(false);
     const [scheduledAt, setScheduledAt] = useState(defaultSchedule);
     const [error, setError] = useState<string | null>(null);
@@ -89,11 +88,11 @@ const CreateRoomForm = () => {
                             setBaseUrl(e.target.value);
                             setBaseUrlEdited(true);
                         }}
-                        placeholder="Enter the base URL for your tickets"
+                        placeholder="e.g. https://your-company.atlassian.net/browse"
                     />
                     <div className="form-text">
-                        Ticket links are built from this URL. Set your own
-                        default in <a href={paths.settings}>Settings</a>.
+                        Ticket links are built from this URL. Save a default in{' '}
+                        <a href={paths.settings}>Settings</a>.
                     </div>
                 </div>
                 <div className="col-md-6">

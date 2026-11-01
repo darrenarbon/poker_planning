@@ -49,6 +49,7 @@ describe('POST /login', () => {
         email: 'a@b.com',
         given_name: 'A',
         family_name: 'B',
+        name: 'A B',
         nickname: 'ab',
         picture: 'pic',
     };
@@ -62,14 +63,17 @@ describe('POST /login', () => {
     it("ensures the user exists, using the token's sub rather than the body's", async () => {
         const res = await request(app).post('/login').set(AUTH).send({ user });
         expect(res.status).toBe(200);
-        expect(userService.ensureUser).toHaveBeenCalledWith({
-            auth0_sub: TEST_SUB,
-            email: 'a@b.com',
-            given_name: 'A',
-            family_name: 'B',
-            nickname: 'ab',
-            picture: 'pic',
-        });
+        expect(userService.ensureUser).toHaveBeenCalledWith(
+            {
+                auth0_sub: TEST_SUB,
+                email: 'a@b.com',
+                given_name: 'A',
+                family_name: 'B',
+                nickname: 'ab',
+                picture: 'pic',
+            },
+            'A B'
+        );
     });
 
     it('rejects a missing user with 400', async () => {
@@ -101,6 +105,8 @@ describe('authenticated routes', () => {
         ['get', '/me/rooms'],
         ['get', '/me/settings'],
         ['put', '/me/settings'],
+        ['get', '/me/profile'],
+        ['put', '/me/profile'],
         ['delete', '/ticket/1'],
         ['get', '/jiraticket/PP-1'],
         ['post', '/jiraticket/PP-1'],
@@ -215,15 +221,12 @@ describe('room routes', () => {
     });
 
     it('POST /newroom rejects a bad team id or member list with 400', async () => {
-        const bad = await request(app)
-            .post('/newroom')
-            .set(AUTH)
-            .send({
-                roomName: 'S',
-                baseUrl: 'u',
-                scheduledAt: WHEN,
-                teamId: 'x',
-            });
+        const bad = await request(app).post('/newroom').set(AUTH).send({
+            roomName: 'S',
+            baseUrl: 'u',
+            scheduledAt: WHEN,
+            teamId: 'x',
+        });
         expect(bad.status).toBe(400);
         const badList = await request(app).post('/newroom').set(AUTH).send({
             roomName: 'S',
@@ -392,6 +395,38 @@ describe('settings routes', () => {
         const res = await request(app).put('/me/settings').set(AUTH).send(body);
         expect(res.status).toBe(400);
         expect(userService.saveSettings).not.toHaveBeenCalled();
+    });
+});
+
+describe('profile routes', () => {
+    it("GET /me/profile returns the caller's name", async () => {
+        const profile = { givenName: 'Ada', familyName: 'Lovelace' };
+        vi.mocked(userService.getProfile).mockResolvedValue(profile);
+        const res = await request(app).get('/me/profile').set(AUTH);
+        expect(res.body).toEqual(profile);
+        expect(userService.getProfile).toHaveBeenCalledWith(TEST_SUB);
+    });
+
+    it('PUT /me/profile saves the trimmed name', async () => {
+        const res = await request(app)
+            .put('/me/profile')
+            .set(AUTH)
+            .send({ givenName: ' Ada ', familyName: ' Lovelace ', extra: 1 });
+        const saved = { givenName: 'Ada', familyName: 'Lovelace' };
+        expect(res.status).toBe(200);
+        expect(res.body).toEqual(saved);
+        expect(userService.saveProfile).toHaveBeenCalledWith(TEST_SUB, saved);
+    });
+
+    it.each([
+        [{ givenName: 'Ada' }],
+        [{ givenName: '  ', familyName: 'Lovelace' }],
+        [{ givenName: 'Ada', familyName: 5 }],
+        [{ givenName: 'A'.repeat(101), familyName: 'Lovelace' }],
+    ])('PUT /me/profile rejects %j', async (body) => {
+        const res = await request(app).put('/me/profile').set(AUTH).send(body);
+        expect(res.status).toBe(400);
+        expect(userService.saveProfile).not.toHaveBeenCalled();
     });
 });
 

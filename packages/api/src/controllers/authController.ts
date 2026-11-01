@@ -12,15 +12,18 @@ export const login = async (req: Request, res: Response) => {
     if (typeof user !== 'object' || user === null) {
         throw new AppError(400, 'User details are required');
     }
-    const { email, given_name, family_name, nickname, picture } = user;
+    const { email, name, given_name, family_name, nickname, picture } = user;
 
-    await userService.ensureUser({
-        auth0_sub: req.auth!.payload.sub!,
-        email,
-        given_name,
-        family_name,
-        nickname,
-        picture,
-    });
+    await userService.ensureUser(
+        {
+            auth0_sub: req.auth!.payload.sub!,
+            email,
+            given_name,
+            family_name,
+            nickname,
+            picture,
+        },
+        name
+    );
     res.status(200).json({});
 };

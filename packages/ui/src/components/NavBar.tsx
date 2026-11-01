@@ -1,8 +1,8 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { findCurrentApp, liveApps } from '../apps';
-import { useLogin, useTheme } from '../hooks';
+import { useLogin, useProfile, useTheme } from '../hooks';
 import { paths } from '../routes';
-import { getInitials } from '../utils';
+import { getFullName, getInitials } from '../utils';
 
 const SHORTCUTS_MODAL_ID = 'shortcutsModal';
 
@@ -122,6 +122,7 @@ const ShortcutsModal = () => (
 
 const NavBar = () => {
     const { user, logout } = useAuth0();
+    const { profile } = useProfile();
     const login = useLogin();
     const { theme, toggleTheme } = useTheme();
     const otherTheme = theme === 'dark' ? 'light' : 'dark';
@@ -249,7 +250,7 @@ const NavBar = () => {
                                         aria-expanded="false"
                                         aria-label="Account menu"
                                     >
-                                        {getInitials(user)}
+                                        {getInitials(user, profile)}
                                     </button>
                                     <ul
                                         className="dropdown-menu dropdown-menu-end shadow"
@@ -257,7 +258,8 @@ const NavBar = () => {
                                     >
                                         <li className="px-3 py-2">
                                             <div className="fw-semibold">
-                                                {user.name}
+                                                {getFullName(profile) ??
+                                                    user.name}
                                             </div>
                                             {user.email && (
                                                 <div className="small text-secondary">

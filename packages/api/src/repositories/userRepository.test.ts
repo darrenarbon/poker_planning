@@ -10,6 +10,7 @@ import {
     findExemplars,
     findUserSettings,
     replaceExemplars,
+    updateUserName,
     upsertUserSettings,
 } from './userRepository.js';
 
@@ -115,5 +116,24 @@ describe('userRepository', () => {
         queueResults(from, ok(null));
         await replaceExemplars(3, []);
         expect(from).toHaveBeenCalledTimes(1);
+    });
+
+    it('updateUserName sets both names on the user', async () => {
+        const [query] = queueResults(from, ok(null));
+        await updateUserName(7, 'Ada', 'Lovelace');
+        expect(from).toHaveBeenCalledWith('user');
+        expect(query.update).toHaveBeenCalledWith({
+            given_name: 'Ada',
+            family_name: 'Lovelace',
+        });
+        expect(query.eq).toHaveBeenCalledWith('user_id', 7);
+    });
+
+    it('updateUserName throws on a db error', async () => {
+        queueResults(from, fail());
+        await expect(updateUserName(7, 'A', 'B')).rejects.toMatchObject({
+            status: 500,
+            message: 'Error saving profile',
+        });
     });
 });
