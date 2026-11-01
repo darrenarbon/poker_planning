@@ -1,0 +1,84 @@
+export interface User {
+    user_id: number;
+    auth0_sub: string;
+    email: string;
+    given_name: string;
+    family_name: string;
+    nickname: string;
+    picture: string;
+}
+
+/** An example ticket showing the team what an estimate looks like */
+export interface Exemplar {
+    estimate: number;
+    ticketNumber: string;
+}
+
+export interface UserSettings {
+    /** prefilled when creating a room */
+    defaultBaseUrl?: string;
+    /** the theme the app opens in */
+    theme?: 'light' | 'dark';
+    /** shown on the voting page of rooms this user owns */
+    exemplars?: Exemplar[];
+}
+
+/** A row of user_settings */
+export interface UserSettingsRow {
+    user_id: number;
+    default_base_url: string | null;
+    default_theme: 'light' | 'dark' | null;
+}
+
+/** A row of user_exemplar */
+export interface UserExemplarRow {
+    exemplar_id: number;
+    user_id: number;
+    estimate: number;
+    ticket_number: string;
+}
+
+export type NewUser = Omit<User, 'user_id'>;
+
+export interface Room {
+    room_id: number;
+    room_name: string;
+    admin_id: number;
+    friendly_name: string;
+    ticket_base_url: string;
+    created_at: string;
+    hidden?: boolean;
+}
+
+/** A room as it appears in one user's lists */
+export interface UserRoom extends Room {
+    is_admin: boolean;
+    favourite: boolean;
+    last_joined_at: string | null;
+}
+
+export interface Ticket {
+    ticket_id: number;
+    room_id: number;
+    ticket_number: string;
+    chosen_estimate: number | null;
+    average_vote: number | null;
+    standard_deviation: number | null;
+    votes_revealed: boolean;
+    /** position in the room's sprint, lowest first */
+    sort_order: number;
+    /** set when a new sprint started, null for the current sprint */
+    archived_at: string | null;
+}
+
+export type TicketEstimate = Pick<
+    Ticket,
+    'chosen_estimate' | 'average_vote' | 'standard_deviation'
+>;
+
+export interface Vote {
+    vote_id: number;
+    ticket_id: number;
+    user_id: number;
+    vote: number;
+}

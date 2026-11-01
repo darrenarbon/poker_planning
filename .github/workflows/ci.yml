@@ -21,31 +21,28 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                package: [client, server]
-                include:
-                    - package: client
-                      typecheck: npx tsc -b
-                    - package: server
-                      typecheck: npm run typecheck
+                package: [ui, api]
         defaults:
             run:
-                working-directory: ${{ matrix.package }}
+                working-directory: packages/${{ matrix.package }}
         steps:
             - uses: actions/checkout@v4
+
+            # version comes from packageManager in the root package.json
+            - uses: pnpm/action-setup@v4
 
             - uses: actions/setup-node@v4
               with:
                   node-version: 22
-                  cache: npm
-                  cache-dependency-path: ${{ matrix.package }}/package-lock.json
+                  cache: pnpm
 
-            - run: npm ci
+            - run: pnpm install --frozen-lockfile --filter @teamdeck/${{ matrix.package }}
 
             - name: Type-check
-              run: ${{ matrix.typecheck }}
+              run: pnpm typecheck
 
             - name: Lint
-              run: npm run lint
+              run: pnpm lint
 
             - name: Test
-              run: npm test
+              run: pnpm test
