@@ -17,5 +17,7 @@ export const env = {
     atlassianDomain: process.env.ATLASSIAN_DOMAIN,
     atlassianEmail: process.env.ATLASSIAN_EMAIL,
     atlassianApiKey: process.env.ATLASSIAN_API_KEY,
+    /** optional: needed for India's bank holidays, which no keyless API covers */
+    calendarificApiKey: process.env.CALENDARIFIC_API_KEY,
     jiraStoryPointsField: process.env.JIRA_STORY_POINTS_FIELD,
 };

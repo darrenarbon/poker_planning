@@ -6,6 +6,7 @@ import Dashboard from './Dashboard';
 
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }));
 vi.mock('../../apps/planningPoker/hooks', () => ({ useUserRooms: vi.fn() }));
+vi.mock('./NextLeaveCard', () => ({ default: () => null }));
 vi.mock('../../hooks', () => ({
     useMyTeams: () => ({
         teams: [{ team_id: 4, name: 'Platform' }],

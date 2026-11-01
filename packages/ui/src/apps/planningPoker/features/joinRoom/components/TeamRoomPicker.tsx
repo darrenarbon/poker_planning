@@ -1,17 +1,38 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { useEffect, useState } from 'react';
 import { useApi } from '../../../../../hooks';
-import { NewRoomOptions, TeamMemberInfo, UserTeam } from '../../../../../types';
+import {
+    NewRoomOptions,
+    TeamAbsence,
+    TeamMemberInfo,
+    UserTeam,
+} from '../../../../../types';
 import { memberName } from '../../../../../features/teams/teamLabels';
+import {
+    dayPartLabels,
+    reasonLabels,
+    sessionDayAndPart,
+} from '../../../../../features/holidays/holidayLabels';
 
 type TeamRoomPickerProps = {
     teams: UserTeam[];
+    /** when the session happens, as a datetime-local value, to flag who is away */
+    scheduledAt: string;
     /** the team and people chosen, or undefined for a room with no team */
     onChange: (options: NewRoomOptions | undefined) => void;
 };
 
+const absenceLabel = (absence: TeamAbsence) =>
+    absence.dayPart === 'full'
+        ? reasonLabels[absence.reason]
+        : `${reasonLabels[absence.reason]}, ${dayPartLabels[absence.dayPart].toLowerCase()}`;
+
 /** Pick a team for a new room, then who from it to bring in and who co-facilitates */
-const TeamRoomPicker = ({ teams, onChange }: TeamRoomPickerProps) => {
+const TeamRoomPicker = ({
+    teams,
+    scheduledAt,
+    onChange,
+}: TeamRoomPickerProps) => {
     const { user } = useAuth0();
     const api = useApi();
     const [teamId, setTeamId] = useState('');
@@ -19,12 +40,18 @@ const TeamRoomPicker = ({ teams, onChange }: TeamRoomPickerProps) => {
     const [added, setAdded] = useState<Set<string>>(new Set());
     const [facilitators, setFacilitators] = useState<Set<string>>(new Set());
     const [error, setError] = useState<string | null>(null);
+    const [absences, setAbsences] = useState<Map<string, TeamAbsence>>(
+        new Map()
+    );
+    // people whose box the user has ticked or unticked themselves
+    const [touched, setTouched] = useState<Set<string>>(new Set());
 
     // everyone in the team starts ticked, apart from the person creating it
     useEffect(() => {
         setMembers([]);
         setAdded(new Set());
         setFacilitators(new Set());
+        setTouched(new Set());
         setError(null);
         if (!teamId) return;
         let cancelled = false;
@@ -43,6 +70,50 @@ const TeamRoomPicker = ({ teams, onChange }: TeamRoomPickerProps) => {
             cancelled = true;
         };
     }, [api, teamId, user?.sub]);
+
+    // who is away when the session happens; a failure just means no flags
+    useEffect(() => {
+        setAbsences(new Map());
+        const session = sessionDayAndPart(scheduledAt);
+        if (!teamId || !session) return;
+        let cancelled = false;
+        Promise.resolve()
+            .then(() => api.getTeamAbsences(teamId, session.date, session.part))
+            .then((list) => {
+                if (!cancelled)
+                    setAbsences(new Map(list.map((a) => [a.sub, a])));
+            })
+            .catch((error) => {
+                console.error('Failed to load who is away:', error);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [api, teamId, scheduledAt]);
+
+    // people who are away start unticked, unless the user has chosen for them
+    useEffect(() => {
+        setAdded((current) => {
+            const next = new Set(current);
+            for (const m of members) {
+                if (touched.has(m.sub)) continue;
+                if (absences.has(m.sub)) next.delete(m.sub);
+                else next.add(m.sub);
+            }
+            return next.size === current.size &&
+                [...next].every((sub) => current.has(sub))
+                ? current
+                : next;
+        });
+        setFacilitators((current) => {
+            const next = new Set(
+                [...current].filter(
+                    (sub) => touched.has(sub) || !absences.has(sub)
+                )
+            );
+            return next.size === current.size ? current : next;
+        });
+    }, [absences, members, touched]);
 
     useEffect(() => {
         onChange(
@@ -66,7 +137,11 @@ const TeamRoomPicker = ({ teams, onChange }: TeamRoomPickerProps) => {
         update(next);
     };
 
+    const markTouched = (sub: string) =>
+        setTouched((current) => new Set(current).add(sub));
+
     const toggleAdded = (sub: string) => {
+        markTouched(sub);
         toggle(added, setAdded, sub);
         // co-facilitators have to be in the room
         if (added.has(sub) && facilitators.has(sub)) {
@@ -75,6 +150,7 @@ const TeamRoomPicker = ({ teams, onChange }: TeamRoomPickerProps) => {
     };
 
     const toggleFacilitator = (sub: string) => {
+        markTouched(sub);
         toggle(facilitators, setFacilitators, sub);
         if (!added.has(sub)) toggle(added, setAdded, sub);
     };
@@ -100,8 +176,9 @@ const TeamRoomPicker = ({ teams, onChange }: TeamRoomPickerProps) => {
                 ))}
             </select>
             <div className="form-text">
-                A team room shows up in its members&apos; lists, and the
-                team&apos;s owner and admins can manage it.
+                People who are away when the session is on start unticked; you
+                can still add them. A team room shows up in its members&apos;
+                lists, and the team&apos;s owner and admins can manage it.
             </div>
             {error && <div className="text-danger small mt-2">{error}</div>}
             {members.length > 0 && (
@@ -129,6 +206,12 @@ const TeamRoomPicker = ({ teams, onChange }: TeamRoomPickerProps) => {
                                     >
                                         {memberName(m)}
                                     </label>
+                                    {absences.has(m.sub) && (
+                                        <span className="badge text-bg-warning ms-2">
+                                            Away:{' '}
+                                            {absenceLabel(absences.get(m.sub)!)}
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="form-check mb-0">
                                     <input

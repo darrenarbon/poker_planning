@@ -117,7 +117,11 @@ const CreateRoomForm = () => {
                     </div>
                 </div>
                 {teams.length > 0 && (
-                    <TeamRoomPicker teams={teams} onChange={setTeamOptions} />
+                    <TeamRoomPicker
+                        teams={teams}
+                        scheduledAt={scheduledAt}
+                        onChange={setTeamOptions}
+                    />
                 )}
             </div>
             <button

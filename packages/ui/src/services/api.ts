@@ -1,12 +1,17 @@
 import config from '../config';
 import {
     AssignableTeamRole,
+    BankHolidayRegion,
+    Holiday,
+    HolidayInput,
     InvitePreview,
     JiraTicket,
     MyTeams,
     NewRoomOptions,
     RoomDetails,
     RoomSummary,
+    TeamAbsence,
+    TeamLeave,
     TeamDetails,
     TeamInvite,
     TeamRole,
@@ -55,6 +60,10 @@ const requestJson = async <T>(
     ...args: Parameters<typeof request>
 ): Promise<T> => (await request(...args)).json() as Promise<T>;
 
+/** Your own holidays, or someone else's when acting on their behalf */
+const holidaysPath = (userId?: number) =>
+    userId === undefined ? '/me/holidays' : `/users/${userId}/holidays`;
+
 export const createApi = (getToken: GetToken) => ({
     login: (user: User | undefined) =>
         request(getToken, '/login', { method: 'POST', body: { user } }),
@@ -97,6 +106,66 @@ export const createApi = (getToken: GetToken) => ({
             method: 'PUT',
             body: { scheduledAt },
         }),
+
+    getHolidays: async (userId?: number) =>
+        (
+            await requestJson<{ holidays: Holiday[] }>(
+                getToken,
+                holidaysPath(userId)
+            )
+        ).holidays,
+
+    addHoliday: (holiday: HolidayInput, userId?: number) =>
+        requestJson<Holiday>(getToken, holidaysPath(userId), {
+            method: 'POST',
+            body: holiday,
+        }),
+
+    updateHoliday: (
+        holidayId: number,
+        holiday: HolidayInput,
+        userId?: number
+    ) =>
+        requestJson<Holiday>(getToken, `${holidaysPath(userId)}/${holidayId}`, {
+            method: 'PUT',
+            body: holiday,
+        }),
+
+    deleteHoliday: (holidayId: number, userId?: number) =>
+        request(getToken, `${holidaysPath(userId)}/${holidayId}`, {
+            method: 'DELETE',
+        }),
+
+    importBankHolidays: (
+        region: BankHolidayRegion,
+        subdivision?: string,
+        userId?: number
+    ) =>
+        requestJson<{ added: number }>(
+            getToken,
+            `${holidaysPath(userId)}/bank-holidays`,
+            { method: 'POST', body: { region, subdivision } }
+        ),
+
+    getTeamAbsences: async (
+        teamId: number | string,
+        date: string,
+        part: 'am' | 'pm'
+    ) =>
+        (
+            await requestJson<{ absences: TeamAbsence[] }>(
+                getToken,
+                `/teams/${teamId}/absences?date=${date}&part=${part}`
+            )
+        ).absences,
+
+    getTeamLeave: async (teamId: number | string, from: string, to: string) =>
+        (
+            await requestJson<{ leave: TeamLeave[] }>(
+                getToken,
+                `/teams/${teamId}/leave?from=${from}&to=${to}`
+            )
+        ).leave,
 
     getMyTeams: () => requestJson<MyTeams>(getToken, '/me/teams'),
 
