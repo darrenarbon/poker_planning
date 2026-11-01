@@ -6,6 +6,7 @@ import { fail, ok, queueResults } from '../../../test/supabaseMock.js';
 import {
     addUserToRoom,
     createRoom,
+    deleteRoom,
     findRoomById,
     findRoomByName,
     findRoomsByAdmin,
@@ -64,6 +65,14 @@ describe('roomRepository', () => {
         };
         await expect(createRoom(input)).resolves.toEqual(room);
         expect(query.insert).toHaveBeenCalledWith(input);
+    });
+
+    it('deleteRoom deletes the room by id', async () => {
+        const [query] = queueResults(from, ok(null));
+        await deleteRoom(10);
+        expect(from).toHaveBeenCalledWith('room');
+        expect(query.delete).toHaveBeenCalled();
+        expect(query.eq).toHaveBeenCalledWith('room_id', 10);
     });
 
     it('findRoomUserIds maps rows to ids', async () => {

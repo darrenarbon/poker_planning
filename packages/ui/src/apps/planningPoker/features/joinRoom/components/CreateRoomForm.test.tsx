@@ -110,4 +110,18 @@ describe('CreateRoomForm', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
         expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
+
+    it('only creates one room when the button is clicked twice', async () => {
+        createRoom.mockReturnValue(new Promise(() => {}));
+        render(<CreateRoomForm />);
+        await userEvent.type(screen.getByLabelText(/Room Name/), 'Planning');
+        await userEvent.type(
+            screen.getByLabelText(/Base URL/),
+            'https://jira.example.com/browse'
+        );
+        const button = screen.getByRole('button', { name: 'Create room' });
+        await userEvent.dblClick(button);
+        expect(createRoom).toHaveBeenCalledTimes(1);
+        expect(button).toBeDisabled();
+    });
 });
