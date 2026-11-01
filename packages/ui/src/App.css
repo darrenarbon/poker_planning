@@ -257,10 +257,6 @@
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12);
 }
 
-.card.app-tile-soon {
-    border-top-color: var(--bs-secondary-border-subtle);
-}
-
 .app-tile-icon,
 .coming-soon-icon {
     display: inline-flex;
@@ -748,13 +744,6 @@
     stroke-width: 1.5;
 }
 
-.navbar-soon-badge {
-    background: rgba(255, 255, 255, 0.15);
-    font-size: 0.65rem;
-    font-weight: 600;
-    vertical-align: middle;
-}
-
 .navbar-icon-btn,
 .navbar-avatar {
     width: 38px;
@@ -768,11 +757,30 @@
 
 .navbar-icon-btn {
     border: 1px solid transparent;
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .navbar-icon-btn:hover,
 .navbar-icon-btn:focus-visible {
     background: rgba(255, 255, 255, 0.1);
+}
+
+/* with only a couple of links left, make them easier to read on the purple bar */
+.app-navbar .nav-link {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.app-navbar .nav-link:hover,
+.app-navbar .nav-link:focus-visible,
+.app-navbar .nav-link.active,
+.app-navbar .nav-link.show {
+    color: #fff;
+}
+
+/* the Apps menu is a button so it opens a dropdown, but should read as a link */
+.app-navbar .nav-link.btn-link {
+    text-decoration: none;
+    border: 0;
 }
 
 .navbar-avatar {
@@ -833,4 +841,9 @@
 .session-award-info {
     cursor: help;
     text-transform: none;
+}
+
+/* a fixed width for times keeps the session names in a straight column */
+.upcoming-time {
+    min-width: 3.25rem;
 }

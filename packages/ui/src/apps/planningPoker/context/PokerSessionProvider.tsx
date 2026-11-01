@@ -105,9 +105,12 @@ export const PokerSessionProvider = ({
     });
 
     // display only: the server enforces admin rights on every admin action
-    const isOwner = !!room && user?.sub === room.adminSub;
+    // team owners and admins and super admins can also hand rooms over
+    const isOwner =
+        !!room && (user?.sub === room.adminSub || !!room.canManageOwnership);
     const isAdmin =
         isOwner ||
+        !!room?.canManage ||
         (!!user?.sub && !!room?.coFacilitatorSubs?.includes(user.sub));
 
     // only the facilitator can be in refinement mode
@@ -289,6 +292,22 @@ export const PokerSessionProvider = ({
         [api, room, roomName, setRoom]
     );
 
+    const updateSchedule = useCallback(
+        async (scheduledAt: string) => {
+            if (!room) return false;
+            try {
+                await api.updateRoomSchedule(roomName, scheduledAt);
+                setRoom({ ...room, scheduledAt });
+                return true;
+            } catch (e) {
+                console.error('Failed to update the planning date', e);
+                setError('Could not change the planning date.');
+                return false;
+            }
+        },
+        [api, room, roomName, setRoom]
+    );
+
     const value = useMemo<PokerSessionContextValue>(
         () => ({
             roomName,
@@ -328,6 +347,7 @@ export const PokerSessionProvider = ({
             closeStats,
             toggleFavourite,
             setRoomHidden,
+            updateSchedule,
             setEstimate,
             addTicket,
             moveTicket,
@@ -371,6 +391,7 @@ export const PokerSessionProvider = ({
             closeStats,
             toggleFavourite,
             setRoomHidden,
+            updateSchedule,
             setEstimate,
             addTicket,
             moveTicket,

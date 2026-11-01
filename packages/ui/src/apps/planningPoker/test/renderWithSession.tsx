@@ -47,6 +47,7 @@ export const makeSessionValue = (
     closeStats: vi.fn(),
     toggleFavourite: vi.fn().mockResolvedValue(undefined),
     setRoomHidden: vi.fn().mockResolvedValue(undefined),
+    updateSchedule: vi.fn().mockResolvedValue(true),
     setEstimate: vi.fn(),
     addTicket: vi.fn().mockResolvedValue(undefined),
     moveTicket: vi.fn(),

@@ -4,12 +4,67 @@ import * as roomService from '../services/roomService.js';
 import * as ticketService from '../services/ticketService.js';
 import { AppError } from '../../../utils/errors.js';
 
+/** An optional list of strings from the body, or a 400. */
+const optionalSubs = (value: unknown, name: string): string[] | undefined => {
+    if (value === undefined) return undefined;
+    if (!Array.isArray(value) || value.some((v) => typeof v !== 'string')) {
+        throw new AppError(400, `${name} must be a list of user ids`);
+    }
+    return value;
+};
+
+const MAX_YEARS_AHEAD = 5;
+
+/**
+ * A date and time as an ISO 8601 string, or a 400. Returned normalised to UTC
+ * so every client reads the same moment whatever time zone it was sent in.
+ */
+const requireDateTime = (value: unknown, name: string): string => {
+    const date =
+        typeof value === 'string' && value.trim()
+            ? new Date(value)
+            : new Date(NaN);
+    if (Number.isNaN(date.getTime())) {
+        throw new AppError(400, `${name} must be a valid date and time`);
+    }
+    const limit = new Date();
+    limit.setFullYear(limit.getFullYear() + MAX_YEARS_AHEAD);
+    if (date.getFullYear() < 2000 || date > limit) {
+        throw new AppError(400, `${name} is not a sensible date`);
+    }
+    return date.toISOString();
+};
+
 export const createRoom = async (req: Request, res: Response) => {
-    const { roomName, baseUrl } = req.body;
+    const {
+        roomName,
+        baseUrl,
+        scheduledAt,
+        teamId,
+        memberSubs,
+        coFacilitatorSubs,
+    } = req.body;
+    const when = requireDateTime(scheduledAt, 'scheduledAt');
+    if (
+        teamId !== undefined &&
+        teamId !== null &&
+        (!Number.isInteger(teamId) || teamId < 1)
+    ) {
+        throw new AppError(400, 'teamId must be a whole number');
+    }
     const roomId = await roomService.createRoom(
         req.auth!.payload.sub!,
         roomName,
-        baseUrl
+        baseUrl,
+        {
+            scheduledAt: when,
+            teamId: teamId ?? undefined,
+            memberSubs: optionalSubs(memberSubs, 'memberSubs'),
+            coFacilitatorSubs: optionalSubs(
+                coFacilitatorSubs,
+                'coFacilitatorSubs'
+            ),
+        }
     );
     res.json({ roomId });
 };
@@ -89,4 +144,27 @@ export const setHidden = async (req: Request, res: Response) => {
         hidden
     );
     res.json({ hidden });
+};
+
+export const addTeamMembers = async (req: Request, res: Response) => {
+    const memberSubs = optionalSubs(req.body?.memberSubs, 'memberSubs');
+    if (!memberSubs) {
+        throw new AppError(400, 'memberSubs is required');
+    }
+    await roomService.addTeamMembersToRoom(
+        req.params.roomName,
+        req.auth!.payload.sub!,
+        memberSubs
+    );
+    res.json({ message: 'People added' });
+};
+
+export const updateScheduledAt = async (req: Request, res: Response) => {
+    const scheduledAt = requireDateTime(req.body?.scheduledAt, 'scheduledAt');
+    await roomService.updateScheduledAt(
+        req.params.roomName,
+        req.auth!.payload.sub!,
+        scheduledAt
+    );
+    res.json({ scheduledAt });
 };

@@ -1,8 +1,15 @@
 import config from '../config';
 import {
+    AssignableTeamRole,
+    InvitePreview,
     JiraTicket,
+    MyTeams,
+    NewRoomOptions,
     RoomDetails,
     RoomSummary,
+    TeamDetails,
+    TeamInvite,
+    TeamRole,
     TicketForVoting,
     UserSettings,
 } from '../types';
@@ -63,13 +70,106 @@ export const createApi = (getToken: GetToken) => ({
             body: settings,
         }),
 
-    createRoom: async (roomName: string, baseUrl: string) =>
+    createRoom: async (
+        roomName: string,
+        baseUrl: string,
+        scheduledAt: string,
+        team?: NewRoomOptions
+    ) =>
         (
             await requestJson<{ roomId: string }>(getToken, '/newroom', {
                 method: 'POST',
-                body: { roomName, baseUrl },
+                body: { roomName, baseUrl, scheduledAt, ...team },
             })
         ).roomId,
+
+    updateRoomSchedule: (roomName: string, scheduledAt: string) =>
+        request(getToken, `/room/${roomName}/scheduledAt`, {
+            method: 'PUT',
+            body: { scheduledAt },
+        }),
+
+    getMyTeams: () => requestJson<MyTeams>(getToken, '/me/teams'),
+
+    createTeam: (name: string) =>
+        requestJson<{ team_id: number; name: string }>(getToken, '/teams', {
+            method: 'POST',
+            body: { name },
+        }),
+
+    getTeam: (teamId: number | string) =>
+        requestJson<TeamDetails>(getToken, `/teams/${teamId}`),
+
+    renameTeam: (teamId: number, name: string) =>
+        request(getToken, `/teams/${teamId}`, {
+            method: 'PUT',
+            body: { name },
+        }),
+
+    deleteTeam: (teamId: number) =>
+        request(getToken, `/teams/${teamId}`, { method: 'DELETE' }),
+
+    addTeamMember: (
+        teamId: number,
+        email: string,
+        role: AssignableTeamRole = 'member'
+    ) =>
+        request(getToken, `/teams/${teamId}/members`, {
+            method: 'POST',
+            body: { email, role },
+        }),
+
+    changeTeamMemberRole: (
+        teamId: number,
+        userId: number,
+        role: Exclude<TeamRole, 'owner'>
+    ) =>
+        request(getToken, `/teams/${teamId}/members/${userId}`, {
+            method: 'PUT',
+            body: { role },
+        }),
+
+    removeTeamMember: (teamId: number, userId: number) =>
+        request(getToken, `/teams/${teamId}/members/${userId}`, {
+            method: 'DELETE',
+        }),
+
+    transferTeamOwnership: (teamId: number, userId: number) =>
+        request(getToken, `/teams/${teamId}/owner`, {
+            method: 'POST',
+            body: { userId },
+        }),
+
+    getTeamInvites: async (teamId: number) =>
+        (
+            await requestJson<{ invites: TeamInvite[] }>(
+                getToken,
+                `/teams/${teamId}/invites`
+            )
+        ).invites,
+
+    createTeamInvite: (
+        teamId: number,
+        role: AssignableTeamRole = 'member',
+        expiresInDays = 7
+    ) =>
+        requestJson<TeamInvite>(getToken, `/teams/${teamId}/invites`, {
+            method: 'POST',
+            body: { role, expiresInDays },
+        }),
+
+    revokeTeamInvite: (teamId: number, inviteId: number) =>
+        request(getToken, `/teams/${teamId}/invites/${inviteId}`, {
+            method: 'DELETE',
+        }),
+
+    previewInvite: (token: string) =>
+        requestJson<InvitePreview>(getToken, `/invites/${token}`),
+
+    acceptInvite: (token: string) =>
+        requestJson<{ teamId: number }>(getToken, `/invites/${token}/accept`, {
+            method: 'POST',
+        }),
 
     getRoom: (roomName: string) =>
         requestJson<RoomDetails>(getToken, `/room/${roomName}`),

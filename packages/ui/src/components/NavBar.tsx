@@ -1,5 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react';
-import { apps, findCurrentApp } from '../apps';
+import { findCurrentApp, liveApps } from '../apps';
 import { useLogin, useTheme } from '../hooks';
 import { paths } from '../routes';
 import { getInitials } from '../utils';
@@ -41,6 +41,38 @@ const Logo = () => (
             transform="rotate(8 17 14)"
             className="navbar-logo-front"
         />
+    </svg>
+);
+
+const SunIcon = () => (
+    <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        aria-hidden="true"
+    >
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </svg>
+);
+
+const MoonIcon = () => (
+    <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+    >
+        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
     </svg>
 );
 
@@ -94,6 +126,7 @@ const NavBar = () => {
     const { theme, toggleTheme } = useTheme();
     const otherTheme = theme === 'dark' ? 'light' : 'dark';
     const currentApp = findCurrentApp(window.location.pathname);
+    const isTeamsPage = window.location.pathname.startsWith(paths.teams);
     // the keyboard shortcuts are for voting, so only planning poker has them
     const hasShortcuts = !!user && currentApp?.id === 'planningPoker';
 
@@ -128,7 +161,8 @@ const NavBar = () => {
                     >
                         <ul className="navbar-nav me-auto">
                             {user &&
-                                apps.map((app) => {
+                                liveApps.length === 1 &&
+                                liveApps.map((app) => {
                                     const active = app.id === currentApp?.id;
                                     return (
                                         <li key={app.id} className="nav-item">
@@ -140,38 +174,72 @@ const NavBar = () => {
                                                 href={app.path}
                                             >
                                                 {app.name}
-                                                {app.comingSoon && (
-                                                    <span className="badge rounded-pill navbar-soon-badge ms-1">
-                                                        Soon
-                                                    </span>
-                                                )}
                                             </a>
                                         </li>
                                     );
                                 })}
+                            {/* with several apps, they share one menu */}
+                            {user && liveApps.length > 1 && (
+                                <li className="nav-item dropdown">
+                                    <button
+                                        className={`nav-link dropdown-toggle btn btn-link${currentApp ? ' active' : ''}`}
+                                        type="button"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false"
+                                    >
+                                        {currentApp?.name ?? 'Apps'}
+                                    </button>
+                                    <ul
+                                        className="dropdown-menu shadow"
+                                        data-bs-theme={theme}
+                                    >
+                                        {liveApps.map((app) => {
+                                            const active =
+                                                app.id === currentApp?.id;
+                                            return (
+                                                <li key={app.id}>
+                                                    <a
+                                                        className={`dropdown-item d-flex align-items-start gap-2 py-2${active ? ' active' : ''}`}
+                                                        aria-current={
+                                                            active
+                                                                ? 'page'
+                                                                : undefined
+                                                        }
+                                                        href={app.path}
+                                                    >
+                                                        <span aria-hidden="true">
+                                                            {app.icon}
+                                                        </span>
+                                                        <span>
+                                                            <span className="fw-semibold">
+                                                                {app.name}
+                                                            </span>
+                                                            <small className="d-block opacity-75">
+                                                                {app.tagline}
+                                                            </small>
+                                                        </span>
+                                                    </a>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </li>
+                            )}
+                            {user && (
+                                <li className="nav-item">
+                                    <a
+                                        className={`nav-link${isTeamsPage ? ' active' : ''}`}
+                                        aria-current={
+                                            isTeamsPage ? 'page' : undefined
+                                        }
+                                        href={paths.teams}
+                                    >
+                                        Teams
+                                    </a>
+                                </li>
+                            )}
                         </ul>
                         <div className="d-flex align-items-center gap-2 py-2 py-md-0">
-                            {hasShortcuts && (
-                                <button
-                                    className="btn navbar-icon-btn"
-                                    type="button"
-                                    data-bs-toggle="modal"
-                                    data-bs-target={`#${SHORTCUTS_MODAL_ID}`}
-                                    aria-label="Keyboard shortcuts"
-                                    title="Keyboard shortcuts"
-                                >
-                                    ⌨️
-                                </button>
-                            )}
-                            <button
-                                className="btn navbar-icon-btn"
-                                type="button"
-                                onClick={toggleTheme}
-                                aria-label={`Switch to ${otherTheme} mode`}
-                                title={`Switch to ${otherTheme} mode`}
-                            >
-                                {theme === 'dark' ? '☀️' : '🌙'}
-                            </button>
                             {user ? (
                                 <div className="dropdown">
                                     <button
@@ -210,6 +278,37 @@ const NavBar = () => {
                                         </li>
                                         <li>
                                             <button
+                                                className="dropdown-item d-flex align-items-center gap-2"
+                                                type="button"
+                                                onClick={toggleTheme}
+                                            >
+                                                {theme === 'dark' ? (
+                                                    <SunIcon />
+                                                ) : (
+                                                    <MoonIcon />
+                                                )}
+                                                {theme === 'dark'
+                                                    ? 'Light mode'
+                                                    : 'Dark mode'}
+                                            </button>
+                                        </li>
+                                        {hasShortcuts && (
+                                            <li>
+                                                <button
+                                                    className="dropdown-item"
+                                                    type="button"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target={`#${SHORTCUTS_MODAL_ID}`}
+                                                >
+                                                    Keyboard shortcuts
+                                                </button>
+                                            </li>
+                                        )}
+                                        <li>
+                                            <hr className="dropdown-divider" />
+                                        </li>
+                                        <li>
+                                            <button
                                                 className="dropdown-item"
                                                 type="button"
                                                 onClick={() => logout()}
@@ -220,13 +319,28 @@ const NavBar = () => {
                                     </ul>
                                 </div>
                             ) : (
-                                <button
-                                    className="btn btn-light btn-sm px-3"
-                                    type="button"
-                                    onClick={login}
-                                >
-                                    Log in
-                                </button>
+                                <>
+                                    <button
+                                        className="btn navbar-icon-btn"
+                                        type="button"
+                                        onClick={toggleTheme}
+                                        aria-label={`Switch to ${otherTheme} mode`}
+                                        title={`Switch to ${otherTheme} mode`}
+                                    >
+                                        {theme === 'dark' ? (
+                                            <SunIcon />
+                                        ) : (
+                                            <MoonIcon />
+                                        )}
+                                    </button>
+                                    <button
+                                        className="btn btn-light btn-sm px-3"
+                                        type="button"
+                                        onClick={login}
+                                    >
+                                        Log in
+                                    </button>
+                                </>
                             )}
                         </div>
                     </div>

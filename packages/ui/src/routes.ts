@@ -2,4 +2,10 @@
 export const paths = {
     home: '/',
     settings: '/settings',
+    teams: '/teams',
+    team: '/teams/:teamId',
+    invite: '/invite/:token',
 };
+
+export const teamPath = (teamId: number | string) => `/teams/${teamId}`;
+export const invitePath = (token: string) => `/invite/${token}`;

@@ -99,3 +99,53 @@ describe('RoomLists', () => {
         expect(within(section('My rooms')).getByText('Legacy')).toBeVisible();
     });
 });
+
+describe('RoomLists team labels', () => {
+    it('labels rooms that belong to a team', () => {
+        render(
+            <RoomLists
+                rooms={[
+                    makeRoomSummary({
+                        room_id: 1,
+                        friendly_name: 'Team room',
+                        is_admin: true,
+                        team_id: 4,
+                    }),
+                    makeRoomSummary({
+                        room_id: 2,
+                        friendly_name: 'Solo room',
+                        is_admin: true,
+                    }),
+                ]}
+                teamNames={{ 4: 'Platform' }}
+                onToggleFavourite={vi.fn()}
+            />
+        );
+        expect(screen.getByText('Platform')).toBeInTheDocument();
+        expect(screen.getAllByText('Platform')).toHaveLength(1);
+    });
+});
+
+describe('RoomLists planning date', () => {
+    it('shows when each room is being planned', () => {
+        render(
+            <RoomLists
+                rooms={[
+                    makeRoomSummary({
+                        room_id: 1,
+                        friendly_name: 'Dated',
+                        is_admin: true,
+                        scheduled_at: '2030-05-01T09:30:00.000Z',
+                    }),
+                    makeRoomSummary({
+                        room_id: 2,
+                        friendly_name: 'Undated',
+                        is_admin: true,
+                    }),
+                ]}
+                onToggleFavourite={vi.fn()}
+            />
+        );
+        expect(screen.getAllByText(/Planning/)).toHaveLength(1);
+    });
+});

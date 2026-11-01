@@ -49,6 +49,9 @@ export const apps: AppInfo[] = [
     },
 ];
 
+/** The apps people can use today. Unfinished ones stay out of the menu and tiles until they are ready. */
+export const liveApps = apps.filter((app) => !app.comingSoon);
+
 export const getApp = (id: AppId) => apps.find((app) => app.id === id)!;
 
 /** The app whose pages are showing, if any */

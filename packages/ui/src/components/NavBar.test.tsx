@@ -41,18 +41,27 @@ describe('NavBar', () => {
         expect(logout).toHaveBeenCalled();
     });
 
-    it('links to every app when logged in', () => {
+    it('links to the apps that are ready, and none that are not', () => {
         mockAuth(makeAuthUser());
         render(<NavBar />);
         expect(
             screen.getByRole('link', { name: 'Planning Poker' })
         ).toHaveAttribute('href', '/poker');
         expect(
-            screen.getByRole('link', { name: /Sprint Capacity Planner/ })
-        ).toHaveAttribute('href', '/capacity');
+            screen.queryByRole('link', { name: /Sprint Capacity Planner/ })
+        ).not.toBeInTheDocument();
         expect(
-            screen.getByRole('link', { name: /Skills Matrix/ })
-        ).toHaveAttribute('href', '/skills');
+            screen.queryByRole('link', { name: /Skills Matrix/ })
+        ).not.toBeInTheDocument();
+        expect(screen.queryByText(/Soon/)).not.toBeInTheDocument();
+    });
+
+    it('does not need an Apps menu while there is only one app', () => {
+        mockAuth(makeAuthUser());
+        render(<NavBar />);
+        expect(
+            screen.queryByRole('button', { name: 'Apps' })
+        ).not.toBeInTheDocument();
     });
 
     it('marks the app being used as the current page', () => {
@@ -62,9 +71,6 @@ describe('NavBar', () => {
         expect(
             screen.getByRole('link', { name: 'Planning Poker' })
         ).toHaveAttribute('aria-current', 'page');
-        expect(
-            screen.getByRole('link', { name: /Skills Matrix/ })
-        ).not.toHaveAttribute('aria-current');
     });
 
     it('only offers keyboard shortcuts in planning poker', () => {
@@ -76,7 +82,7 @@ describe('NavBar', () => {
         ).toBeInTheDocument();
         unmount();
 
-        window.history.pushState({}, '', '/skills');
+        window.history.pushState({}, '', '/teams');
         render(<NavBar />);
         expect(
             screen.queryByRole('button', { name: 'Keyboard shortcuts' })
@@ -90,5 +96,40 @@ describe('NavBar', () => {
             .getByRole('button', { name: 'Toggle navigation' })
             .getAttribute('data-bs-target');
         expect(container.querySelector(target!)).toHaveClass('navbar-collapse');
+    });
+
+    it('links to teams', () => {
+        window.history.pushState({}, '', '/teams/3');
+        mockAuth(makeAuthUser());
+        render(<NavBar />);
+        const link = screen.getByRole('link', { name: 'Teams' });
+        expect(link).toHaveAttribute('href', '/teams');
+        expect(link).toHaveAttribute('aria-current', 'page');
+    });
+
+    it('switches between light and dark from the account menu', async () => {
+        mockAuth(makeAuthUser());
+        document.documentElement.setAttribute('data-bs-theme', 'light');
+        render(<NavBar />);
+        const toggle = screen.getByRole('button', {
+            name: /(Dark|Light) mode/,
+        });
+        const before = toggle.textContent;
+        await userEvent.click(toggle);
+        expect(
+            screen.getByRole('button', { name: /(Dark|Light) mode/ })
+                .textContent
+        ).not.toBe(before);
+    });
+
+    it('keeps the theme switch within reach when logged out', async () => {
+        mockAuth();
+        render(<NavBar />);
+        const toggle = screen.getByRole('button', { name: /^Switch to/ });
+        const before = toggle.getAttribute('aria-label');
+        await userEvent.click(toggle);
+        expect(
+            screen.getByRole('button', { name: /^Switch to/ })
+        ).not.toHaveAttribute('aria-label', before);
     });
 });

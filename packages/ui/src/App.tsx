@@ -9,6 +9,9 @@ import { capacityPaths } from './apps/sprintCapacity/routes';
 import AuthProvider from './components/AuthProvider';
 import RequireLogin from './components/RequireLogin';
 import HomePage from './features/home/HomePage';
+import InvitePage from './features/teams/InvitePage';
+import TeamPage from './features/teams/TeamPage';
+import TeamsPage from './features/teams/TeamsPage';
 import SettingsPage from './features/settings/SettingsPage';
 import { useUserSettings } from './hooks';
 import { paths } from './routes';
@@ -35,6 +38,30 @@ const App = () => (
                     element={
                         <RequireLogin>
                             <SettingsPage />
+                        </RequireLogin>
+                    }
+                />
+                <Route
+                    path={paths.teams}
+                    element={
+                        <RequireLogin>
+                            <TeamsPage />
+                        </RequireLogin>
+                    }
+                />
+                <Route
+                    path={paths.team}
+                    element={
+                        <RequireLogin>
+                            <TeamPage />
+                        </RequireLogin>
+                    }
+                />
+                <Route
+                    path={paths.invite}
+                    element={
+                        <RequireLogin>
+                            <InvitePage />
                         </RequireLogin>
                     }
                 />

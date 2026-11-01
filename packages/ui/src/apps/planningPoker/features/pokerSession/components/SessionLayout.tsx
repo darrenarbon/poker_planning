@@ -17,6 +17,8 @@ const SessionLayout = () => {
         dismissError,
         loginExpired,
         toggleFavourite,
+        isAdmin,
+        updateSchedule,
     } = usePokerSession();
 
     if (loadError) {
@@ -43,6 +45,7 @@ const SessionLayout = () => {
                     <RoomHeader
                         room={room}
                         onToggleFavourite={toggleFavourite}
+                        onChangeSchedule={isAdmin ? updateSchedule : undefined}
                     />
                     <SessionControls />
                     <FacilitatorsPanel />

@@ -7,6 +7,9 @@ import RoomsPage from './RoomsPage';
 
 vi.mock('@auth0/auth0-react', () => ({ useAuth0: vi.fn() }));
 vi.mock('../../hooks', () => ({ useUserRooms: vi.fn() }));
+vi.mock('../../../../hooks', () => ({
+    useMyTeams: () => ({ teams: [], loaded: true }),
+}));
 vi.mock('../../../../components/NavBar', () => ({ default: () => <nav /> }));
 vi.mock('./components/LoggedOutWelcome', () => ({
     default: () => <div>logged-out-welcome</div>,

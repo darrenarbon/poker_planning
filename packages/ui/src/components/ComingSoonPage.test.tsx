@@ -12,7 +12,7 @@ describe('ComingSoonPage', () => {
             screen.getByRole('heading', { name: 'Sprint Capacity Planner' })
         ).toBeInTheDocument();
         expect(screen.getByText('Coming soon')).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /All apps/ })).toHaveAttribute(
+        expect(screen.getByRole('link', { name: /Dashboard/ })).toHaveAttribute(
             'href',
             '/'
         );

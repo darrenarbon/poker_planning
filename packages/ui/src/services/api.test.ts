@@ -111,7 +111,11 @@ describe('createApi', () => {
         it('createRoom posts the name and base URL and returns the room id', async () => {
             fetchMock.mockResolvedValue(jsonResponse({ roomId: 'new-room' }));
             await expect(
-                api.createRoom('Planning', 'https://jira.example.com')
+                api.createRoom(
+                    'Planning',
+                    'https://jira.example.com',
+                    '2030-05-01T09:30:00.000Z'
+                )
             ).resolves.toBe('new-room');
             expect(lastRequest()).toMatchObject({
                 url: `${config.apiUrl}/newroom`,
@@ -119,7 +123,20 @@ describe('createApi', () => {
                 body: {
                     roomName: 'Planning',
                     baseUrl: 'https://jira.example.com',
+                    scheduledAt: '2030-05-01T09:30:00.000Z',
                 },
+            });
+        });
+
+        it('updateRoomSchedule puts the new time', async () => {
+            await api.updateRoomSchedule(
+                'room-abc',
+                '2030-06-01T08:00:00.000Z'
+            );
+            expect(lastRequest()).toMatchObject({
+                url: `${config.apiUrl}/room/room-abc/scheduledAt`,
+                method: 'PUT',
+                body: { scheduledAt: '2030-06-01T08:00:00.000Z' },
             });
         });
 
@@ -206,6 +223,89 @@ describe('createApi', () => {
             expect(lastRequest()).toMatchObject({
                 url: `${config.apiUrl}/jiraticket/ABC-1`,
                 method: 'GET',
+            });
+        });
+    });
+    describe('teams', () => {
+        it('sends the team and chosen people with a new room', async () => {
+            fetchMock.mockImplementation(async () =>
+                jsonResponse({ roomId: 'r1' })
+            );
+            await api.createRoom(
+                'Sprint',
+                'https://x/browse',
+                '2030-05-01T09:30:00.000Z',
+                {
+                    teamId: 4,
+                    memberSubs: ['a'],
+                    coFacilitatorSubs: ['a'],
+                }
+            );
+            expect(lastRequest().body).toEqual({
+                roomName: 'Sprint',
+                baseUrl: 'https://x/browse',
+                scheduledAt: '2030-05-01T09:30:00.000Z',
+                teamId: 4,
+                memberSubs: ['a'],
+                coFacilitatorSubs: ['a'],
+            });
+        });
+
+        it('creates a team', async () => {
+            await api.createTeam('Platform');
+            const { url, method, body } = lastRequest();
+            expect(url).toBe(`${config.apiUrl}/teams`);
+            expect(method).toBe('POST');
+            expect(body).toEqual({ name: 'Platform' });
+        });
+
+        it('adds a member by email with a role', async () => {
+            await api.addTeamMember(3, 'a@b.com', 'admin');
+            const { url, method, body } = lastRequest();
+            expect(url).toBe(`${config.apiUrl}/teams/3/members`);
+            expect(method).toBe('POST');
+            expect(body).toEqual({ email: 'a@b.com', role: 'admin' });
+        });
+
+        it('changes, removes and hands over', async () => {
+            await api.changeTeamMemberRole(3, 8, 'admin');
+            expect(lastRequest()).toMatchObject({
+                url: `${config.apiUrl}/teams/3/members/8`,
+                method: 'PUT',
+                body: { role: 'admin' },
+            });
+            fetchMock.mockClear();
+            await api.removeTeamMember(3, 8);
+            expect(lastRequest()).toMatchObject({
+                url: `${config.apiUrl}/teams/3/members/8`,
+                method: 'DELETE',
+            });
+            fetchMock.mockClear();
+            await api.transferTeamOwnership(3, 8);
+            expect(lastRequest()).toMatchObject({
+                url: `${config.apiUrl}/teams/3/owner`,
+                method: 'POST',
+                body: { userId: 8 },
+            });
+        });
+
+        it('lists invites from the response wrapper', async () => {
+            fetchMock.mockImplementation(async () =>
+                jsonResponse({ invites: [{ invite_id: 1 }] })
+            );
+            await expect(api.getTeamInvites(3)).resolves.toEqual([
+                { invite_id: 1 },
+            ]);
+        });
+
+        it('previews and accepts an invite by token', async () => {
+            await api.previewInvite('tok');
+            expect(lastRequest().url).toBe(`${config.apiUrl}/invites/tok`);
+            fetchMock.mockClear();
+            await api.acceptInvite('tok');
+            expect(lastRequest()).toMatchObject({
+                url: `${config.apiUrl}/invites/tok/accept`,
+                method: 'POST',
             });
         });
     });
