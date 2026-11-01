@@ -1,0 +1,32 @@
+{
+    "name": "teamdeck",
+    "private": true,
+    "description": "Teamdeck — planning poker, sprint capacity planning and a skills matrix for agile teams",
+    "packageManager": "pnpm@9.12.0",
+    "engines": {
+        "node": ">=22"
+    },
+    "scripts": {
+        "dev": "pnpm --parallel --filter @teamdeck/ui --filter @teamdeck/api dev",
+        "dev:ui": "pnpm --filter @teamdeck/ui dev",
+        "dev:api": "pnpm --filter @teamdeck/api dev",
+        "build": "pnpm -r build",
+        "typecheck": "pnpm -r typecheck",
+        "lint": "pnpm -r lint",
+        "test": "pnpm -r test",
+        "db:start": "supabase start",
+        "db:stop": "supabase stop",
+        "db:status": "supabase status",
+        "db:reset": "supabase db reset",
+        "db:migration": "supabase migration new"
+    },
+    "devDependencies": {
+        "supabase": "^2.119.0"
+    },
+    "pnpm": {
+        "onlyBuiltDependencies": [
+            "esbuild",
+            "supabase"
+        ]
+    }
+}
