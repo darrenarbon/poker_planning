@@ -2,18 +2,27 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ErrorAlert from '../../../../../components/ErrorAlert';
 import { DEFAULT_TICKET_BASE_URL } from '../../../../../constants';
-import { useApi, useUserSettings } from '../../../../../hooks';
+import { useApi, useMyTeams, useUserSettings } from '../../../../../hooks';
+import { NewRoomOptions } from '../../../../../types';
 import { paths } from '../../../../../routes';
 import { roomTicketsPath } from '../../../routes';
-import { normaliseBaseUrl } from '../../../../../utils';
+import {
+    defaultSchedule,
+    fromLocalInputValue,
+    normaliseBaseUrl,
+} from '../../../../../utils';
+import TeamRoomPicker from './TeamRoomPicker';
 
 const CreateRoomForm = () => {
     const [roomName, setRoomName] = useState('');
     const [baseUrl, setBaseUrl] = useState(DEFAULT_TICKET_BASE_URL);
     const [baseUrlEdited, setBaseUrlEdited] = useState(false);
+    const [scheduledAt, setScheduledAt] = useState(defaultSchedule);
     const [error, setError] = useState<string | null>(null);
     const api = useApi();
     const { settings } = useUserSettings();
+    const { teams } = useMyTeams();
+    const [teamOptions, setTeamOptions] = useState<NewRoomOptions>();
 
     // start from the user's saved default unless they've already typed one
     useEffect(() => {
@@ -29,11 +38,18 @@ const CreateRoomForm = () => {
             setError('Please enter a room name and base URL for tickets.');
             return;
         }
+        const when = fromLocalInputValue(scheduledAt);
+        if (!when) {
+            setError('Please choose when the planning will happen.');
+            return;
+        }
         setError(null);
         try {
             const roomId = await api.createRoom(
                 roomName,
-                normaliseBaseUrl(baseUrl)
+                normaliseBaseUrl(baseUrl),
+                when,
+                teamOptions
             );
             navigate(roomTicketsPath(roomId));
         } catch (error) {
@@ -80,6 +96,26 @@ const CreateRoomForm = () => {
                         default in <a href={paths.settings}>Settings</a>.
                     </div>
                 </div>
+                <div className="col-md-6">
+                    <label htmlFor="scheduledAt" className="form-label">
+                        Planning date and time
+                    </label>
+                    <input
+                        type="datetime-local"
+                        className="form-control"
+                        id="scheduledAt"
+                        value={scheduledAt}
+                        onChange={(e) => setScheduledAt(e.target.value)}
+                        required
+                    />
+                    <div className="form-text">
+                        When the team will get together. You can change it later
+                        from the room.
+                    </div>
+                </div>
+                {teams.length > 0 && (
+                    <TeamRoomPicker teams={teams} onChange={setTeamOptions} />
+                )}
             </div>
             <button type="submit" className="btn btn-primary mt-3">
                 Create room

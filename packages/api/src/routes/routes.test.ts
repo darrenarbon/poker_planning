@@ -5,8 +5,14 @@ import { createApp } from '../app.js';
 import * as jiraService from '../services/jiraService.js';
 import * as roomService from '../apps/planningPoker/services/roomService.js';
 import * as ticketService from '../apps/planningPoker/services/ticketService.js';
+import * as teamService from '../services/teamService.js';
 import * as userService from '../services/userService.js';
-import { makeRoom, makeTicket } from '../test/factories.js';
+import {
+    makeRoom,
+    makeTeam,
+    makeTeamInvite,
+    makeTicket,
+} from '../test/factories.js';
 import { TEST_SUB } from '../test/mockCheckJwt.js';
 import { AppError, notFound } from '../utils/errors.js';
 
@@ -16,10 +22,14 @@ vi.mock('../middleware/checkJwt.js', async () => ({
 vi.mock('../services/jiraService.js');
 vi.mock('../apps/planningPoker/services/roomService.js');
 vi.mock('../apps/planningPoker/services/ticketService.js');
+vi.mock('../services/teamService.js');
 vi.mock('../services/userService.js');
 
 const app = createApp();
 const AUTH = { Authorization: 'Bearer token' };
+// a planning session in the future, sent with a time zone offset
+const WHEN = '2030-05-01T10:30:00+01:00';
+const WHEN_ISO = '2030-05-01T09:30:00.000Z';
 
 beforeEach(() => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -35,7 +45,7 @@ describe('CORS', () => {
 
 describe('POST /login', () => {
     const user = {
-        sub: 'auth0|new',
+        sub: 'auth0|someone-else',
         email: 'a@b.com',
         given_name: 'A',
         family_name: 'B',
@@ -43,11 +53,17 @@ describe('POST /login', () => {
         picture: 'pic',
     };
 
-    it('ensures the user exists', async () => {
+    it('requires a token', async () => {
         const res = await request(app).post('/login').send({ user });
+        expect(res.status).toBe(401);
+        expect(userService.ensureUser).not.toHaveBeenCalled();
+    });
+
+    it("ensures the user exists, using the token's sub rather than the body's", async () => {
+        const res = await request(app).post('/login').set(AUTH).send({ user });
         expect(res.status).toBe(200);
         expect(userService.ensureUser).toHaveBeenCalledWith({
-            auth0_sub: 'auth0|new',
+            auth0_sub: TEST_SUB,
             email: 'a@b.com',
             given_name: 'A',
             family_name: 'B',
@@ -57,7 +73,7 @@ describe('POST /login', () => {
     });
 
     it('rejects a missing user with 400', async () => {
-        const res = await request(app).post('/login').send({});
+        const res = await request(app).post('/login').set(AUTH).send({});
         expect(res.status).toBe(400);
         expect(res.body).toEqual({ error: 'User details are required' });
     });
@@ -66,7 +82,7 @@ describe('POST /login', () => {
         vi.mocked(userService.ensureUser).mockRejectedValue(
             new AppError(500, 'Error creating user')
         );
-        const res = await request(app).post('/login').send({ user });
+        const res = await request(app).post('/login').set(AUTH).send({ user });
         expect(res.status).toBe(500);
         expect(res.body).toEqual({ error: 'Error creating user' });
     });
@@ -81,6 +97,7 @@ describe('authenticated routes', () => {
         ['put', '/room/abc/baseUrl'],
         ['put', '/room/abc/favourite'],
         ['put', '/room/abc/hidden'],
+        ['put', '/room/abc/scheduledAt'],
         ['get', '/me/rooms'],
         ['get', '/me/settings'],
         ['put', '/me/settings'],
@@ -101,13 +118,122 @@ describe('room routes', () => {
         const res = await request(app)
             .post('/newroom')
             .set(AUTH)
-            .send({ roomName: 'Sprint', baseUrl: 'url' });
+            .send({ roomName: 'Sprint', baseUrl: 'url', scheduledAt: WHEN });
         expect(res.body).toEqual({ roomId: 'room123456' });
         expect(roomService.createRoom).toHaveBeenCalledWith(
             TEST_SUB,
             'Sprint',
-            'url'
+            'url',
+            {
+                scheduledAt: WHEN_ISO,
+                teamId: undefined,
+                memberSubs: undefined,
+                coFacilitatorSubs: undefined,
+            }
         );
+    });
+
+    it('POST /newroom passes the team and chosen people through', async () => {
+        vi.mocked(roomService.createRoom).mockResolvedValue('room123456');
+        const res = await request(app)
+            .post('/newroom')
+            .set(AUTH)
+            .send({
+                roomName: 'Sprint',
+                baseUrl: 'url',
+                scheduledAt: WHEN,
+                teamId: 5,
+                memberSubs: ['a', 'b'],
+                coFacilitatorSubs: ['b'],
+            });
+        expect(res.status).toBe(200);
+        expect(roomService.createRoom).toHaveBeenCalledWith(
+            TEST_SUB,
+            'Sprint',
+            'url',
+            {
+                scheduledAt: WHEN_ISO,
+                teamId: 5,
+                memberSubs: ['a', 'b'],
+                coFacilitatorSubs: ['b'],
+            }
+        );
+    });
+
+    it.each([
+        ['missing', undefined],
+        ['blank', '  '],
+        ['not a date', 'next tuesday'],
+        ['not a string', 12345],
+        ['ancient', '1970-01-01T00:00:00Z'],
+        ['absurdly far ahead', '2999-01-01T00:00:00Z'],
+    ])(
+        'POST /newroom rejects a date that is %s with 400',
+        async (_name, value) => {
+            const res = await request(app)
+                .post('/newroom')
+                .set(AUTH)
+                .send({ roomName: 'S', baseUrl: 'u', scheduledAt: value });
+            expect(res.status).toBe(400);
+            expect(res.body.error).toMatch(/scheduledAt/);
+            expect(roomService.createRoom).not.toHaveBeenCalled();
+        }
+    );
+
+    it('PUT /room/:roomName/scheduledAt moves the session', async () => {
+        const res = await request(app)
+            .put('/room/abc/scheduledAt')
+            .set(AUTH)
+            .send({ scheduledAt: WHEN });
+        expect(res.status).toBe(200);
+        expect(res.body).toEqual({ scheduledAt: WHEN_ISO });
+        expect(roomService.updateScheduledAt).toHaveBeenCalledWith(
+            'abc',
+            TEST_SUB,
+            WHEN_ISO
+        );
+    });
+
+    it('PUT /room/:roomName/scheduledAt rejects a bad date with 400', async () => {
+        const res = await request(app)
+            .put('/room/abc/scheduledAt')
+            .set(AUTH)
+            .send({ scheduledAt: 'soon' });
+        expect(res.status).toBe(400);
+        expect(roomService.updateScheduledAt).not.toHaveBeenCalled();
+    });
+
+    it('PUT /room/:roomName/scheduledAt passes a 403 through', async () => {
+        vi.mocked(roomService.updateScheduledAt).mockRejectedValue(
+            new AppError(403, 'Only a facilitator can do that')
+        );
+        const res = await request(app)
+            .put('/room/abc/scheduledAt')
+            .set(AUTH)
+            .send({ scheduledAt: WHEN });
+        expect(res.status).toBe(403);
+    });
+
+    it('POST /newroom rejects a bad team id or member list with 400', async () => {
+        const bad = await request(app)
+            .post('/newroom')
+            .set(AUTH)
+            .send({
+                roomName: 'S',
+                baseUrl: 'u',
+                scheduledAt: WHEN,
+                teamId: 'x',
+            });
+        expect(bad.status).toBe(400);
+        const badList = await request(app).post('/newroom').set(AUTH).send({
+            roomName: 'S',
+            baseUrl: 'u',
+            scheduledAt: WHEN,
+            teamId: 1,
+            memberSubs: 'a',
+        });
+        expect(badList.status).toBe(400);
+        expect(roomService.createRoom).not.toHaveBeenCalled();
     });
 
     it('GET /room/:roomName returns the room details', async () => {
@@ -346,5 +472,149 @@ describe('unknown routes', () => {
         const res = await request(app).get('/room/abc').set(AUTH);
         expect(res.status).toBe(500);
         expect(res.body).toEqual({ error: 'Internal server error' });
+    });
+});
+
+describe('team routes', () => {
+    it('require a login', async () => {
+        const res = await request(app).get('/me/teams');
+        expect(res.status).toBe(401);
+    });
+
+    it('GET /me/teams lists the callers teams', async () => {
+        const body = { teams: [], isSuperAdmin: false };
+        vi.mocked(teamService.getTeamsForUser).mockResolvedValue(body);
+        const res = await request(app).get('/me/teams').set(AUTH);
+        expect(res.body).toEqual(body);
+        expect(teamService.getTeamsForUser).toHaveBeenCalledWith(TEST_SUB);
+    });
+
+    it('POST /teams creates a team', async () => {
+        const team = makeTeam();
+        vi.mocked(teamService.createTeam).mockResolvedValue(team);
+        const res = await request(app)
+            .post('/teams')
+            .set(AUTH)
+            .send({ name: 'Platform' });
+        expect(res.status).toBe(201);
+        expect(res.body).toEqual(team);
+        expect(teamService.createTeam).toHaveBeenCalledWith(
+            TEST_SUB,
+            'Platform'
+        );
+    });
+
+    it('rejects a team id that is not a number with 400', async () => {
+        const res = await request(app).get('/teams/abc').set(AUTH);
+        expect(res.status).toBe(400);
+        expect(teamService.getTeamDetails).not.toHaveBeenCalled();
+    });
+
+    it('passes service errors through', async () => {
+        vi.mocked(teamService.getTeamDetails).mockRejectedValue(
+            notFound('Team not found')
+        );
+        const res = await request(app).get('/teams/9').set(AUTH);
+        expect(res.status).toBe(404);
+        expect(res.body).toEqual({ error: 'Team not found' });
+    });
+
+    it('POST /teams/:id/members adds someone by email', async () => {
+        const res = await request(app)
+            .post('/teams/3/members')
+            .set(AUTH)
+            .send({ email: 'a@b.com', role: 'admin' });
+        expect(res.status).toBe(201);
+        expect(teamService.addMemberByEmail).toHaveBeenCalledWith(
+            3,
+            TEST_SUB,
+            'a@b.com',
+            'admin'
+        );
+    });
+
+    it('PUT /teams/:id/members/:userId changes a role', async () => {
+        const res = await request(app)
+            .put('/teams/3/members/8')
+            .set(AUTH)
+            .send({ role: 'admin' });
+        expect(res.status).toBe(200);
+        expect(teamService.changeMemberRole).toHaveBeenCalledWith(
+            3,
+            TEST_SUB,
+            8,
+            'admin'
+        );
+    });
+
+    it('DELETE /teams/:id/members/:userId removes a member', async () => {
+        const res = await request(app).delete('/teams/3/members/8').set(AUTH);
+        expect(res.status).toBe(200);
+        expect(teamService.removeMember).toHaveBeenCalledWith(3, TEST_SUB, 8);
+    });
+
+    it('POST /teams/:id/owner hands the team over', async () => {
+        const res = await request(app)
+            .post('/teams/3/owner')
+            .set(AUTH)
+            .send({ userId: 8 });
+        expect(res.status).toBe(200);
+        expect(teamService.transferOwnership).toHaveBeenCalledWith(
+            3,
+            TEST_SUB,
+            8
+        );
+        const bad = await request(app)
+            .post('/teams/3/owner')
+            .set(AUTH)
+            .send({});
+        expect(bad.status).toBe(400);
+    });
+
+    it('creates, lists and revokes invites', async () => {
+        const invite = makeTeamInvite();
+        vi.mocked(teamService.createInvite).mockResolvedValue(invite);
+        vi.mocked(teamService.getInvites).mockResolvedValue([invite]);
+
+        const created = await request(app)
+            .post('/teams/3/invites')
+            .set(AUTH)
+            .send({ role: 'member', expiresInDays: 7 });
+        expect(created.status).toBe(201);
+        expect(teamService.createInvite).toHaveBeenCalledWith(
+            3,
+            TEST_SUB,
+            'member',
+            7
+        );
+
+        const listed = await request(app).get('/teams/3/invites').set(AUTH);
+        expect(listed.body).toEqual({ invites: [invite] });
+
+        const revoked = await request(app)
+            .delete('/teams/3/invites/70')
+            .set(AUTH);
+        expect(revoked.status).toBe(200);
+        expect(teamService.revokeInvite).toHaveBeenCalledWith(3, TEST_SUB, 70);
+    });
+
+    it('previews and accepts an invite by token', async () => {
+        const preview = {
+            teamId: 3,
+            teamName: 'Platform',
+            role: 'member' as const,
+            alreadyMember: false,
+        };
+        vi.mocked(teamService.previewInvite).mockResolvedValue(preview);
+        vi.mocked(teamService.acceptInvite).mockResolvedValue({ teamId: 3 });
+
+        const got = await request(app).get('/invites/tok').set(AUTH);
+        expect(got.body).toEqual(preview);
+        expect(teamService.previewInvite).toHaveBeenCalledWith('tok', TEST_SUB);
+
+        const accepted = await request(app)
+            .post('/invites/tok/accept')
+            .set(AUTH);
+        expect(accepted.body).toEqual({ teamId: 3 });
     });
 });

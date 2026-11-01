@@ -2,6 +2,7 @@ import { MouseEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { roomVotingPath } from '../../../routes';
 import { RoomSummary } from '../../../../../types';
+import { formatSchedule } from '../../../../../utils';
 import FavouriteButton from './FavouriteButton';
 
 const formatDate = (date: string) =>
@@ -22,6 +23,8 @@ const byLastJoined = (a: RoomSummary, b: RoomSummary) =>
 type RoomListsProps = {
     rooms: RoomSummary[];
     onToggleFavourite: (room: RoomSummary) => void;
+    /** team names by id, to label rooms that belong to a team */
+    teamNames?: Record<number, string>;
 };
 
 type RoomSectionProps = RoomListsProps & {
@@ -34,6 +37,7 @@ const RoomSection = ({
     rooms,
     empty,
     onToggleFavourite,
+    teamNames = {},
 }: RoomSectionProps) => {
     const navigate = useNavigate();
 
@@ -71,6 +75,16 @@ const RoomSection = ({
                                     <div className="flex-grow-1 min-w-0">
                                         <h3 className="h6 fw-bold text-body mb-1">
                                             {room.friendly_name}
+                                            {room.team_id != null &&
+                                                teamNames[room.team_id] && (
+                                                    <span className="badge text-bg-info ms-2">
+                                                        {
+                                                            teamNames[
+                                                                room.team_id
+                                                            ]
+                                                        }
+                                                    </span>
+                                                )}
                                             {room.hidden && (
                                                 <span className="badge text-bg-secondary ms-2">
                                                     Hidden
@@ -84,6 +98,18 @@ const RoomSection = ({
                                                 ? `Created ${formatDate(room.created_at)}`
                                                 : `Joined ${formatDate(room.last_joined_at)}`}
                                         </div>
+                                        {room.scheduled_at && (
+                                            <div className="small text-secondary">
+                                                Planning{' '}
+                                                <time
+                                                    dateTime={room.scheduled_at}
+                                                >
+                                                    {formatSchedule(
+                                                        room.scheduled_at
+                                                    )}
+                                                </time>
+                                            </div>
+                                        )}
                                     </div>
                                     <FavouriteButton
                                         favourite={!!room.favourite}
@@ -101,7 +127,7 @@ const RoomSection = ({
 };
 
 /** The user's rooms: favourites, ones they created and ones they joined, with hidden rooms on request */
-const RoomLists = ({ rooms, onToggleFavourite }: RoomListsProps) => {
+const RoomLists = ({ rooms, onToggleFavourite, teamNames }: RoomListsProps) => {
     const [showHidden, setShowHidden] = useState(false);
 
     const visible = rooms.filter((r) => !r.hidden);
@@ -118,6 +144,7 @@ const RoomLists = ({ rooms, onToggleFavourite }: RoomListsProps) => {
                 title="Favourites"
                 rooms={favourites}
                 onToggleFavourite={onToggleFavourite}
+                teamNames={teamNames}
             />
             <RoomSection
                 title="My rooms"
@@ -128,11 +155,13 @@ const RoomLists = ({ rooms, onToggleFavourite }: RoomListsProps) => {
                         : "You haven't created any rooms yet. Rooms you create will appear here."
                 }
                 onToggleFavourite={onToggleFavourite}
+                teamNames={teamNames}
             />
             <RoomSection
                 title="Recently joined"
                 rooms={joined}
                 onToggleFavourite={onToggleFavourite}
+                teamNames={teamNames}
             />
             {hidden.length > 0 && (
                 <div className="mt-5">
@@ -150,6 +179,7 @@ const RoomLists = ({ rooms, onToggleFavourite }: RoomListsProps) => {
                             title="Hidden rooms"
                             rooms={hidden}
                             onToggleFavourite={onToggleFavourite}
+                            teamNames={teamNames}
                         />
                     )}
                 </div>

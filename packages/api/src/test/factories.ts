@@ -1,4 +1,13 @@
-import type { NewUser, Room, Ticket, User, Vote } from '../types/models.js';
+import type {
+    NewUser,
+    Room,
+    Team,
+    TeamInvite,
+    TeamMember,
+    Ticket,
+    User,
+    Vote,
+} from '../types/models.js';
 
 export const makeUser = (overrides: Partial<User> = {}): User => ({
     user_id: 1,
@@ -18,6 +27,7 @@ export const makeRoom = (overrides: Partial<Room> = {}): Room => ({
     friendly_name: 'Sprint 1',
     ticket_base_url: 'https://jira.example.com/browse/',
     created_at: '2026-01-01T00:00:00Z',
+    scheduled_at: '2026-01-02T09:00:00Z',
     ...overrides,
 });
 
@@ -46,3 +56,34 @@ export const makeNewUser = (overrides: Partial<NewUser> = {}): NewUser => {
     const { user_id: _userId, ...newUser } = makeUser(overrides);
     return newUser;
 };
+
+export const makeTeam = (overrides: Partial<Team> = {}): Team => ({
+    team_id: 50,
+    name: 'Platform',
+    created_at: '2026-01-01T00:00:00Z',
+    ...overrides,
+});
+
+export const makeTeamMember = (
+    overrides: Partial<TeamMember> = {}
+): TeamMember => ({
+    team_id: 50,
+    user_id: 1,
+    role: 'member',
+    joined_at: '2026-01-01T00:00:00Z',
+    ...overrides,
+});
+
+export const makeTeamInvite = (
+    overrides: Partial<TeamInvite> = {}
+): TeamInvite => ({
+    invite_id: 70,
+    token: 'tok-abc',
+    team_id: 50,
+    role: 'member',
+    created_by: 1,
+    created_at: '2026-01-01T00:00:00Z',
+    expires_at: '2999-01-01T00:00:00Z',
+    revoked_at: null,
+    ...overrides,
+});

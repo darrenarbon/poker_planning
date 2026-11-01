@@ -7,6 +7,11 @@ import HomePage from './HomePage';
 
 vi.mock('@auth0/auth0-react', () => ({ useAuth0: vi.fn() }));
 vi.mock('../../components/NavBar', () => ({ default: () => <nav /> }));
+vi.mock('./Dashboard', () => ({
+    default: ({ givenName }: { givenName?: string }) => (
+        <h1>Welcome back, {givenName}</h1>
+    ),
+}));
 
 const loginWithRedirect = vi.fn();
 
@@ -22,14 +27,14 @@ const expectAppTiles = () => {
     expect(
         screen.getByRole('link', { name: 'Planning Poker' })
     ).toHaveAttribute('href', '/poker');
+    // apps that are not ready are not advertised
     expect(
-        screen.getByRole('link', { name: 'Sprint Capacity Planner' })
-    ).toHaveAttribute('href', '/capacity');
-    expect(screen.getByRole('link', { name: 'Skills Matrix' })).toHaveAttribute(
-        'href',
-        '/skills'
-    );
-    expect(screen.getAllByText('Coming soon')).toHaveLength(2);
+        screen.queryByRole('link', { name: 'Sprint Capacity Planner' })
+    ).not.toBeInTheDocument();
+    expect(
+        screen.queryByRole('link', { name: 'Skills Matrix' })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Coming soon')).not.toBeInTheDocument();
 };
 
 describe('HomePage', () => {
@@ -51,13 +56,12 @@ describe('HomePage', () => {
         expect(loginWithRedirect).toHaveBeenCalled();
     });
 
-    it('welcomes back logged-in users and lists the apps', () => {
+    it('shows logged-in users their dashboard, greeting them by first name', () => {
         mockAuth({ isAuthenticated: true, user: makeAuthUser() });
         render(<HomePage />);
         expect(
-            screen.getByRole('heading', { name: /Welcome back, / })
+            screen.getByRole('heading', { name: 'Welcome back, Ada' })
         ).toBeInTheDocument();
-        expectAppTiles();
         expect(
             screen.queryByRole('button', { name: /Log in/ })
         ).not.toBeInTheDocument();

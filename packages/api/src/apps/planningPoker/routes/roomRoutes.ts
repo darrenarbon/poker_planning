@@ -24,6 +24,11 @@ router.put(
     asyncHandler(roomController.setHidden)
 );
 router.put(
+    '/room/:roomName/scheduledAt',
+    checkJwt,
+    asyncHandler(roomController.updateScheduledAt)
+);
+router.put(
     '/room/:roomName/baseUrl',
     checkJwt,
     asyncHandler(roomController.updateBaseUrl)
@@ -32,6 +37,11 @@ router.post(
     '/room/:roomName/newTicket',
     checkJwt,
     asyncHandler(roomController.addTicket)
+);
+router.post(
+    '/room/:roomName/teamMembers',
+    checkJwt,
+    asyncHandler(roomController.addTeamMembers)
 );
 router.get('/me/rooms', checkJwt, asyncHandler(roomController.getRoomsForUser));
 

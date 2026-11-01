@@ -8,7 +8,7 @@ const ComingSoonPage = ({ app }: { app: AppInfo }) => (
         <NavBar />
         <div className="container mt-4 pb-5">
             <a className="small" href={paths.home}>
-                &larr; All apps
+                &larr; Dashboard
             </a>
             <div className="text-center py-5">
                 <div className="coming-soon-icon mb-3" aria-hidden="true">

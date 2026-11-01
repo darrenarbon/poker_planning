@@ -6,6 +6,8 @@ export interface User {
     family_name: string;
     nickname: string;
     picture: string;
+    /** can see and manage every team and room, whatever the team */
+    is_super_admin?: boolean;
 }
 
 /** An example ticket showing the team what an estimate looks like */
@@ -48,10 +50,15 @@ export interface Room {
     ticket_base_url: string;
     created_at: string;
     hidden?: boolean;
+    /** the team the room belongs to, if any */
+    team_id?: number | null;
+    /** when the planning session happens */
+    scheduled_at?: string;
 }
 
 /** A room as it appears in one user's lists */
 export interface UserRoom extends Room {
+    /** the user owns the room or can manage it as a team admin or super admin */
     is_admin: boolean;
     favourite: boolean;
     last_joined_at: string | null;
@@ -81,4 +88,42 @@ export interface Vote {
     ticket_id: number;
     user_id: number;
     vote: number;
+}
+
+export const TEAM_ROLES = ['owner', 'admin', 'member'] as const;
+
+/** What someone can do in a team: owners manage everything, admins manage members */
+export type TeamRole = (typeof TEAM_ROLES)[number];
+
+export interface Team {
+    team_id: number;
+    name: string;
+    created_at: string;
+}
+
+export interface TeamMember {
+    team_id: number;
+    user_id: number;
+    role: TeamRole;
+    joined_at: string;
+}
+
+/** A link that adds whoever opens it to a team */
+export interface TeamInvite {
+    invite_id: number;
+    token: string;
+    team_id: number;
+    /** never owner: ownership is handed over, not invited */
+    role: Exclude<TeamRole, 'owner'>;
+    created_by: number | null;
+    created_at: string;
+    expires_at: string;
+    revoked_at: string | null;
+}
+
+/** A team as it appears in one user's lists */
+export interface UserTeam extends Team {
+    /** the user's role in it, null for a super admin who is not a member */
+    role: TeamRole | null;
+    member_count: number;
 }

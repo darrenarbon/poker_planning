@@ -5,6 +5,7 @@ import { errorHandler } from '../utils/errors.js';
 import authRoutes from './authRoutes.js';
 import jiraRoutes from './jiraRoutes.js';
 import settingsRoutes from './settingsRoutes.js';
+import teamRoutes from './teamRoutes.js';
 
 const router = Router();
 
@@ -12,6 +13,7 @@ const router = Router();
 router.use(authRoutes);
 router.use(jiraRoutes);
 router.use(settingsRoutes);
+router.use(teamRoutes);
 
 // each app's own endpoints
 router.use(planningPokerRouter);

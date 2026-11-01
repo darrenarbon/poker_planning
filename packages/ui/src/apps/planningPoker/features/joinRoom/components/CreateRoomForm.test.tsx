@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_TICKET_BASE_URL } from '../../../../../constants';
@@ -11,6 +11,7 @@ let settings: { defaultBaseUrl?: string } = {};
 vi.mock('../../../../../hooks', () => ({
     useApi: () => ({ createRoom }),
     useUserSettings: () => ({ settings }),
+    useMyTeams: () => ({ teams: [] }),
 }));
 
 describe('CreateRoomForm', () => {
@@ -53,15 +54,43 @@ describe('CreateRoomForm', () => {
         const baseUrl = screen.getByLabelText(/Base URL/);
         await userEvent.clear(baseUrl);
         await userEvent.type(baseUrl, ' https://jira.example.com/browse/ ');
+        fireEvent.change(screen.getByLabelText(/Planning date and time/), {
+            target: { value: '2030-05-01T10:30' },
+        });
         await userEvent.click(
             screen.getByRole('button', { name: 'Create room' })
         );
 
         expect(createRoom).toHaveBeenCalledWith(
             'Planning',
-            'https://jira.example.com/browse'
+            'https://jira.example.com/browse',
+            new Date('2030-05-01T10:30').toISOString(),
+            undefined
         );
         expect(navigate).toHaveBeenCalledWith('/poker/room/new-room/tickets');
+    });
+
+    it('starts the planning time at the next half hour', () => {
+        render(<CreateRoomForm />);
+        const value = (
+            screen.getByLabelText(/Planning date and time/) as HTMLInputElement
+        ).value;
+        expect(value).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:(00|30)$/);
+        expect(new Date(value).getTime()).toBeGreaterThan(Date.now());
+    });
+
+    it('needs a planning time before creating the room', async () => {
+        render(<CreateRoomForm />);
+        await userEvent.type(screen.getByLabelText(/Room Name/), 'Planning');
+        fireEvent.change(screen.getByLabelText(/Planning date and time/), {
+            target: { value: '' },
+        });
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Create room' })
+        );
+        // the browser's own required-field check stops the submit
+        expect(screen.getByLabelText(/Planning date and time/)).toBeInvalid();
+        expect(createRoom).not.toHaveBeenCalled();
     });
 
     it('shows a dismissible error when creation fails', async () => {

@@ -9,6 +9,8 @@ export interface Room {
     /** share the owner's facilitator rights */
     coFacilitatorSubs?: string[];
     createdAt: string;
+    /** when the planning session happens, an ISO timestamp */
+    scheduledAt?: string;
     friendlyName: string;
     roomId: number;
     roomName: string;
@@ -19,6 +21,12 @@ export interface Room {
     favourite?: boolean;
     /** the owner's example tickets for each estimate */
     exemplars?: Exemplar[];
+    /** the team the room belongs to, if any */
+    teamId?: number | null;
+    /** can run the room: owner, co-facilitator, team owner or admin, super admin */
+    canManage?: boolean;
+    /** can change co-facilitators and hand the room over */
+    canManageOwnership?: boolean;
 }
 
 /** A room as returned by GET /me/rooms */
@@ -26,10 +34,13 @@ export interface RoomSummary {
     room_id: number;
     room_name: string;
     created_at: string;
+    /** when the planning session happens, an ISO timestamp */
+    scheduled_at?: string;
     admin_id: number;
     friendly_name: string;
-    /** the current user created this room */
+    /** the current user created this room, or manages it as a team admin or super admin */
     is_admin?: boolean;
+    team_id?: number | null;
     favourite?: boolean;
     hidden?: boolean;
     /** when the current user last joined, null if never */

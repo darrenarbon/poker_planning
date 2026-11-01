@@ -2,6 +2,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import ErrorAlert from '../../../../components/ErrorAlert';
 import Loading from '../../../../components/Loading';
 import NavBar from '../../../../components/NavBar';
+import { useMyTeams } from '../../../../hooks';
 import { paths } from '../../../../routes';
 import { useUserRooms } from '../../hooks';
 import { pokerPaths } from '../../routes';
@@ -12,6 +13,8 @@ import RoomLists from './components/RoomLists';
 const RoomsPage = () => {
     const { user, isAuthenticated, isLoading } = useAuth0();
     const { rooms, loaded, error, toggleFavourite } = useUserRooms();
+    const { teams } = useMyTeams();
+    const teamNames = Object.fromEntries(teams.map((t) => [t.team_id, t.name]));
 
     const renderContent = () => {
         if (isLoading) {
@@ -26,7 +29,7 @@ const RoomsPage = () => {
         return (
             <div className="dashboard">
                 <a className="small" href={paths.home}>
-                    &larr; All apps
+                    &larr; Dashboard
                 </a>
                 <header className="d-flex flex-wrap align-items-center justify-content-between gap-3 mt-2 mb-2">
                     <div>
@@ -50,7 +53,11 @@ const RoomsPage = () => {
                         </a>
                     </div>
                 </header>
-                <RoomLists rooms={rooms} onToggleFavourite={toggleFavourite} />
+                <RoomLists
+                    rooms={rooms}
+                    onToggleFavourite={toggleFavourite}
+                    teamNames={teamNames}
+                />
             </div>
         );
     };

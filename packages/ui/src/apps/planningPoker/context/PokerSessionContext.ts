@@ -64,6 +64,8 @@ export interface PokerSessionContextValue {
     toggleFavourite: () => Promise<void>;
     /** facilitator only: hide a finished room from everyone's lists, or bring it back */
     setRoomHidden: (hidden: boolean) => Promise<void>;
+    /** facilitator only: move the planning session to another date and time (ISO) */
+    updateSchedule: (scheduledAt: string) => Promise<boolean>;
     setEstimate: (estimate: number) => void;
     addTicket: (ticketNumber: string) => Promise<void>;
     /** facilitator only: move a ticket to a position in the list, for everyone */

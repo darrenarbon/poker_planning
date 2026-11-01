@@ -26,6 +26,18 @@ export const findUsersByIds = async (userIds: number[]): Promise<User[]> => {
     return data ?? [];
 };
 
+/** Finds a user by email, ignoring case. */
+export const findUserByEmail = async (
+    email: string
+): Promise<User | undefined> => {
+    const { data, error } = await supabase
+        .from('user')
+        .select()
+        .in('email', [...new Set([email, email.toLowerCase()])]);
+    assertNoDbError(error, 'Error fetching user');
+    return data?.[0];
+};
+
 export const createUser = async (user: NewUser) => {
     const { error } = await supabase.from('user').insert(user);
     assertNoDbError(error, 'Error creating user');

@@ -51,11 +51,35 @@ export const findRoomsByAdmin = async (adminId: number): Promise<Room[]> => {
     return data ?? [];
 };
 
+/** Every room, for super admins. */
+export const findAllRooms = async (): Promise<Room[]> => {
+    const { data, error } = await supabase
+        .from('room')
+        .select()
+        .order('created_at', { ascending: false });
+    assertNoDbError(error, 'Error fetching rooms');
+    return data ?? [];
+};
+
+export const findRoomsByTeamIds = async (
+    teamIds: number[]
+): Promise<Room[]> => {
+    if (!teamIds.length) return [];
+    const { data, error } = await supabase
+        .from('room')
+        .select()
+        .in('team_id', teamIds)
+        .order('created_at', { ascending: false });
+    assertNoDbError(error, 'Error fetching team rooms');
+    return data ?? [];
+};
+
 export const createRoom = async (
     room: Pick<
         Room,
         'room_name' | 'admin_id' | 'friendly_name' | 'ticket_base_url'
-    >
+    > &
+        Partial<Pick<Room, 'team_id' | 'scheduled_at'>>
 ): Promise<Room> => {
     const { data, error } = await supabase.from('room').insert(room).select();
     assertNoDbError(error, 'Error creating room');
@@ -86,6 +110,16 @@ export const addUserToRoom = async (roomId: number, userId: number) => {
         .from('room_users')
         .insert({ room_id: roomId, user_id: userId });
     assertNoDbError(error, 'Error adding user to room');
+};
+
+/** Adds several users at once, leaving anyone already in the room alone. */
+export const addUsersToRoom = async (roomId: number, userIds: number[]) => {
+    if (!userIds.length) return;
+    const { error } = await supabase.from('room_users').upsert(
+        userIds.map((user_id) => ({ room_id: roomId, user_id })),
+        { onConflict: 'room_id,user_id', ignoreDuplicates: true }
+    );
+    assertNoDbError(error, 'Error adding users to room');
 };
 
 export const findUsersInRoom = async (roomId: number): Promise<User[]> => {
@@ -140,6 +174,17 @@ export const updateMembership = async (
         .eq('room_id', roomId)
         .eq('user_id', userId);
     assertNoDbError(error, 'Error updating room membership');
+};
+
+export const updateRoomScheduledAt = async (
+    roomId: number,
+    scheduledAt: string
+) => {
+    const { error } = await supabase
+        .from('room')
+        .update({ scheduled_at: scheduledAt })
+        .eq('room_id', roomId);
+    assertNoDbError(error, 'Error updating room');
 };
 
 export const updateRoomHidden = async (roomId: number, hidden: boolean) => {

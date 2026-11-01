@@ -44,6 +44,37 @@ To add an app: create `packages/ui/src/apps/<app>/`, register it in
 create `packages/api/src/apps/<app>/` and mount its router in
 `packages/api/src/routes/index.ts`.
 
+## Teams and roles
+
+Teams are shared by every app. A user can be in several teams, with a
+different role in each:
+
+| Role        | Can do                                                                                          |
+| ----------- | ----------------------------------------------------------------------------------------------- |
+| Owner       | Everything in the team: change roles, hand the team over, delete it. There is exactly one.      |
+| Admin       | Add and remove plain members, create invite links, rename the team, manage the team's rooms.    |
+| Member      | See the team and create rooms for it.                                                           |
+| Super admin | Sees and manages every team and room, in or out of a team (a flag on the user, not a team role) |
+
+Rooms can belong to a team. Whoever creates one picks the team and which of
+its members to bring in (and who co-facilitates); a team's owner and admins
+can see and run all of its rooms. Rooms with no team work as before, joined
+by link.
+
+People get into a team by creating one (they become its owner), by opening an
+invite link (`/invite/<token>`, expires after 7 days by default and can be
+revoked), by being added by email once they have logged in, or by a super
+admin.
+
+### Making someone a super admin
+
+There is deliberately no UI for this. Run it against the database, for
+example in Supabase Studio:
+
+```sql
+update public."user" set is_super_admin = true where email = 'you@example.com';
+```
+
 ## Getting started
 
 Needs Node 22+, pnpm 9 (`corepack enable` picks the right version) and, for
@@ -70,7 +101,11 @@ pnpm db:start
 ```
 
 This starts Supabase in Docker, applies `supabase/migrations` and loads
-`supabase/seed.sql` (a `demo-room` room with a few tickets). Then point the
+`supabase/seed.sql`: a super admin, Platform and Design teams with members in
+each role (one person is in both), people with no team, team rooms with
+tickets, and sample invite links such as `/invite/seed-platform-invite`.
+The seeded people have fake logins, so log in yourself and use an invite link
+to join a team. Then point the
 API at it in `packages/api/.env`:
 
 ```
