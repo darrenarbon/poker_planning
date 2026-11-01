@@ -483,9 +483,36 @@ const SprintPage = () => {
                                             <button
                                                 type="button"
                                                 className="btn btn-outline-primary btn-sm"
-                                                onClick={() => {
+                                                onClick={async () => {
                                                     setLeaveFor(null);
-                                                    load();
+                                                    // a closed sprint's days are fixed, so
+                                                    // saving it as it is recalculates them
+                                                    if (
+                                                        sprint.status ===
+                                                        'closed'
+                                                    ) {
+                                                        await act(
+                                                            () =>
+                                                                api.updateSprint(
+                                                                    teamId,
+                                                                    sprint.sprintId,
+                                                                    {
+                                                                        ...sprint,
+                                                                        memberIds:
+                                                                            sprint.memberIds,
+                                                                        plannedPoints:
+                                                                            sprint.plannedPoints ??
+                                                                            undefined,
+                                                                        completedPoints:
+                                                                            sprint.completedPoints ??
+                                                                            undefined,
+                                                                    }
+                                                                ),
+                                                            'Could not recalculate the sprint.'
+                                                        );
+                                                    } else {
+                                                        load();
+                                                    }
                                                 }}
                                             >
                                                 Done, recalculate

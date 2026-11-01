@@ -9,6 +9,8 @@ import {
     TeamMemberInfo,
 } from '../../../types';
 import ForecastCard from './ForecastCard';
+import QuickLeave from './QuickLeave';
+import { formatNumber } from '../sprintLabels';
 
 export type SprintFormMode = 'plan' | 'history';
 
@@ -66,15 +68,17 @@ const SprintForm = ({
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [forecast, setForecast] = useState<SprintForecast | null>(null);
+    // whose leave is being added, and a nudge to refetch once some is
+    const [leaveFor, setLeaveFor] = useState<number | null>(null);
+    const [leaveVersion, setLeaveVersion] = useState(0);
 
     const bufferValue = toNumber(buffer);
     const carryValue = toNumber(carryPoints);
     const datesOk = !!startDate && !!endDate && endDate >= startDate;
 
-    // a live forecast while planning, for the dates and people picked
+    // a live forecast for the dates and people picked, which also shows their leave
     useEffect(() => {
         if (
-            showResults ||
             !datesOk ||
             !memberIds.length ||
             Number.isNaN(bufferValue) ||
@@ -102,7 +106,7 @@ const SprintForm = ({
     }, [
         api,
         teamId,
-        showResults,
+        leaveVersion,
         datesOk,
         startDate,
         endDate,
@@ -226,31 +230,79 @@ const SprintForm = ({
                 <div className="col-12">
                     <div className="form-label mb-1">Who is in the sprint</div>
                     <div className="row g-2">
-                        {members.map((m) => (
-                            <div className="col-sm-6 col-lg-4" key={m.userId}>
-                                <div className="form-check">
-                                    <input
-                                        id={`member-${m.userId}`}
-                                        type="checkbox"
-                                        className="form-check-input"
-                                        checked={memberIds.includes(m.userId)}
-                                        onChange={() => toggle(m.userId)}
-                                    />
-                                    <label
-                                        htmlFor={`member-${m.userId}`}
-                                        className="form-check-label"
-                                    >
-                                        {memberName(m)}
-                                        {m.jobTitle && (
+                        {members.map((m) => {
+                            const person = forecast?.people.find(
+                                (p) => p.userId === m.userId
+                            );
+                            const picked = memberIds.includes(m.userId);
+                            return (
+                                <div className="col-12 col-lg-6" key={m.userId}>
+                                    <div className="d-flex flex-wrap align-items-center gap-2">
+                                        <div className="form-check mb-0 flex-grow-1">
+                                            <input
+                                                id={`member-${m.userId}`}
+                                                type="checkbox"
+                                                className="form-check-input"
+                                                checked={picked}
+                                                onChange={() =>
+                                                    toggle(m.userId)
+                                                }
+                                            />
+                                            <label
+                                                htmlFor={`member-${m.userId}`}
+                                                className="form-check-label"
+                                            >
+                                                {memberName(m)}
+                                                {m.jobTitle && (
+                                                    <span className="small text-secondary">
+                                                        {' '}
+                                                        ·{' '}
+                                                        {jobTitleLabel(
+                                                            m.jobTitle
+                                                        )}
+                                                    </span>
+                                                )}
+                                            </label>
+                                        </div>
+                                        {picked && person && (
                                             <span className="small text-secondary">
-                                                {' '}
-                                                · {jobTitleLabel(m.jobTitle)}
+                                                {person.leaveDays > 0
+                                                    ? `${formatNumber(person.leaveDays)} days leave`
+                                                    : 'no leave'}
                                             </span>
                                         )}
-                                    </label>
+                                        {picked && datesOk && (
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-outline-secondary"
+                                                aria-label={`Add leave for ${memberName(m)}`}
+                                                onClick={() =>
+                                                    setLeaveFor(
+                                                        leaveFor === m.userId
+                                                            ? null
+                                                            : m.userId
+                                                    )
+                                                }
+                                            >
+                                                Add leave
+                                            </button>
+                                        )}
+                                    </div>
+                                    {leaveFor === m.userId && datesOk && (
+                                        <QuickLeave
+                                            userId={m.userId}
+                                            name={memberName(m)}
+                                            startDate={startDate}
+                                            endDate={endDate}
+                                            onAdded={() =>
+                                                setLeaveVersion((v) => v + 1)
+                                            }
+                                            onClose={() => setLeaveFor(null)}
+                                        />
+                                    )}
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -345,12 +397,11 @@ const SprintForm = ({
 
             {showResults && (
                 <p className="text-secondary small mt-3 mb-0">
-                    Leave for these people between those dates counts towards
-                    the sprint&apos;s available days, so make sure their annual
-                    leave has been added.
+                    Leave between those dates counts towards the sprint&apos;s
+                    available days. Use Add leave beside anyone who was away.
                 </p>
             )}
-            {forecast && (
+            {forecast && !showResults && (
                 <div className="mt-3">
                     <ForecastCard forecast={forecast} />
                 </div>

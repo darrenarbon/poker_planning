@@ -5,8 +5,9 @@ import { TeamMemberInfo } from '../../../types';
 import SprintForm from './SprintForm';
 
 const getSprintForecast = vi.fn();
+const addHoliday = vi.fn();
 vi.mock('../../../hooks', () => ({
-    useApi: () => ({ getSprintForecast }),
+    useApi: () => ({ getSprintForecast, addHoliday }),
 }));
 
 const member = (
@@ -47,18 +48,25 @@ describe('SprintForm', () => {
         vi.clearAllMocks();
         onSave.mockResolvedValue(true);
         getSprintForecast.mockResolvedValue(null);
+        addHoliday.mockResolvedValue({});
     });
 
     it('starts with everyone picked and shows their job titles', () => {
         renderForm();
-        expect(screen.getByLabelText(/Ada Smith/)).toBeChecked();
-        expect(screen.getByLabelText(/Bob Smith/)).toBeChecked();
+        expect(
+            screen.getByRole('checkbox', { name: /Ada Smith/ })
+        ).toBeChecked();
+        expect(
+            screen.getByRole('checkbox', { name: /Bob Smith/ })
+        ).toBeChecked();
         expect(screen.getByText(/Lead Developer/)).toBeInTheDocument();
     });
 
     it('saves the sprint with the buffer, carry-over and people chosen', async () => {
         renderForm();
-        await userEvent.click(screen.getByLabelText(/Bob Smith/));
+        await userEvent.click(
+            screen.getByRole('checkbox', { name: /Bob Smith/ })
+        );
         await userEvent.clear(screen.getByLabelText('Buffer (%)'));
         await userEvent.type(screen.getByLabelText('Buffer (%)'), '15');
         await userEvent.clear(screen.getByLabelText('Carried-over points'));
@@ -104,8 +112,12 @@ describe('SprintForm', () => {
 
     it('will not save without anyone in the sprint', async () => {
         renderForm();
-        await userEvent.click(screen.getByLabelText(/Ada Smith/));
-        await userEvent.click(screen.getByLabelText(/Bob Smith/));
+        await userEvent.click(
+            screen.getByRole('checkbox', { name: /Ada Smith/ })
+        );
+        await userEvent.click(
+            screen.getByRole('checkbox', { name: /Bob Smith/ })
+        );
         await userEvent.click(
             screen.getByRole('button', { name: 'Create sprint' })
         );
@@ -123,6 +135,33 @@ describe('SprintForm', () => {
         );
         expect(await screen.findByRole('alert')).toHaveTextContent(
             'Could not save the sprint'
+        );
+    });
+
+    it("adds someone's leave inside the sprint window and refreshes the forecast", async () => {
+        renderForm({ mode: 'history' });
+        await screen.findByRole('button', { name: 'Add leave for Ada Smith' });
+        const calls = getSprintForecast.mock.calls.length;
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Add leave for Ada Smith' })
+        );
+        await userEvent.selectOptions(screen.getByLabelText('Days'), 'am');
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Add leave', hidden: false })
+        );
+        expect(addHoliday).toHaveBeenCalledWith(
+            {
+                startDate: '2026-11-02',
+                endDate: '2026-11-02',
+                dayPart: 'am',
+                reason: 'annual_leave',
+            },
+            1
+        );
+        // adding leave does not submit the sprint
+        expect(onSave).not.toHaveBeenCalled();
+        await vi.waitFor(() =>
+            expect(getSprintForecast.mock.calls.length).toBeGreaterThan(calls)
         );
     });
 });
