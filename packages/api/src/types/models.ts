@@ -107,11 +107,28 @@ export interface Team {
     created_at: string;
 }
 
+export const JOB_TITLES = [
+    'developer',
+    'lead_developer',
+    'product_manager',
+    'business_analyst',
+    'qa_engineer',
+    'engineering_manager',
+    'scrum_master',
+    'designer',
+    'principal_developer',
+    'other',
+] as const;
+
+/** What someone does in a team */
+export type JobTitle = (typeof JOB_TITLES)[number];
+
 export interface TeamMember {
     team_id: number;
     user_id: number;
     role: TeamRole;
     joined_at: string;
+    job_title: JobTitle | null;
 }
 
 /** A link that adds whoever opens it to a team */
@@ -175,4 +192,46 @@ export type NewHoliday = Omit<Holiday, 'holiday_id' | 'created_at'>;
 export type HolidayInput = Pick<
     Holiday,
     'start_date' | 'end_date' | 'day_part' | 'reason' | 'note'
+>;
+
+export const SPRINT_STATUSES = ['planned', 'active', 'closed'] as const;
+
+export type SprintStatus = (typeof SPRINT_STATUSES)[number];
+
+/** A row of sprint. Dates are calendar days, YYYY-MM-DD, with no time zone. */
+export interface Sprint {
+    sprint_id: number;
+    team_id: number;
+    name: string;
+    start_date: string;
+    end_date: string;
+    status: SprintStatus;
+    buffer_percent: number;
+    carried_over_points: number;
+    carried_over_tickets: number;
+    planned_points: number | null;
+    completed_points: number | null;
+    available_person_days: number | null;
+    created_by: number | null;
+    created_at: string;
+    closed_at: string | null;
+}
+
+export type NewSprint = Omit<
+    Sprint,
+    'sprint_id' | 'created_at' | 'closed_at' | 'available_person_days'
+> &
+    Partial<Pick<Sprint, 'available_person_days' | 'closed_at'>>;
+
+/** What a sprint's managers can change */
+export type SprintInput = Pick<
+    Sprint,
+    | 'name'
+    | 'start_date'
+    | 'end_date'
+    | 'buffer_percent'
+    | 'carried_over_points'
+    | 'carried_over_tickets'
+    | 'planned_points'
+    | 'completed_points'
 >;

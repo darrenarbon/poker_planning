@@ -27,10 +27,10 @@ const expectAppTiles = () => {
     expect(
         screen.getByRole('link', { name: 'Planning Poker' })
     ).toHaveAttribute('href', '/poker');
-    // apps that are not ready are not advertised
     expect(
-        screen.queryByRole('link', { name: 'Sprint Capacity Planner' })
-    ).not.toBeInTheDocument();
+        screen.getByRole('link', { name: 'Sprint Capacity Planner' })
+    ).toHaveAttribute('href', '/capacity');
+    // apps that are not ready are not advertised
     expect(
         screen.queryByRole('link', { name: 'Skills Matrix' })
     ).not.toBeInTheDocument();

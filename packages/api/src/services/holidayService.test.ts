@@ -366,8 +366,8 @@ describe('getTeamAbsences', () => {
     beforeEach(() => {
         vi.mocked(teamRepository.findTeamById).mockResolvedValue(makeTeam());
         vi.mocked(teamRepository.findMembers).mockResolvedValue([
-            { role: 'owner', joined_at: '', user: me },
-            { role: 'member', joined_at: '', user: colleague },
+            { role: 'owner', joined_at: '', job_title: null, user: me },
+            { role: 'member', joined_at: '', job_title: null, user: colleague },
         ]);
     });
 
@@ -402,8 +402,8 @@ describe('getTeamLeave', () => {
     beforeEach(() => {
         vi.mocked(teamRepository.findTeamById).mockResolvedValue(makeTeam());
         vi.mocked(teamRepository.findMembers).mockResolvedValue([
-            { role: 'owner', joined_at: '', user: me },
-            { role: 'member', joined_at: '', user: colleague },
+            { role: 'owner', joined_at: '', job_title: null, user: me },
+            { role: 'member', joined_at: '', job_title: null, user: colleague },
         ]);
         vi.mocked(holidayRepository.findHolidaysInRange).mockResolvedValue([
             holiday({ user_id: 2 }),

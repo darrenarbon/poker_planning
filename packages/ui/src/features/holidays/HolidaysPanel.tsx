@@ -35,10 +35,19 @@ const blankForm = (): FormState => ({
     note: '',
 });
 
-/** Lets the user add, change and remove their own time off */
-const HolidaysPanel = () => {
+type HolidaysPanelProps = {
+    /** whose leave to manage: someone else's when an owner or admin acts for them */
+    userId?: number;
+    heading?: string;
+};
+
+/** Lets the user add, change and remove their own time off, or someone else's */
+const HolidaysPanel = ({
+    userId,
+    heading = 'Annual leave',
+}: HolidaysPanelProps) => {
     const { holidays, loaded, error, add, update, remove, importBankHolidays } =
-        useHolidays();
+        useHolidays(userId);
     const [form, setForm] = useState<FormState>(blankForm);
     const [editing, setEditing] = useState<number | null>(null);
     const [region, setRegion] =
@@ -153,7 +162,7 @@ const HolidaysPanel = () => {
     return (
         <section aria-labelledby="holiday-settings" className="mb-5">
             <h2 className="h4 fw-bold mb-3" id="holiday-settings">
-                Annual leave
+                {heading}
             </h2>
             <ErrorAlert message={error} />
             {confirmModal}

@@ -2,8 +2,9 @@ import { randomBytes } from 'crypto';
 
 import * as teamRepository from '../repositories/teamRepository.js';
 import * as userRepository from '../repositories/userRepository.js';
-import { TEAM_ROLES } from '../types/models.js';
+import { JOB_TITLES, TEAM_ROLES } from '../types/models.js';
 import type {
+    JobTitle,
     Team,
     TeamInvite,
     TeamRole,
@@ -177,7 +178,7 @@ export const getTeamDetails = async (teamId: number, userSub: string) => {
         isSuperAdmin: access.isSuperAdmin,
         canManage: access.isManager,
         canChangeRoles: access.isOwner,
-        members: members.map(({ role, joined_at, user }) => ({
+        members: members.map(({ role, joined_at, job_title, user }) => ({
             userId: user.user_id,
             sub: user.auth0_sub,
             email: user.email,
@@ -187,6 +188,7 @@ export const getTeamDetails = async (teamId: number, userSub: string) => {
             picture: user.picture,
             role,
             joinedAt: joined_at,
+            jobTitle: job_title,
         })),
     };
 };
@@ -252,6 +254,35 @@ export const addMemberByEmail = async (
         );
     }
     await addIfNew(teamId, target, role);
+};
+
+/**
+ * Sets what someone does in the team, or clears it with null. People can set
+ * their own; owners, admins and super admins can set anyone's.
+ */
+export const changeMemberJobTitle = async (
+    teamId: number,
+    userSub: string,
+    targetUserId: number,
+    jobTitle: unknown
+) => {
+    const access = await getAccess(teamId, userSub);
+    if (!access.isManager && access.user.user_id !== targetUserId) {
+        throw new AppError(
+            403,
+            "Only a team owner or admin can set someone else's job title"
+        );
+    }
+    if (jobTitle !== null && !JOB_TITLES.includes(jobTitle as JobTitle)) {
+        throw new AppError(400, 'jobTitle is not one we know about');
+    }
+    const target = await teamRepository.findMember(teamId, targetUserId);
+    if (!target) throw notFound('That person is not in the team');
+    await teamRepository.updateMemberJobTitle(
+        teamId,
+        targetUserId,
+        jobTitle as JobTitle | null
+    );
 };
 
 /** Owners (and super admins) promote and demote; the owner's role is fixed. */

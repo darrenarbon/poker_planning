@@ -1,5 +1,6 @@
 import { supabase } from '../db/supabase.js';
 import type {
+    JobTitle,
     Team,
     TeamInvite,
     TeamMember,
@@ -16,6 +17,7 @@ export interface MembershipWithTeam {
 export interface MemberWithUser {
     role: TeamRole;
     joined_at: string;
+    job_title: JobTitle | null;
     user: User;
 }
 
@@ -102,7 +104,7 @@ export const findMembers = async (
 ): Promise<MemberWithUser[]> => {
     const { data, error } = await supabase
         .from('team_member')
-        .select('role, joined_at, user:user_id(*)')
+        .select('role, joined_at, job_title, user:user_id(*)')
         .eq('team_id', teamId)
         .order('joined_at');
     assertNoDbError(error, 'Error fetching team members');
@@ -148,6 +150,19 @@ export const updateMemberRole = async (
         .eq('team_id', teamId)
         .eq('user_id', userId);
     assertNoDbError(error, 'Error changing team role');
+};
+
+export const updateMemberJobTitle = async (
+    teamId: number,
+    userId: number,
+    jobTitle: JobTitle | null
+) => {
+    const { error } = await supabase
+        .from('team_member')
+        .update({ job_title: jobTitle })
+        .eq('team_id', teamId)
+        .eq('user_id', userId);
+    assertNoDbError(error, 'Error saving job title');
 };
 
 export const removeMember = async (teamId: number, userId: number) => {

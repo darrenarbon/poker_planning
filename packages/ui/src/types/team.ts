@@ -19,6 +19,22 @@ export interface MyTeams {
     isSuperAdmin: boolean;
 }
 
+export const JOB_TITLES = [
+    'developer',
+    'lead_developer',
+    'product_manager',
+    'business_analyst',
+    'qa_engineer',
+    'engineering_manager',
+    'scrum_master',
+    'designer',
+    'principal_developer',
+    'other',
+] as const;
+
+/** What someone does in a team */
+export type JobTitle = (typeof JOB_TITLES)[number];
+
 export interface TeamMemberInfo {
     userId: number;
     sub: string;
@@ -29,6 +45,7 @@ export interface TeamMemberInfo {
     picture?: string;
     role: TeamRole;
     joinedAt: string;
+    jobTitle: JobTitle | null;
 }
 
 /** A team as returned by GET /teams/:teamId */

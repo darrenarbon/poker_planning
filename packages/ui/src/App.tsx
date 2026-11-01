@@ -5,6 +5,8 @@ import PlanningPokerRoutes from './apps/planningPoker/PlanningPokerRoutes';
 import SkillsMatrixPage from './apps/skillsMatrix/SkillsMatrixPage';
 import { skillsPaths } from './apps/skillsMatrix/routes';
 import SprintCapacityPage from './apps/sprintCapacity/SprintCapacityPage';
+import SprintPage from './apps/sprintCapacity/SprintPage';
+import TeamCapacityPage from './apps/sprintCapacity/TeamCapacityPage';
 import { capacityPaths } from './apps/sprintCapacity/routes';
 import AuthProvider from './components/AuthProvider';
 import RequireLogin from './components/RequireLogin';
@@ -77,7 +79,27 @@ const App = () => (
                 {PlanningPokerRoutes()}
                 <Route
                     path={capacityPaths.home}
-                    element={<SprintCapacityPage />}
+                    element={
+                        <RequireLogin>
+                            <SprintCapacityPage />
+                        </RequireLogin>
+                    }
+                />
+                <Route
+                    path={capacityPaths.team}
+                    element={
+                        <RequireLogin>
+                            <TeamCapacityPage />
+                        </RequireLogin>
+                    }
+                />
+                <Route
+                    path={capacityPaths.sprint}
+                    element={
+                        <RequireLogin>
+                            <SprintPage />
+                        </RequireLogin>
+                    }
                 />
                 <Route path={skillsPaths.home} element={<SkillsMatrixPage />} />
             </Routes>

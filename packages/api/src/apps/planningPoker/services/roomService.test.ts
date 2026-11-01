@@ -595,9 +595,9 @@ describe('rooms that belong to a team', () => {
                 makeTeamMember({ user_id: user.user_id })
             );
             vi.mocked(teamRepository.findMembers).mockResolvedValue([
-                { role: 'owner', joined_at: 'j', user },
-                { role: 'member', joined_at: 'j', user: teammate },
-                { role: 'member', joined_at: 'j', user: other },
+                { role: 'owner', joined_at: 'j', job_title: null, user },
+                { role: 'member', joined_at: 'j', job_title: null, user: teammate },
+                { role: 'member', joined_at: 'j', job_title: null, user: other },
             ]);
         });
 

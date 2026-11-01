@@ -8,13 +8,20 @@ import { ApiError } from '../../services/api';
 import { useApi, useConfirm } from '../../hooks';
 import {
     AssignableTeamRole,
+    JOB_TITLES,
+    JobTitle,
     TeamDetails,
     TeamInvite,
     TeamMemberInfo,
 } from '../../types';
 import { invitePath, paths } from '../../routes';
 import WhosAway from './WhosAway';
-import { formatDate, memberName, roleLabels } from './teamLabels';
+import {
+    formatDate,
+    jobTitleLabels,
+    memberName,
+    roleLabels,
+} from './teamLabels';
 
 const inviteUrl = (token: string) =>
     `${window.location.origin}${invitePath(token)}`;
@@ -252,6 +259,52 @@ const TeamPage = () => {
                                                     </div>
                                                 )}
                                             </div>
+                                            {canManage || isMe(m) ? (
+                                                <select
+                                                    className="form-select form-select-sm w-auto"
+                                                    aria-label={`Job title for ${memberName(m)}`}
+                                                    value={m.jobTitle ?? ''}
+                                                    onChange={(e) =>
+                                                        act(
+                                                            () =>
+                                                                api.changeMemberJobTitle(
+                                                                    teamId,
+                                                                    m.userId,
+                                                                    (e.target
+                                                                        .value ||
+                                                                        null) as JobTitle | null
+                                                                ),
+                                                            'Could not save that job title.'
+                                                        )
+                                                    }
+                                                >
+                                                    <option value="">
+                                                        No job title
+                                                    </option>
+                                                    {JOB_TITLES.map((title) => (
+                                                        <option
+                                                            key={title}
+                                                            value={title}
+                                                        >
+                                                            {
+                                                                jobTitleLabels[
+                                                                    title
+                                                                ]
+                                                            }
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                m.jobTitle && (
+                                                    <span className="small text-secondary">
+                                                        {
+                                                            jobTitleLabels[
+                                                                m.jobTitle
+                                                            ]
+                                                        }
+                                                    </span>
+                                                )
+                                            )}
                                             {canChangeRoles &&
                                             m.role !== 'owner' ? (
                                                 <select
