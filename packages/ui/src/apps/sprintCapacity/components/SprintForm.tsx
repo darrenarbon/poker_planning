@@ -271,7 +271,7 @@ const SprintForm = ({
                                                     : 'no leave'}
                                             </span>
                                         )}
-                                        {picked && datesOk && (
+                                        {picked && (
                                             <button
                                                 type="button"
                                                 className="btn btn-sm btn-outline-secondary"
@@ -288,6 +288,13 @@ const SprintForm = ({
                                             </button>
                                         )}
                                     </div>
+                                    {leaveFor === m.userId && !datesOk && (
+                                        <div className="small text-secondary mt-2">
+                                            Pick the sprint&apos;s start and end
+                                            dates first, then add leave within
+                                            them.
+                                        </div>
+                                    )}
                                     {leaveFor === m.userId && datesOk && (
                                         <QuickLeave
                                             userId={m.userId}

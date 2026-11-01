@@ -164,4 +164,15 @@ describe('SprintForm', () => {
             expect(getSprintForecast.mock.calls.length).toBeGreaterThan(calls)
         );
     });
+
+    it('offers Add leave before the dates are filled in, and asks for them', async () => {
+        renderForm({ mode: 'history', initial: { name: 'Sprint 1' } });
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Add leave for Ada Smith' })
+        );
+        expect(
+            screen.getByText(/Pick the sprint's start and end dates first/)
+        ).toBeInTheDocument();
+        expect(screen.queryByLabelText('Leave from')).not.toBeInTheDocument();
+    });
 });
